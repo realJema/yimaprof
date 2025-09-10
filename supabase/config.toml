@@ -1,1 +1,30 @@
 project_id = "nrcdtxgmlhxbtfppxqop"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[functions.mesomb-payment]
+verify_jwt = true
+
+[functions.check-payment-status]
+verify_jwt = true

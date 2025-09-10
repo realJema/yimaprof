@@ -15,6 +15,8 @@ import ExamViewer from "./pages/ExamViewer";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Subscriptions from "./pages/Subscriptions";
+import Payment from "./pages/Payment";
+import PaymentProcessing from "./pages/PaymentProcessing";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +41,8 @@ const App = () => (
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
+                  <Route path="/payment" element={<Payment />} />
+                  <Route path="/payment-processing" element={<PaymentProcessing />} />
                   <Route path="/admin" element={<Admin />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

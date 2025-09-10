@@ -79,60 +79,8 @@ export default function Subscriptions() {
       return;
     }
 
-    setSubscribing(planId);
-    
-    try {
-      // Use the database function to handle plan transition
-      const { data, error } = await supabase.rpc('transition_subscription_plan', {
-        p_user_id: user.id,
-        p_new_plan_id: planId
-      });
-
-      if (error) throw error;
-
-      // Type assertion for the RPC response
-      const result = data as { success: boolean; error?: string; cancelled_subscription_id?: string; new_subscription_id: string; message: string };
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to transition subscription plan');
-      }
-
-      const selectedPlan = plans.find(p => p.id === planId);
-      const isUpgrade = userSubscription && 
-        selectedPlan && 
-        userSubscription.subscription_plans.price < selectedPlan.price;
-      
-      const isDowngrade = userSubscription && 
-        selectedPlan && 
-        userSubscription.subscription_plans.price > selectedPlan.price;
-
-      let description = `You have successfully subscribed to the ${selectedPlan?.name} plan`;
-      
-      if (isUpgrade) {
-        description = `Successfully upgraded to ${selectedPlan?.name} plan!`;
-      } else if (isDowngrade) {
-        description = `Successfully changed to ${selectedPlan?.name} plan!`;
-      } else if (userSubscription) {
-        description = `Successfully switched to ${selectedPlan?.name} plan!`;
-      }
-
-      toast({
-        title: 'Success!',
-        description: description,
-      });
-
-      // Refresh subscription immediately
-      await refreshSubscription();
-      setSubscribing(null);
-    } catch (error) {
-      console.error('Subscription error:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to process subscription. Please try again.',
-        variant: 'destructive',
-      });
-      setSubscribing(null);
-    }
+    // Navigate to payment page with plan ID
+    window.location.href = `/payment?planId=${planId}`;
   };
 
   const formatPrice = (price: number, currency: string) => {
