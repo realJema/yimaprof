@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +30,7 @@ interface Exam {
   exam_type?: string;
   description?: string;
   language?: string;
-  content?: any; // JSON content
+  content?: any; // JSON content with questions and potentially answers
   created_at: string;
   classes?: {
     id: string;
@@ -37,12 +39,6 @@ interface Exam {
     section: string;
     level: string;
   };
-}
-
-interface Correction {
-  id: string;
-  title: string;
-  content: string | any; // Handle JSON content
 }
 
 interface UserAnswer {
@@ -64,7 +60,6 @@ export default function ExamViewer() {
   const mode = searchParams.get('mode') || 'preview';
   
   const [exam, setExam] = useState<Exam | null>(null);
-  const [correction, setCorrection] = useState<Correction | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(mode);
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
@@ -146,27 +141,21 @@ export default function ExamViewer() {
     try {
       const { data: examData, error: examError } = await supabase
         .from('exams')
-        .select('*')
+        .select(`
+          *,
+          classes (
+            id,
+            name,
+            display_name,
+            section,
+            level
+          )
+        `)
         .eq('id', examId)
         .single();
 
       if (examError) throw examError;
       setExam(examData);
-
-      // Fetch correction
-      const { data: correctionData } = await supabase
-        .from('corrections')
-        .select('*')
-        .eq('exam_id', examId)
-        .eq('is_published', true)
-        .single();
-
-      if (correctionData) {
-        setCorrection({
-          ...correctionData,
-          content: typeof correctionData.content === 'string' ? correctionData.content : JSON.stringify(correctionData.content)
-        });
-      }
     } catch (error) {
       toast({
         title: t('error'),
@@ -239,12 +228,17 @@ export default function ExamViewer() {
     });
   };
 
-  const renderJsonContent = (content: any) => {
+  const renderJsonContent = (content: any, showAnswers = false) => {
     if (!content) return null;
     
     // Handle both old string format and new JSON format
     if (typeof content === 'string') {
       return <div className="prose max-w-none">{renderMarkdown(content)}</div>;
+    }
+    
+    // Handle raw text wrapped content
+    if (content.raw_text) {
+      return <div className="prose max-w-none">{renderMarkdown(content.raw_text)}</div>;
     }
     
     // Handle JSON format
@@ -276,6 +270,42 @@ export default function ExamViewer() {
               {question.marks && (
                 <p className="text-sm text-gray-600 mt-2 font-medium">[{question.marks} marks]</p>
               )}
+              
+              {/* Show input boxes in evaluation mode */}
+              {mode === 'evaluation' && isTimerActive && !showResults && (
+                <div className="mt-4 pt-4 border-t">
+                  <label className="block text-sm font-medium mb-2">Your Answer:</label>
+                  <Textarea
+                    placeholder="Enter your answer here..."
+                    value={userAnswers.find(a => a.questionIndex === index)?.answer || ''}
+                    onChange={(e) => handleAnswerChange(index, e.target.value)}
+                    className="w-full"
+                    rows={4}
+                  />
+                </div>
+              )}
+              
+              {/* Show answers in correction mode */}
+              {showAnswers && content.answers && (
+                <div className="mt-4 pt-4 border-t bg-green-50 p-4 rounded">
+                  <h4 className="font-semibold text-green-800 mb-2">Answer:</h4>
+                  {(() => {
+                    const answer = content.answers.find((ans: any) => ans.question_id === question.id);
+                    return answer ? (
+                      <div className="text-green-700">
+                        {answer.solutions && answer.solutions.map((solution: any, solIndex: number) => (
+                          <div key={solIndex} className="mb-3 last:mb-0">
+                            {solution.part && <p className="font-medium mb-1">Part {solution.part}:</p>}
+                            <pre className="whitespace-pre-wrap text-sm">{solution.solution}</pre>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-green-600">No answer available</p>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -283,59 +313,6 @@ export default function ExamViewer() {
     }
     
     return <p className="text-muted-foreground">No content available.</p>;
-  };
-
-  const renderCorrectionContent = (correction: any) => {
-    if (!correction || !correction.content) return null;
-    
-    const content = typeof correction.content === 'string' 
-      ? JSON.parse(correction.content) 
-      : correction.content;
-
-    if (!content.questions || !content.answers) return null;
-
-    return (
-      <div className="space-y-8">
-        {content.questions.map((question: any, index: number) => {
-          // Find the corresponding answer
-          const answer = content.answers.find((ans: any) => ans.question_id === question.id);
-          
-          return (
-            <div key={question.id || index} className="space-y-4">
-              {/* Question */}
-              <div className="border border-gray-200 rounded-lg p-6 bg-white">
-                <h4 className="text-lg font-semibold mb-3 text-gray-800">{question.title}</h4>
-                {question.content && <p className="mb-3 text-gray-700">{question.content}</p>}
-                {question.parts && question.parts.length > 0 && (
-                  <div className="space-y-2">
-                    {question.parts.map((part: string, partIndex: number) => (
-                      <p key={partIndex} className="pl-4 text-gray-700">{part}</p>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Answer */}
-              {answer && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <h4 className="text-lg font-semibold mb-4 text-green-800">{answer.title}</h4>
-                  {answer.solutions && answer.solutions.map((solution: any, solIndex: number) => (
-                    <div key={solIndex} className="mb-4 last:mb-0">
-                      {solution.part && <p className="font-medium text-green-700 mb-2">Part {solution.part}:</p>}
-                      <div className="bg-green-25 p-4 rounded border-l-4 border-green-400">
-                        <pre className="whitespace-pre-wrap text-sm text-green-800 font-mono leading-relaxed">
-                          {solution.solution}
-                        </pre>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
   };
 
   if (loading) {
@@ -360,6 +337,8 @@ export default function ExamViewer() {
       </div>
     );
   }
+
+  const hasAnswers = exam.content?.answers && Array.isArray(exam.content.answers);
 
   return (
     <div className="bg-gradient-subtle min-h-screen p-6">
@@ -413,7 +392,7 @@ export default function ExamViewer() {
             </CardHeader>
             <CardContent className="space-y-6 min-h-[60vh]">
               {exam.content ? (
-                renderJsonContent(exam.content)
+                renderJsonContent(exam.content, false)
               ) : (
                 <p className="text-muted-foreground">No content available for preview.</p>
               )}
@@ -443,18 +422,22 @@ export default function ExamViewer() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-green-600">Evaluation Complete!</h3>
                   <p>Your answers have been recorded. You can now view the correction to see the correct answers.</p>
-                  <Button 
-                    onClick={() => navigate(`/exam/${examId}?mode=correction`)}
-                    className="flex items-center gap-2"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    View Correction
-                  </Button>
+                  {hasAnswers ? (
+                    <Button 
+                      onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                      className="flex items-center gap-2"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      View Correction
+                    </Button>
+                  ) : (
+                    <p className="text-muted-foreground">Correction not available for this exam yet.</p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
                   {exam.content ? (
-                    renderJsonContent(exam.content)
+                    renderJsonContent(exam.content, false)
                   ) : (
                     <p className="text-muted-foreground">No questions available.</p>
                   )}
@@ -508,8 +491,8 @@ export default function ExamViewer() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {correction ? (
-                    renderCorrectionContent(correction)
+                  {hasAnswers ? (
+                    renderJsonContent(exam.content, true)
                   ) : (
                     <p className="text-muted-foreground">
                       Correction not available for this exam yet.

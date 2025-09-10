@@ -83,56 +83,8 @@ export type Database = {
         }
         Relationships: []
       }
-      corrections: {
-        Row: {
-          attachments: string[] | null
-          content: Json | null
-          created_at: string
-          exam_id: string
-          id: string
-          is_published: boolean | null
-          published_by: string
-          title: string
-          updated_at: string
-          version: number | null
-        }
-        Insert: {
-          attachments?: string[] | null
-          content?: Json | null
-          created_at?: string
-          exam_id: string
-          id?: string
-          is_published?: boolean | null
-          published_by: string
-          title: string
-          updated_at?: string
-          version?: number | null
-        }
-        Update: {
-          attachments?: string[] | null
-          content?: Json | null
-          created_at?: string
-          exam_id?: string
-          id?: string
-          is_published?: boolean | null
-          published_by?: string
-          title?: string
-          updated_at?: string
-          version?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "corrections_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       download_cache: {
         Row: {
-          correction_id: string | null
           downloaded_at: string
           exam_id: string | null
           file_size: number | null
@@ -141,7 +93,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          correction_id?: string | null
           downloaded_at?: string
           exam_id?: string | null
           file_size?: number | null
@@ -150,7 +101,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          correction_id?: string | null
           downloaded_at?: string
           exam_id?: string | null
           file_size?: number | null
@@ -159,13 +109,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "download_cache_correction_id_fkey"
-            columns: ["correction_id"]
-            isOneToOne: false
-            referencedRelation: "corrections"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "download_cache_exam_id_fkey"
             columns: ["exam_id"]
@@ -205,7 +148,7 @@ export type Database = {
       exams: {
         Row: {
           class_id: string | null
-          content: string | null
+          content: Json | null
           created_at: string
           created_by: string
           description: string | null
@@ -228,7 +171,7 @@ export type Database = {
         }
         Insert: {
           class_id?: string | null
-          content?: string | null
+          content?: Json | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -251,7 +194,7 @@ export type Database = {
         }
         Update: {
           class_id?: string | null
-          content?: string | null
+          content?: Json | null
           created_at?: string
           created_by?: string
           description?: string | null
