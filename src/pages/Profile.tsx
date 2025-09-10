@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Save } from 'lucide-react';
+import { Camera, Save, Upload } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -29,6 +29,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -54,6 +55,77 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Error',
+        description: 'Please select an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Error',
+        description: 'Image size must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+
+      // Update profile with new image URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ profile_photo_url: publicUrl })
+        .eq('id', user?.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setProfile(prev => prev ? { ...prev, profile_photo_url: publicUrl } : null);
+
+      toast({
+        title: 'Success',
+        description: 'Profile photo updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload image',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -136,10 +208,36 @@ export default function Profile() {
                   {profile.first_name?.[0]}{profile.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                Change Photo
-              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  disabled={uploading}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Upload className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-4 w-4" />
+                      Change Photo
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                JPG, PNG or GIF. Max 5MB.
+              </p>
             </CardContent>
           </Card>
 

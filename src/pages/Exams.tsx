@@ -46,6 +46,7 @@ export default function Exams() {
   const { user } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [hasSubscription, setHasSubscription] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -89,9 +90,25 @@ export default function Exams() {
   };
 
   const fetchSubscription = async () => {
-    if (!user) return;
+    if (!user) {
+      setHasSubscription(false);
+      return;
+    }
     
     try {
+      // Check if user is admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        setHasSubscription(true);
+        return;
+      }
+
+      // Check for active subscription
       const { data, error } = await supabase
         .from('subscriptions')
         .select(`
@@ -107,8 +124,10 @@ export default function Exams() {
 
       if (error && error.code !== 'PGRST116') throw error;
       setSubscription(data);
+      setHasSubscription(!!data);
     } catch (error) {
       console.error('Error fetching subscription:', error);
+      setHasSubscription(false);
     }
   };
 

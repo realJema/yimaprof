@@ -285,6 +285,21 @@ export default function ExamViewer() {
                 </div>
               )}
               
+              {/* View Correction Button in preview mode */}
+              {mode === 'preview' && hasAnswers && (
+                <div className="mt-4 pt-4 border-t">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    View Solution
+                  </Button>
+                </div>
+              )}
+              
               {/* Show answers in correction mode */}
               {showAnswers && content.answers && (
                 <div className="mt-4 pt-4 border-t bg-green-50 p-4 rounded">
