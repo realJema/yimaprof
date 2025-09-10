@@ -1,502 +1,350 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Download, Eye, Search, Calendar, Users, FileText, Clock, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
+import { BookOpen, Clock, Calendar, Users, Lock, Crown, Search } from 'lucide-react';
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Exam {
   id: string;
   title: string;
   subject: string;
+  description?: string;
+  duration_minutes?: number;
   year?: number;
   period?: string;
   exam_type?: string;
-  description?: string;
-  class_id?: string;
-  language?: string;
-  content?: any; // JSON content
+  tags?: string[];
   created_at: string;
   classes?: {
-    id: string;
-    name: string;
     display_name: string;
-    section: string;
     level: string;
+    section: string;
   };
 }
 
-interface Class {
+interface Subscription {
   id: string;
-  name: string;
-  display_name: string;
-  section: string;
-  level: string;
-  description?: string;
-}
-
-interface ClassStats {
-  [key: string]: {
-    count: number;
-    subjects: string[];
-    latestYear?: number;
+  status: string;
+  expires_at: string;
+  plan_id: string;
+  subscription_plans: {
+    name: string;
+    max_downloads?: number;
   };
 }
-
-type ViewType = 'sections' | 'exams';
 
 export default function Exams() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { toast } = useToast();
-  const [currentView, setCurrentView] = useState<ViewType>('sections');
-  const [selectedSection, setSelectedSection] = useState<'francophone' | 'anglophone' | 'all' | null>(null);
+  const { user } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [classStats, setClassStats] = useState<ClassStats>({});
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
 
-  const fetchClasses = async () => {
+  useEffect(() => {
+    fetchExams();
+    if (user) {
+      fetchSubscription();
+    }
+  }, [user]);
+
+  const fetchExams = async () => {
     try {
       const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .order('level');
-      
-      if (error) throw error;
-      setClasses(data || []);
-    } catch (error) {
-      console.error('Failed to fetch classes:', error);
-    }
-  };
-
-  const fetchClassStats = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('exams')
-        .select(`
-          class_id,
-          subject, 
-          year,
-          classes (
-            id,
-            name,
-            display_name,
-            section
-          )
-        `)
-        .eq('is_published', true);
-
-      if (error) throw error;
-
-      const stats: ClassStats = {};
-      data?.forEach(exam => {
-        const classId = exam.class_id;
-        if (!classId || !exam.classes) return;
-        
-        if (!stats[classId]) {
-          stats[classId] = {
-            count: 0,
-            subjects: [],
-            latestYear: undefined
-          };
-        }
-        
-        stats[classId].count++;
-        
-        if (exam.subject && !stats[classId].subjects.includes(exam.subject)) {
-          stats[classId].subjects.push(exam.subject);
-        }
-        
-        if (exam.year && (!stats[classId].latestYear || exam.year > stats[classId].latestYear)) {
-          stats[classId].latestYear = exam.year;
-        }
-      });
-      
-      setClassStats(stats);
-    } catch (error) {
-      console.error('Failed to fetch class stats:', error);
-    }
-  };
-
-  const fetchExamsBySection = async (section: 'francophone' | 'anglophone' | 'all') => {
-    setLoading(true);
-    try {
-      let query = supabase
         .from('exams')
         .select(`
           *,
           classes (
-            id,
-            name,
             display_name,
-            section,
-            level
+            level,
+            section
           )
         `)
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
-      if (section === 'francophone') {
-        query = query.eq('classes.section', 'francophone');
-      } else if (section === 'anglophone') {
-        query = query.eq('classes.section', 'anglophone');
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       setExams(data || []);
     } catch (error) {
+      console.error('Error fetching exams:', error);
       toast({
-        title: t('error'),
-        description: 'Failed to fetch exams',
-        variant: 'destructive',
+        title: language === 'fr' ? "Erreur" : "Error",
+        description: language === 'fr' ? "Impossible de charger les examens" : "Failed to load exams",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSectionSelect = (section: 'francophone' | 'anglophone' | 'all') => {
-    setSelectedSection(section);
-    setCurrentView('exams');
-    fetchExamsBySection(section);
-  };
-
-  const handleClassSelect = (classId: string) => {
-    // Determine section based on class
-    const classInfo = classes.find(c => c.id === classId);
-    const section = classInfo?.section === 'francophone' ? 'francophone' : 'anglophone';
-    setSelectedSection(section);
-    setCurrentView('exams');
+  const fetchSubscription = async () => {
+    if (!user) return;
     
-    // Fetch exams for specific class
-    setLoading(true);
-    supabase
-      .from('exams')
-      .select(`
-        *,
-        classes (
-          id,
-          name,
-          display_name,
-          section,
-          level
-        )
-      `)
-      .eq('is_published', true)
-      .eq('class_id', classId)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) {
-          toast({
-            title: t('error'),
-            description: 'Failed to fetch exams',
-            variant: 'destructive',
-          });
-        } else {
-          setExams(data || []);
-        }
-        setLoading(false);
-      });
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          *,
+          subscription_plans (
+            name,
+            max_downloads
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setSubscription(data);
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+    }
   };
 
-  const handleBack = () => {
-    setCurrentView('sections');
-    setSelectedSection(null);
-  };
+  const subjects = [...new Set(exams.map(exam => exam.subject))];
+  const years = [...new Set(exams.map(exam => exam.year).filter(Boolean))].sort((a, b) => b - a);
+  const levels = [...new Set(exams.map(exam => exam.classes?.level).filter(Boolean))];
 
-  const groupExamsByClass = (exams: Exam[]) => {
-    const grouped: { [key: string]: Exam[] } = {};
-    exams.forEach(exam => {
-      const classId = exam.class_id || 'other';
-      if (!grouped[classId]) {
-        grouped[classId] = [];
-      }
-      grouped[classId].push(exam);
-    });
-    return grouped;
-  };
-
-  const filteredExams = exams.filter(exam =>
-    exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    exam.subject.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const renderSections = () => (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-foreground mb-8">{t('exams')}</h1>
-      
-      {/* Francophone Section */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-primary" />
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">{t('francophone')} Section</h2>
-            <p className="text-muted-foreground">Classes de la 6ème à la Terminale • {language === 'fr' ? 'Système français' : 'French system'}</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {classes.filter(c => c.section === 'francophone').map((classItem) => {
-            const stats = classStats[classItem.id];
-            return (
-              <Card 
-                key={classItem.id}
-                className="cursor-pointer hover:bg-card/90 transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:shadow-lg hover:scale-105"
-                onClick={() => handleClassSelect(classItem.id)}
-              >
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-card-foreground text-xl text-center font-bold">
-                    {classItem.display_name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <Badge variant="secondary" className="text-sm font-medium">
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      {stats?.count || 0} {language === 'fr' ? 'épreuves' : 'papers'}
-                    </Badge>
-                  </div>
-                  
-                  {stats && stats.subjects.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Users className="h-3 w-3" />
-                        {stats.subjects.length} {language === 'fr' ? 'matières' : 'subjects'}
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {stats.subjects.slice(0, 3).map((subject, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {subject}
-                          </Badge>
-                        ))}
-                        {stats.subjects.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{stats.subjects.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {stats?.latestYear && (
-                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {language === 'fr' ? 'Jusqu\'à' : 'Up to'} {stats.latestYear}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Anglophone Section */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-primary" />
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">{t('anglophone')} Section</h2>
-            <p className="text-muted-foreground">Form 1 to Upper Sixth • {language === 'fr' ? 'Système anglais' : 'English system'}</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {classes.filter(c => c.section === 'anglophone').map((classItem) => {
-            const stats = classStats[classItem.id];
-            return (
-              <Card 
-                key={classItem.id}
-                className="cursor-pointer hover:bg-card/90 transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:shadow-lg hover:scale-105"
-                onClick={() => handleClassSelect(classItem.id)}
-              >
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-card-foreground text-xl text-center font-bold">
-                    {classItem.display_name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <Badge variant="secondary" className="text-sm font-medium">
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      {stats?.count || 0} {language === 'fr' ? 'épreuves' : 'papers'}
-                    </Badge>
-                  </div>
-                  
-                  {stats && stats.subjects.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Users className="h-3 w-3" />
-                        {stats.subjects.length} {language === 'fr' ? 'matières' : 'subjects'}
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {stats.subjects.slice(0, 3).map((subject, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {subject}
-                          </Badge>
-                        ))}
-                        {stats.subjects.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{stats.subjects.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {stats?.latestYear && (
-                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {language === 'fr' ? 'Jusqu\'à' : 'Up to'} {stats.latestYear}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderExams = () => {
-    const groupedExams = groupExamsByClass(filteredExams);
+  const filteredExams = exams.filter(exam => {
+    const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         exam.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         exam.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSubject = !selectedSubject || exam.subject === selectedSubject;
+    const matchesYear = !selectedYear || exam.year?.toString() === selectedYear;
+    const matchesLevel = !selectedLevel || exam.classes?.level === selectedLevel;
     
+    return matchesSearch && matchesSubject && matchesYear && matchesLevel;
+  });
+
+  const hasActiveSubscription = subscription && new Date(subscription.expires_at) > new Date();
+  const freeExamsLimit = 3;
+  const displayedExams = hasActiveSubscription ? filteredExams : filteredExams.slice(0, freeExamsLimit);
+
+  if (loading) {
     return (
-      <div className="min-h-screen space-y-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            onClick={handleBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('back')}
-          </Button>
-          <h1 className="text-3xl font-bold text-foreground">
-            {selectedSection === 'francophone' 
-              ? t('francophone') 
-              : selectedSection === 'anglophone' 
-                ? t('anglophone') 
-                : 'All Exams'
-            }
-          </h1>
+      <div className="container mx-auto py-8">
+        <div className="text-center py-16">
+          <p className="text-muted-foreground text-lg">
+            {language === 'fr' ? 'Chargement...' : 'Loading...'}
+          </p>
         </div>
+      </div>
+    );
+  }
 
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={t('search')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground text-lg">{t('loading')}</p>
-          </div>
-        ) : Object.keys(groupedExams).length === 0 ? (
-          <div className="text-center py-16">
-            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">{t('no_exams')}</p>
-          </div>
-        ) : (
-          <div className="space-y-12 pb-16">
-            {classes
-              .filter(classItem => groupedExams[classItem.id])
-              .map(classItem => (
-                <div key={classItem.id} className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-6 w-6 text-primary" />
-                    <h2 className="text-2xl font-semibold text-foreground">{classItem.display_name}</h2>
-                    <Badge variant="secondary" className="text-sm font-medium">
-                      {groupedExams[classItem.id].length} {language === 'fr' ? 'épreuves' : 'exams'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {groupedExams[classItem.id].map((exam) => (
-                      <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-all duration-300 hover:shadow-lg">
-                        <CardHeader>
-                          <CardTitle className="text-card-foreground text-lg line-clamp-2">
-                            {exam.title}
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-2">
-                            <span>{exam.subject}</span>
-                            {exam.year && (
-                              <>
-                                <span>•</span>
-                                <span>{exam.year}</span>
-                              </>
-                            )}
-                            {exam.period && (
-                              <>
-                                <span>•</span>
-                                <span>{exam.period}</span>
-                              </>
-                            )}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {exam.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-3">
-                              {exam.description}
-                            </p>
-                          )}
-                          
-                          <div className="flex flex-col gap-2">
-                            <Button size="sm" variant="outline" className="flex items-center gap-2 justify-start" asChild>
-                              <Link to={`/exam/${exam.id}?mode=preview`}>
-                                <FileText className="h-4 w-4" />
-                                {language === 'fr' ? 'Aperçu questions' : 'Preview Questions'}
-                              </Link>
-                            </Button>
-                            <Button size="sm" className="flex items-center gap-2 justify-start" asChild>
-                              <Link to={`/exam/${exam.id}?mode=evaluation`}>
-                                <Clock className="h-4 w-4" />
-                                {language === 'fr' ? 'Évaluation' : 'Evaluation'}
-                              </Link>
-                            </Button>
-                            <Button size="sm" variant="secondary" className="flex items-center gap-2 justify-start" asChild>
-                              <Link to={`/exam/${exam.id}?mode=correction`}>
-                                <CheckCircle className="h-4 w-4" />
-                                {language === 'fr' ? 'Voir correction' : 'View Correction'}
-                              </Link>
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              ))}
+  return (
+    <div className="container mx-auto py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-primary mb-2">
+          {language === 'fr' ? 'Examens' : 'Exams'}
+        </h1>
+        <p className="text-muted-foreground">
+          {language === 'fr' 
+            ? 'Découvrez notre collection d\'examens classés par matière, niveau et année.'
+            : 'Discover our collection of exams organized by subject, level, and year.'
+          }
+        </p>
+        
+        {!hasActiveSubscription && (
+          <div className="mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="h-5 w-5 text-amber-600" />
+              <h3 className="font-semibold text-amber-800">
+                {language === 'fr' ? 'Accès Limité' : 'Limited Access'}
+              </h3>
+            </div>
+            <p className="text-amber-700 text-sm mb-3">
+              {language === 'fr' 
+                ? `Vous pouvez voir ${freeExamsLimit} examens gratuitement. Abonnez-vous pour un accès illimité à tous les examens et corrections.`
+                : `You can view ${freeExamsLimit} exams for free. Subscribe for unlimited access to all exams and corrections.`
+              }
+            </p>
+            <Link to="/subscriptions">
+              <Button size="sm" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                <Crown className="h-4 w-4 mr-2" />
+                {language === 'fr' ? 'Voir les Abonnements' : 'View Subscriptions'}
+              </Button>
+            </Link>
           </div>
         )}
       </div>
-    );
-  };
 
-  useEffect(() => {
-    fetchClasses();
-    fetchClassStats();
-  }, []);
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder={language === 'fr' ? 'Rechercher des examens...' : 'Search exams...'}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+          <SelectTrigger className="w-full md:w-48">
+            <SelectValue placeholder={language === 'fr' ? 'Matière' : 'Subject'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{language === 'fr' ? 'Toutes les matières' : 'All subjects'}</SelectItem>
+            {subjects.map(subject => (
+              <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-  return (
-    <div className="bg-gradient-subtle min-h-screen p-6">
-      <div className="max-w-7xl mx-auto">
-        {currentView === 'sections' && renderSections()}
-        {currentView === 'exams' && renderExams()}
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-full md:w-32">
+            <SelectValue placeholder={language === 'fr' ? 'Année' : 'Year'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
+            {years.map(year => (
+              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+          <SelectTrigger className="w-full md:w-32">
+            <SelectValue placeholder={language === 'fr' ? 'Niveau' : 'Level'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
+            {levels.map(level => (
+              <SelectItem key={level} value={level}>{level}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* Exams Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {displayedExams.map((exam) => (
+          <Card key={exam.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex justify-between items-start mb-2">
+                <Badge variant="secondary">{exam.subject}</Badge>
+                <span className="text-sm text-muted-foreground">
+                  {new Date(exam.created_at).getFullYear()}
+                </span>
+              </div>
+              <CardTitle className="line-clamp-2">{exam.title}</CardTitle>
+              {exam.description && (
+                <CardDescription className="line-clamp-2">
+                  {exam.description}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 mb-4">
+                {exam.classes && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Users className="h-4 w-4 mr-2" />
+                    {exam.classes.display_name} ({exam.classes.level} - {exam.classes.section})
+                  </div>
+                )}
+                {exam.duration_minutes && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 mr-2" />
+                    {exam.duration_minutes} {language === 'fr' ? 'minutes' : 'minutes'}
+                  </div>
+                )}
+                {exam.year && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    {exam.year}
+                  </div>
+                )}
+              </div>
+              
+              {exam.tags && exam.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {exam.tags.map((tag, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Link to={`/exam/${exam.id}?mode=preview`} className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    {language === 'fr' ? 'Aperçu' : 'Preview'}
+                  </Button>
+                </Link>
+                <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
+                  <Button className="w-full">
+                    {language === 'fr' ? 'Passer l\'examen' : 'Take Exam'}
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        {!hasActiveSubscription && filteredExams.length > freeExamsLimit && (
+          <Card className="hover:shadow-lg transition-shadow border-dashed border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50">
+            <CardContent className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <Lock className="h-12 w-12 text-amber-600 mb-4" />
+              <h3 className="text-lg font-semibold text-amber-800 mb-2">
+                {language === 'fr' ? 'Plus d\'examens disponibles' : 'More exams available'}
+              </h3>
+              <p className="text-amber-700 text-sm mb-4">
+                {language === 'fr' 
+                  ? `${filteredExams.length - freeExamsLimit} examens supplémentaires sont disponibles avec un abonnement.`
+                  : `${filteredExams.length - freeExamsLimit} additional exams are available with a subscription.`
+                }
+              </p>
+              <Link to="/subscriptions">
+                <Button className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                  <Crown className="h-4 w-4 mr-2" />
+                  {language === 'fr' ? 'S\'abonner maintenant' : 'Subscribe Now'}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      
+      {hasActiveSubscription && (
+        <div className="mt-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Crown className="h-5 w-5 text-green-600" />
+            <h3 className="font-semibold text-green-800">
+              {language === 'fr' ? 'Accès Premium' : 'Premium Access'}
+            </h3>
+          </div>
+          <p className="text-green-700 text-sm">
+            {language === 'fr' 
+              ? `Vous avez accès à tous les ${filteredExams.length} examens disponibles avec votre abonnement ${subscription.subscription_plans.name}.`
+              : `You have access to all ${filteredExams.length} available exams with your ${subscription.subscription_plans.name} subscription.`
+            }
+          </p>
+        </div>
+      )}
+
+      {displayedExams.length === 0 && (
+        <div className="text-center py-16">
+          <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground text-lg">
+            {language === 'fr' ? 'Aucun examen trouvé' : 'No exams found'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
