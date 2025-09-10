@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock, Calendar, Users, Lock, Crown, Search } from 'lucide-react';
+import { BookOpen, Clock, Calendar, Users, Lock, Crown, Search, Check } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -253,24 +253,41 @@ export default function Exams() {
                 </div>
               )}
               
-              <div className="flex gap-2">
-                <Link to={`/exam/${exam.id}?mode=preview`} className="flex-1">
+              <div className="grid grid-cols-1 gap-2">
+                <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
                   <Button variant="outline" className="w-full">
                     <BookOpen className="h-4 w-4 mr-2" />
                     {language === 'fr' ? 'Aperçu' : 'Preview'}
                   </Button>
                 </Link>
-                <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
-                  <Button 
-                    className="w-full" 
-                    disabled={!hasActiveSubscription}
-                  >
-                    {hasActiveSubscription 
-                      ? (language === 'fr' ? 'Passer l\'examen' : 'Take Exam')
-                      : (language === 'fr' ? 'Abonnement requis' : 'Subscription Required')
-                    }
-                  </Button>
-                </Link>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <Link to={`/exam/${exam.id}?mode=correction`} className="flex-1">
+                    <Button 
+                      variant="secondary" 
+                      className="w-full"
+                      disabled={!hasActiveSubscription}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      {hasActiveSubscription 
+                        ? (language === 'fr' ? 'Correction' : 'Solution')
+                        : (language === 'fr' ? 'Premium' : 'Premium')
+                      }
+                    </Button>
+                  </Link>
+                  
+                  <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
+                    <Button 
+                      className="w-full" 
+                      disabled={!hasActiveSubscription}
+                    >
+                      {hasActiveSubscription 
+                        ? (language === 'fr' ? 'Passer' : 'Take')
+                        : (language === 'fr' ? 'Premium' : 'Premium')
+                      }
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>
