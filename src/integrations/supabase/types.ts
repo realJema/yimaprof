@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      classes: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          level: string
+          name: string
+          section: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          level: string
+          name: string
+          section: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          level?: string
+          name?: string
+          section?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       corrections: {
         Row: {
           attachments: string[] | null
@@ -171,7 +204,7 @@ export type Database = {
       }
       exams: {
         Row: {
-          class_level: string | null
+          class_id: string | null
           content: string | null
           created_at: string
           created_by: string
@@ -194,7 +227,7 @@ export type Database = {
           year: number | null
         }
         Insert: {
-          class_level?: string | null
+          class_id?: string | null
           content?: string | null
           created_at?: string
           created_by: string
@@ -217,7 +250,7 @@ export type Database = {
           year?: number | null
         }
         Update: {
-          class_level?: string | null
+          class_id?: string | null
           content?: string | null
           created_at?: string
           created_by?: string
@@ -240,6 +273,13 @@ export type Database = {
           year?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "exams_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exams_establishment_id_fkey"
             columns: ["establishment_id"]

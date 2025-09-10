@@ -17,32 +17,27 @@ interface Exam {
   period?: string;
   exam_type?: string;
   description?: string;
-  class_level?: string;
+  class_id?: string;
   language?: string;
+  content?: any; // JSON content
   created_at: string;
+  classes?: {
+    id: string;
+    name: string;
+    display_name: string;
+    section: string;
+    level: string;
+  };
 }
 
-const FRANCOPHONE_CLASSES = [
-  { id: 'class_6e', name: 'class_6e' },
-  { id: 'class_5e', name: 'class_5e' },
-  { id: 'class_4e', name: 'class_4e' },
-  { id: 'class_3e', name: 'class_3e' },
-  { id: 'class_2nd', name: 'class_2nd' },
-  { id: 'class_1ere', name: 'class_1ere' },
-  { id: 'class_tle', name: 'class_tle' },
-];
-
-const ANGLOPHONE_CLASSES = [
-  { id: 'form_1', name: 'form_1' },
-  { id: 'form_2', name: 'form_2' },
-  { id: 'form_3', name: 'form_3' },
-  { id: 'form_4', name: 'form_4' },
-  { id: 'form_5', name: 'form_5' },
-  { id: 'lower_sixth', name: 'lower_sixth' },
-  { id: 'upper_sixth', name: 'upper_sixth' },
-];
-
-type ViewType = 'sections' | 'exams';
+interface Class {
+  id: string;
+  name: string;
+  display_name: string;
+  section: string;
+  level: string;
+  description?: string;
+}
 
 interface ClassStats {
   [key: string]: {
@@ -52,45 +47,73 @@ interface ClassStats {
   };
 }
 
+type ViewType = 'sections' | 'exams';
+
 export default function Exams() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState<ViewType>('sections');
   const [selectedSection, setSelectedSection] = useState<'francophone' | 'anglophone' | 'all' | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [classStats, setClassStats] = useState<ClassStats>({});
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('level');
+      
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error('Failed to fetch classes:', error);
+    }
+  };
 
   const fetchClassStats = async () => {
     try {
       const { data, error } = await supabase
         .from('exams')
-        .select('class_level, subject, year')
+        .select(`
+          class_id,
+          subject, 
+          year,
+          classes (
+            id,
+            name,
+            display_name,
+            section
+          )
+        `)
         .eq('is_published', true);
 
       if (error) throw error;
 
       const stats: ClassStats = {};
       data?.forEach(exam => {
-        if (!exam.class_level) return;
+        const classId = exam.class_id;
+        if (!classId || !exam.classes) return;
         
-        if (!stats[exam.class_level]) {
-          stats[exam.class_level] = {
+        if (!stats[classId]) {
+          stats[classId] = {
             count: 0,
             subjects: [],
             latestYear: undefined
           };
         }
         
-        stats[exam.class_level].count++;
+        stats[classId].count++;
         
-        if (exam.subject && !stats[exam.class_level].subjects.includes(exam.subject)) {
-          stats[exam.class_level].subjects.push(exam.subject);
+        if (exam.subject && !stats[classId].subjects.includes(exam.subject)) {
+          stats[classId].subjects.push(exam.subject);
         }
         
-        if (exam.year && (!stats[exam.class_level].latestYear || exam.year > stats[exam.class_level].latestYear)) {
-          stats[exam.class_level].latestYear = exam.year;
+        if (exam.year && (!stats[classId].latestYear || exam.year > stats[classId].latestYear)) {
+          stats[classId].latestYear = exam.year;
         }
       });
       
@@ -105,14 +128,23 @@ export default function Exams() {
     try {
       let query = supabase
         .from('exams')
-        .select('*')
+        .select(`
+          *,
+          classes (
+            id,
+            name,
+            display_name,
+            section,
+            level
+          )
+        `)
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
       if (section === 'francophone') {
-        query = query.in('class_level', FRANCOPHONE_CLASSES.map(c => c.id));
+        query = query.eq('classes.section', 'francophone');
       } else if (section === 'anglophone') {
-        query = query.in('class_level', ANGLOPHONE_CLASSES.map(c => c.id));
+        query = query.eq('classes.section', 'anglophone');
       }
 
       const { data, error } = await query;
@@ -135,31 +167,10 @@ export default function Exams() {
     fetchExamsBySection(section);
   };
 
-  const handleBack = () => {
-    setCurrentView('sections');
-    setSelectedSection(null);
-  };
-
-  const groupExamsByClass = (exams: Exam[]) => {
-    const grouped: { [key: string]: Exam[] } = {};
-    exams.forEach(exam => {
-      const classLevel = exam.class_level || 'other';
-      if (!grouped[classLevel]) {
-        grouped[classLevel] = [];
-      }
-      grouped[classLevel].push(exam);
-    });
-    return grouped;
-  };
-
-  const filteredExams = exams.filter(exam =>
-    exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    exam.subject.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleClassSelect = (classLevel: string) => {
+  const handleClassSelect = (classId: string) => {
     // Determine section based on class
-    const section = FRANCOPHONE_CLASSES.some(c => c.id === classLevel) ? 'francophone' : 'anglophone';
+    const classInfo = classes.find(c => c.id === classId);
+    const section = classInfo?.section === 'francophone' ? 'francophone' : 'anglophone';
     setSelectedSection(section);
     setCurrentView('exams');
     
@@ -167,9 +178,18 @@ export default function Exams() {
     setLoading(true);
     supabase
       .from('exams')
-      .select('*')
+      .select(`
+        *,
+        classes (
+          id,
+          name,
+          display_name,
+          section,
+          level
+        )
+      `)
       .eq('is_published', true)
-      .eq('class_level', classLevel)
+      .eq('class_id', classId)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (error) {
@@ -184,6 +204,28 @@ export default function Exams() {
         setLoading(false);
       });
   };
+
+  const handleBack = () => {
+    setCurrentView('sections');
+    setSelectedSection(null);
+  };
+
+  const groupExamsByClass = (exams: Exam[]) => {
+    const grouped: { [key: string]: Exam[] } = {};
+    exams.forEach(exam => {
+      const classId = exam.class_id || 'other';
+      if (!grouped[classId]) {
+        grouped[classId] = [];
+      }
+      grouped[classId].push(exam);
+    });
+    return grouped;
+  };
+
+  const filteredExams = exams.filter(exam =>
+    exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    exam.subject.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const renderSections = () => (
     <div className="space-y-8">
@@ -200,7 +242,7 @@ export default function Exams() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {FRANCOPHONE_CLASSES.map((classItem) => {
+          {classes.filter(c => c.section === 'francophone').map((classItem) => {
             const stats = classStats[classItem.id];
             return (
               <Card 
@@ -210,7 +252,7 @@ export default function Exams() {
               >
                 <CardHeader className="pb-3">
                   <CardTitle className="text-card-foreground text-xl text-center font-bold">
-                    {t(classItem.name)}
+                    {classItem.display_name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
@@ -266,7 +308,7 @@ export default function Exams() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {ANGLOPHONE_CLASSES.map((classItem) => {
+          {classes.filter(c => c.section === 'anglophone').map((classItem) => {
             const stats = classStats[classItem.id];
             return (
               <Card 
@@ -276,7 +318,7 @@ export default function Exams() {
               >
                 <CardHeader className="pb-3">
                   <CardTitle className="text-card-foreground text-xl text-center font-bold">
-                    {t(classItem.name)}
+                    {classItem.display_name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
@@ -325,136 +367,127 @@ export default function Exams() {
 
   const renderExams = () => {
     const groupedExams = groupExamsByClass(filteredExams);
-    const allClasses = [...FRANCOPHONE_CLASSES, ...ANGLOPHONE_CLASSES];
     
-     return (
-       <div className="min-h-screen space-y-6">
-         <div className="flex items-center gap-4">
-           <Button 
-             variant="ghost" 
-             onClick={handleBack}
-             className="flex items-center gap-2"
-           >
-             <ArrowLeft className="h-4 w-4" />
-             {t('back')}
-           </Button>
-           <h1 className="text-3xl font-bold text-foreground">
-             {selectedSection === 'francophone' 
-               ? t('francophone') 
-               : selectedSection === 'anglophone' 
-                 ? t('anglophone') 
-                 : 'All Exams'
-             }
-           </h1>
-         </div>
- 
-         <div className="flex gap-4 items-center">
-           <div className="relative flex-1">
-             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-             <Input
-               placeholder={t('search')}
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-               className="pl-10"
-             />
-           </div>
-         </div>
- 
-         {loading ? (
-           <div className="text-center py-16">
-             <p className="text-muted-foreground text-lg">{t('loading')}</p>
-           </div>
-         ) : Object.keys(groupedExams).length === 0 ? (
-           <div className="text-center py-16">
-             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-             <p className="text-muted-foreground text-lg">{t('no_exams')}</p>
-           </div>
-         ) : (
-           <div className="space-y-12 pb-16">
-             {allClasses
-               .filter(classItem => groupedExams[classItem.id])
-               .map(classItem => (
-                 <div key={classItem.id} className="space-y-6">
-                   <div className="flex items-center gap-3">
-                     <BookOpen className="h-6 w-6 text-primary" />
-                     <h2 className="text-2xl font-semibold text-foreground">{t(classItem.name)}</h2>
-                     <Badge variant="secondary" className="text-sm font-medium">
-                       {groupedExams[classItem.id].length} {language === 'fr' ? 'épreuves' : 'exams'}
-                     </Badge>
-                   </div>
-                   
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     {groupedExams[classItem.id].map((exam) => (
-                       <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-all duration-300 hover:shadow-lg">
-                         <CardHeader>
-                           <CardTitle className="text-card-foreground text-lg line-clamp-2">
-                             {exam.title}
-                           </CardTitle>
-                           <CardDescription className="flex items-center gap-2">
-                             <span>{exam.subject}</span>
-                             {exam.year && (
-                               <>
-                                 <span>•</span>
-                                 <span>{exam.year}</span>
-                               </>
-                             )}
-                             {exam.period && (
-                               <>
-                                 <span>•</span>
-                                 <span>{exam.period}</span>
-                               </>
-                             )}
-                           </CardDescription>
-                         </CardHeader>
-                         <CardContent className="space-y-4">
-                           {exam.description && (
-                             <p className="text-sm text-muted-foreground line-clamp-3">
-                               {exam.description}
-                             </p>
-                           )}
-                           
-                           <div className="flex flex-col gap-2">
-                             <Button size="sm" variant="outline" className="flex items-center gap-2 justify-start" asChild>
-                               <Link to={`/exam/${exam.id}?mode=preview`}>
-                                 <FileText className="h-4 w-4" />
-                                 {language === 'fr' ? 'Aperçu questions' : 'Preview Questions'}
-                               </Link>
-                             </Button>
-                             <Button size="sm" className="flex items-center gap-2 justify-start" asChild>
-                               <Link to={`/exam/${exam.id}?mode=evaluation`}>
-                                 <Clock className="h-4 w-4" />
-                                 {language === 'fr' ? 'Évaluation' : 'Evaluation'}
-                               </Link>
-                             </Button>
-                             <Button size="sm" variant="secondary" className="flex items-center gap-2 justify-start" asChild>
-                               <Link to={`/exam/${exam.id}?mode=correction`}>
-                                 <CheckCircle className="h-4 w-4" />
-                                 {language === 'fr' ? 'Voir correction' : 'View Correction'}
-                               </Link>
-                             </Button>
-                           </div>
-                         </CardContent>
-                       </Card>
-                     ))}
-                   </div>
-                 </div>
-               ))}
-           </div>
-         )}
-       </div>
-     );
+    return (
+      <div className="min-h-screen space-y-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            onClick={handleBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('back')}
+          </Button>
+          <h1 className="text-3xl font-bold text-foreground">
+            {selectedSection === 'francophone' 
+              ? t('francophone') 
+              : selectedSection === 'anglophone' 
+                ? t('anglophone') 
+                : 'All Exams'
+            }
+          </h1>
+        </div>
+
+        <div className="flex gap-4 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder={t('search')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground text-lg">{t('loading')}</p>
+          </div>
+        ) : Object.keys(groupedExams).length === 0 ? (
+          <div className="text-center py-16">
+            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">{t('no_exams')}</p>
+          </div>
+        ) : (
+          <div className="space-y-12 pb-16">
+            {classes
+              .filter(classItem => groupedExams[classItem.id])
+              .map(classItem => (
+                <div key={classItem.id} className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="h-6 w-6 text-primary" />
+                    <h2 className="text-2xl font-semibold text-foreground">{classItem.display_name}</h2>
+                    <Badge variant="secondary" className="text-sm font-medium">
+                      {groupedExams[classItem.id].length} {language === 'fr' ? 'épreuves' : 'exams'}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {groupedExams[classItem.id].map((exam) => (
+                      <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-all duration-300 hover:shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="text-card-foreground text-lg line-clamp-2">
+                            {exam.title}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-2">
+                            <span>{exam.subject}</span>
+                            {exam.year && (
+                              <>
+                                <span>•</span>
+                                <span>{exam.year}</span>
+                              </>
+                            )}
+                            {exam.period && (
+                              <>
+                                <span>•</span>
+                                <span>{exam.period}</span>
+                              </>
+                            )}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {exam.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                              {exam.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex flex-col gap-2">
+                            <Button size="sm" variant="outline" className="flex items-center gap-2 justify-start" asChild>
+                              <Link to={`/exam/${exam.id}?mode=preview`}>
+                                <FileText className="h-4 w-4" />
+                                {language === 'fr' ? 'Aperçu questions' : 'Preview Questions'}
+                              </Link>
+                            </Button>
+                            <Button size="sm" className="flex items-center gap-2 justify-start" asChild>
+                              <Link to={`/exam/${exam.id}?mode=evaluation`}>
+                                <Clock className="h-4 w-4" />
+                                {language === 'fr' ? 'Évaluation' : 'Evaluation'}
+                              </Link>
+                            </Button>
+                            <Button size="sm" variant="secondary" className="flex items-center gap-2 justify-start" asChild>
+                              <Link to={`/exam/${exam.id}?mode=correction`}>
+                                <CheckCircle className="h-4 w-4" />
+                                {language === 'fr' ? 'Voir correction' : 'View Correction'}
+                              </Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    );
   };
 
-  return (
-    <div className="bg-gradient-subtle p-6">
-      <div className="max-w-7xl mx-auto">
-        {currentView === 'sections' && renderSections()}
-        {currentView === 'exams' && renderExams()}
-      </div>
-    </div>
-  );
-
   useEffect(() => {
+    fetchClasses();
     fetchClassStats();
   }, []);
 

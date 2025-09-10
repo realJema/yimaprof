@@ -22,14 +22,21 @@ interface Exam {
   id: string;
   title: string;
   subject: string;
-  class_level: string;
+  class_id?: string;
   year?: number;
   period?: string;
   exam_type?: string;
   description?: string;
   language?: string;
-  content?: string;
+  content?: any; // JSON content
   created_at: string;
+  classes?: {
+    id: string;
+    name: string;
+    display_name: string;
+    section: string;
+    level: string;
+  };
 }
 
 interface Correction {
@@ -232,26 +239,106 @@ export default function ExamViewer() {
     });
   };
 
-  const parseCorrectionContent = (content: string) => {
-    if (!content) return { questions: '', answers: '' };
+  const renderJsonContent = (content: any) => {
+    if (!content) return null;
     
-    // Remove quotes if content is JSON-wrapped
-    const cleanContent = content.startsWith('"') && content.endsWith('"') 
-      ? content.slice(1, -1).replace(/\\n/g, '\n').replace(/\\"/g, '"')
-      : content;
-    
-    // Split by the separator (---)
-    const sections = cleanContent.split('---');
-    
-    if (sections.length >= 2) {
-      return {
-        questions: sections[0].trim(),
-        answers: sections[1].trim()
-      };
+    // Handle both old string format and new JSON format
+    if (typeof content === 'string') {
+      return <div className="prose max-w-none">{renderMarkdown(content)}</div>;
     }
     
-    // If no separator found, treat entire content as mixed
-    return { questions: cleanContent, answers: '' };
+    // Handle JSON format
+    if (content.questions && Array.isArray(content.questions)) {
+      return (
+        <div className="space-y-6">
+          {content.exam_info && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h3 className="font-semibold text-blue-800 mb-2">Exam Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm text-blue-700">
+                {content.exam_info.duration && <p><strong>Duration:</strong> {content.exam_info.duration}</p>}
+                {content.exam_info.total_marks && <p><strong>Total Marks:</strong> {content.exam_info.total_marks}</p>}
+                {content.exam_info.instructions && <p className="col-span-2"><strong>Instructions:</strong> {content.exam_info.instructions}</p>}
+              </div>
+            </div>
+          )}
+          
+          {content.questions.map((question: any, index: number) => (
+            <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3">{question.title}</h3>
+              {question.content && <p className="mb-3">{question.content}</p>}
+              {question.parts && question.parts.length > 0 && (
+                <div className="space-y-2">
+                  {question.parts.map((part: string, partIndex: number) => (
+                    <p key={partIndex} className="pl-4">{part}</p>
+                  ))}
+                </div>
+              )}
+              {question.marks && (
+                <p className="text-sm text-gray-600 mt-2 font-medium">[{question.marks} marks]</p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    return <p className="text-muted-foreground">No content available.</p>;
+  };
+
+  const renderCorrectionContent = (correction: any) => {
+    if (!correction || !correction.content) return null;
+    
+    const content = typeof correction.content === 'string' 
+      ? JSON.parse(correction.content) 
+      : correction.content;
+
+    return (
+      <div className="space-y-6">
+        {/* Questions Section */}
+        {content.questions && (
+          <div>
+            <h3 className="text-xl font-semibold mb-4">Questions</h3>
+            <div className="space-y-4">
+              {content.questions.map((question: any, index: number) => (
+                <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">{question.title}</h4>
+                  {question.content && <p className="mb-2">{question.content}</p>}
+                  {question.parts && question.parts.length > 0 && (
+                    <div className="space-y-1">
+                      {question.parts.map((part: string, partIndex: number) => (
+                        <p key={partIndex} className="pl-4 text-gray-700">{part}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Answers Section */}
+        {content.answers && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h3 className="text-xl font-semibold mb-4 text-green-800">Complete Solutions</h3>
+            <div className="space-y-6">
+              {content.answers.map((answer: any, index: number) => (
+                <div key={answer.question_id || index} className="bg-white border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold mb-3 text-green-800">{answer.title}</h4>
+                  {answer.solutions && answer.solutions.map((solution: any, solIndex: number) => (
+                    <div key={solIndex} className="mb-4 last:mb-0">
+                      {solution.part && <p className="font-medium text-green-700 mb-1">Part {solution.part}:</p>}
+                      <div className="bg-green-25 p-3 rounded border-l-4 border-green-400">
+                        <pre className="whitespace-pre-wrap text-sm text-green-800 font-mono">{solution.solution}</pre>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -293,7 +380,7 @@ export default function ExamViewer() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{exam.title}</h1>
             <p className="text-muted-foreground">
-              {exam.subject} • {exam.class_level} • {exam.year}
+              {exam.subject} • {exam.classes?.display_name} • {exam.year}
             </p>
           </div>
         </div>
@@ -329,9 +416,7 @@ export default function ExamViewer() {
             </CardHeader>
             <CardContent className="space-y-6 min-h-[60vh]">
               {exam.content ? (
-                <div className="prose max-w-none">
-                  {renderMarkdown(exam.content)}
-                </div>
+                renderJsonContent(exam.content)
               ) : (
                 <p className="text-muted-foreground">No content available for preview.</p>
               )}
@@ -371,9 +456,11 @@ export default function ExamViewer() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="prose max-w-none">
-                    {renderMarkdown(exam.content || '')}
-                  </div>
+                  {exam.content ? (
+                    renderJsonContent(exam.content)
+                  ) : (
+                    <p className="text-muted-foreground">No questions available.</p>
+                  )}
                   <div className="pt-4 border-t flex gap-4">
                     <Button 
                       onClick={handleSubmitEvaluation}
@@ -427,9 +514,7 @@ export default function ExamViewer() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {exam.content ? (
-                      <div className="prose max-w-none">
-                        {renderMarkdown(exam.content)}
-                      </div>
+                      renderJsonContent(exam.content)
                     ) : (
                       <p className="text-muted-foreground">No questions available.</p>
                     )}
@@ -437,52 +522,22 @@ export default function ExamViewer() {
                 </Card>
 
                 {/* Correction Section */}
-                {correction && (() => {
-                  const { questions, answers } = parseCorrectionContent(correction.content);
-                  return (
-                    <>
-                      {questions && (
-                        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                              <FileText className="h-5 w-5" />
-                              Questions (Detailed)
-                            </CardTitle>
-                            <CardDescription>
-                              Complete question formulations
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-6">
-                            <div className="prose max-w-none">
-                              {renderMarkdown(questions)}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {answers && (
-                        <Card className="border-green-200 bg-green-50 backdrop-blur-sm">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-green-800">
-                              <CheckCircle className="h-5 w-5" />
-                              Complete Solutions
-                            </CardTitle>
-                            <CardDescription className="text-green-700">
-                              Detailed answers and explanations
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-6 bg-green-50">
-                            <div className="prose max-w-none prose-green">
-                              {renderMarkdown(answers)}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </>
-                  );
-                })()}
-                
-                {!correction && (
+                {correction ? (
+                  <Card className="border-green-200 bg-green-50 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-green-800">
+                        <CheckCircle className="h-5 w-5" />
+                        Complete Solutions
+                      </CardTitle>
+                      <CardDescription className="text-green-700">
+                        Detailed answers and explanations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6 bg-green-50">
+                      {renderCorrectionContent(correction)}
+                    </CardContent>
+                  </Card>
+                ) : (
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -502,7 +557,6 @@ export default function ExamViewer() {
                 )}
               </div>
             )}
-          </>
         )}
       </div>
     </div>
