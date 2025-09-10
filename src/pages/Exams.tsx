@@ -55,11 +55,11 @@ export default function Exams() {
 
   useEffect(() => {
     fetchExams();
-  }, []);
+  }, [hasActiveSubscription, subscription?.plan_id]);
 
   const fetchExams = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('exams')
         .select(`
           *,
@@ -69,8 +69,26 @@ export default function Exams() {
             section
           )
         `)
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .eq('is_published', true);
+
+      // If user has active subscription, filter based on their plan
+      if (hasActiveSubscription && subscription?.plan_id) {
+        // Get allowed class IDs for this subscription plan
+        const { data: allowedClasses } = await supabase
+          .from('subscription_plan_classes')
+          .select('class_id')
+          .eq('subscription_plan_id', subscription.plan_id);
+
+        if (allowedClasses && allowedClasses.length > 0) {
+          const classIds = allowedClasses.map(ac => ac.class_id);
+          query = query.in('class_id', classIds);
+        }
+      } else {
+        // No subscription - show limited free content (first 3 exams)
+        query = query.limit(3);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setExams(data || []);
@@ -102,8 +120,8 @@ export default function Exams() {
     return matchesSearch && matchesSubject && matchesYear && matchesLevel;
   });
 
-  const freeExamsLimit = 3;
-  const displayedExams = hasActiveSubscription ? filteredExams : filteredExams.slice(0, freeExamsLimit);
+  // For subscribed users, show all filtered exams. For non-subscribed, apply free limit
+  const displayedExams = hasActiveSubscription ? filteredExams : filteredExams;
 
   if (loading) {
     return (
@@ -140,8 +158,8 @@ export default function Exams() {
             </div>
             <p className="text-amber-700 text-sm mb-3">
               {language === 'fr' 
-                ? `Vous pouvez voir ${freeExamsLimit} examens gratuitement. Abonnez-vous pour un accès illimité à tous les examens et corrections.`
-                : `You can view ${freeExamsLimit} exams for free. Subscribe for unlimited access to all exams and corrections.`
+                ? `Vous pouvez voir quelques examens gratuitement. Abonnez-vous pour un accès illimité à tous les examens et corrections.`
+                : `You can view some exams for free. Subscribe for unlimited access to all exams and corrections.`
               }
             </p>
             <Link to="/subscriptions">
@@ -150,6 +168,23 @@ export default function Exams() {
                 {language === 'fr' ? 'Voir les Abonnements' : 'View Subscriptions'}
               </Button>
             </Link>
+          </div>
+        )}
+
+        {hasActiveSubscription && (
+          <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="h-5 w-5 text-green-600" />
+              <h3 className="font-semibold text-green-800">
+                {language === 'fr' ? 'Accès Premium' : 'Premium Access'}
+              </h3>
+            </div>
+            <p className="text-green-700 text-sm">
+              {language === 'fr' 
+                ? `Vous avez accès aux examens ${subscriptionTier} avec votre abonnement.`
+                : `You have access to ${subscriptionTier} exams with your subscription.`
+              }
+            </p>
           </div>
         )}
       </div>
@@ -205,11 +240,18 @@ export default function Exams() {
 
       {/* Exams Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {displayedExams.map((exam) => (
+         {displayedExams.map((exam) => (
           <Card key={exam.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start mb-2">
-                <Badge variant="secondary">{exam.subject}</Badge>
+                <div className="flex gap-2">
+                  <Badge variant="secondary">{exam.subject}</Badge>
+                  {exam.classes?.section && (
+                    <Badge variant="outline" className="capitalize">
+                      {exam.classes.section}
+                    </Badge>
+                  )}
+                </div>
                 <span className="text-sm text-muted-foreground">
                   {new Date(exam.created_at).getFullYear()}
                 </span>
@@ -293,7 +335,7 @@ export default function Exams() {
           </Card>
         ))}
         
-        {!hasActiveSubscription && filteredExams.length > freeExamsLimit && (
+        {!hasActiveSubscription && exams.length > 3 && (
           <Card className="hover:shadow-lg transition-shadow border-dashed border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50">
             <CardContent className="flex flex-col items-center justify-center h-full p-8 text-center">
               <Lock className="h-12 w-12 text-amber-600 mb-4" />
@@ -302,8 +344,8 @@ export default function Exams() {
               </h3>
               <p className="text-amber-700 text-sm mb-4">
                 {language === 'fr' 
-                  ? `${filteredExams.length - freeExamsLimit} examens supplémentaires sont disponibles avec un abonnement.`
-                  : `${filteredExams.length - freeExamsLimit} additional exams are available with a subscription.`
+                  ? `Abonnez-vous pour accéder à tous les examens selon votre curriculum.`
+                  : `Subscribe to access all exams based on your curriculum.`
                 }
               </p>
               <Link to="/subscriptions">
@@ -327,8 +369,8 @@ export default function Exams() {
           </div>
           <p className="text-green-700 text-sm">
             {language === 'fr' 
-              ? `Vous avez accès à tous les ${filteredExams.length} examens disponibles avec votre abonnement ${subscriptionTier}.`
-              : `You have access to all ${filteredExams.length} available exams with your ${subscriptionTier} subscription.`
+              ? `Vous avez accès à ${filteredExams.length} examens ${subscriptionTier} avec votre abonnement.`
+              : `You have access to ${filteredExams.length} ${subscriptionTier} exams with your subscription.`
             }
           </p>
         </div>

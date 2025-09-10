@@ -285,6 +285,42 @@ export type Database = {
           },
         ]
       }
+      subscription_plan_classes: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          subscription_plan_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          subscription_plan_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          subscription_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plan_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_classes_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string
