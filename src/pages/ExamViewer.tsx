@@ -232,6 +232,28 @@ export default function ExamViewer() {
     });
   };
 
+  const parseCorrectionContent = (content: string) => {
+    if (!content) return { questions: '', answers: '' };
+    
+    // Remove quotes if content is JSON-wrapped
+    const cleanContent = content.startsWith('"') && content.endsWith('"') 
+      ? content.slice(1, -1).replace(/\\n/g, '\n').replace(/\\"/g, '"')
+      : content;
+    
+    // Split by the separator (---)
+    const sections = cleanContent.split('---');
+    
+    if (sections.length >= 2) {
+      return {
+        questions: sections[0].trim(),
+        answers: sections[1].trim()
+      };
+    }
+    
+    // If no separator found, treat entire content as mixed
+    return { questions: cleanContent, answers: '' };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
@@ -415,28 +437,69 @@ export default function ExamViewer() {
                 </Card>
 
                 {/* Correction Section */}
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
-                      Complete Solution
-                    </CardTitle>
-                    <CardDescription>
-                      Detailed answers and explanations
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {correction ? (
-                      <div className="prose max-w-none">
-                        {renderMarkdown(correction.content)}
-                      </div>
-                    ) : (
+                {correction && (() => {
+                  const { questions, answers } = parseCorrectionContent(correction.content);
+                  return (
+                    <>
+                      {questions && (
+                        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <FileText className="h-5 w-5" />
+                              Questions (Detailed)
+                            </CardTitle>
+                            <CardDescription>
+                              Complete question formulations
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                            <div className="prose max-w-none">
+                              {renderMarkdown(questions)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {answers && (
+                        <Card className="border-green-200 bg-green-50 backdrop-blur-sm">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-green-800">
+                              <CheckCircle className="h-5 w-5" />
+                              Complete Solutions
+                            </CardTitle>
+                            <CardDescription className="text-green-700">
+                              Detailed answers and explanations
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-6 bg-green-50">
+                            <div className="prose max-w-none prose-green">
+                              {renderMarkdown(answers)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </>
+                  );
+                })()}
+                
+                {!correction && (
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Complete Solution
+                      </CardTitle>
+                      <CardDescription>
+                        Detailed answers and explanations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
                       <p className="text-muted-foreground">
                         Correction not available for this exam yet.
                       </p>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </>
