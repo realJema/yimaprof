@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 // Header component for YIMA platform
 export default function Header() {
@@ -11,6 +13,29 @@ export default function Header() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      checkAdminStatus();
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
+      
+      setIsAdmin(profile?.role === 'admin');
+    } catch (error) {
+      setIsAdmin(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -20,9 +45,14 @@ export default function Header() {
   const navItems = [
     { to: '/dashboard', icon: BarChart3, label: t('dashboard') },
     { to: '/exams', icon: BookOpen, label: t('exams') },
+    { to: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
     { to: '/profile', icon: User, label: t('profile') },
     { to: '/settings', icon: Settings, label: t('settings') },
   ];
+
+  if (isAdmin) {
+    navItems.push({ to: '/admin', icon: Shield, label: 'Admin' });
+  }
 
   const isActive = (path: string) => location.pathname === path;
 

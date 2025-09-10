@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 interface Exam {
   id: string;
@@ -250,9 +251,11 @@ export default function Exams() {
                 )}
                 
                 <div className="flex gap-2">
-                  <Button size="sm" className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    {language === 'fr' ? 'Voir' : 'View'}
+                  <Button size="sm" className="flex items-center gap-2" asChild>
+                    <Link to={`/exam/${exam.id}`}>
+                      <Eye className="h-4 w-4" />
+                      {language === 'fr' ? 'Voir' : 'View'}
+                    </Link>
                   </Button>
                   <Button size="sm" variant="outline" className="flex items-center gap-2">
                     <Download className="h-4 w-4" />

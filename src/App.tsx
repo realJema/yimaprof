@@ -9,8 +9,11 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Exams from "./pages/Exams";
+import ExamViewer from "./pages/ExamViewer";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Subscriptions from "./pages/Subscriptions";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,8 +31,11 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/exams" element={<Exams />} />
+              <Route path="/exam/:examId" element={<ExamViewer />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/subscriptions" element={<Subscriptions />} />
+              <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
