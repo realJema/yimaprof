@@ -1,152 +1,88 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { BookOpen, Menu, X, User, LogOut } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from '@/components/ui/button';
+import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export default function Header() {
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const navItems = [
+    { to: '/dashboard', icon: BarChart3, label: t('dashboard') },
+    { to: '/exams', icon: BookOpen, label: t('exams') },
+    { to: '/profile', icon: User, label: t('profile') },
+    { to: '/settings', icon: Settings, label: t('settings') },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link className="mr-6 flex items-center space-x-2" to="/">
+    <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
             <BookOpen className="h-6 w-6 text-primary" />
-            <span className="hidden font-bold sm:inline-block">YIMA</span>
+            <span className="text-xl font-bold text-foreground">YIMA</span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm lg:gap-6">
-            <Link
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-              to="/exams"
-            >
-              Examens
-            </Link>
-            <Link
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
-              to="/pricing"
-            >
-              Abonnements
-            </Link>
-            {user && (
-              <Link
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
-                to="/dashboard"
-              >
-                Tableau de bord
-              </Link>
-            )}
-          </nav>
-        </div>
-        <Button
-          variant="ghost"
-          className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <Link className="flex items-center space-x-2 md:hidden" to="/">
-              <BookOpen className="h-6 w-6 text-primary" />
-              <span className="font-bold">YIMA</span>
-            </Link>
-          </div>
-          <nav className="flex items-center gap-2">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <User className="h-5 w-5" />
-                    <span className="sr-only">Menu utilisateur</span>
+
+          {user ? (
+            <div className="flex items-center space-x-4">
+              {/* Navigation Items */}
+              <nav className="hidden md:flex items-center space-x-1">
+                {navItems.map((item) => (
+                  <Button
+                    key={item.to}
+                    variant={isActive(item.to) ? "default" : "ghost"}
+                    size="sm"
+                    asChild
+                  >
+                    <Link to={item.to} className="flex items-center space-x-2">
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">Profil</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/downloads">Téléchargements</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Déconnexion
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="ghost" asChild>
-                  <Link to="/auth">Connexion</Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/auth?mode=signup">Inscription</Link>
-                </Button>
-              </div>
-            )}
-          </nav>
+                ))}
+              </nav>
+
+              <LanguageSwitcher />
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('logout')}</span>
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/auth')}
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={() => navigate('/auth')}
+              >
+                Sign Up
+              </Button>
+            </div>
+          )}
         </div>
       </div>
-      {mobileMenuOpen && (
-        <div className="absolute inset-x-0 top-0 z-50 origin-top-right transform p-2 transition md:hidden">
-          <div className="divide-y-2 divide-gray-50 rounded-lg bg-background shadow-lg ring-1 ring-black ring-opacity-5">
-            <div className="px-5 pb-6 pt-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="h-8 w-8 text-primary" />
-                  <span className="font-bold text-xl">YIMA</span>
-                </div>
-                <div className="-mr-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span className="sr-only">Fermer menu</span>
-                    <X className="h-6 w-6" />
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-6">
-                <nav className="grid gap-y-8">
-                  <Link
-                    className="text-base font-medium hover:text-primary"
-                    to="/exams"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Examens
-                  </Link>
-                  <Link
-                    className="text-base font-medium hover:text-primary"
-                    to="/pricing"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Abonnements
-                  </Link>
-                  {user && (
-                    <Link
-                      className="text-base font-medium hover:text-primary"
-                      to="/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Tableau de bord
-                    </Link>
-                  )}
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

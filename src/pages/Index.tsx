@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Header } from "@/components/layout/Header";
+import Header from '@/components/layout/Header';
 import { BookOpen, Search, Download, Users, Star, CheckCircle, Globe, Smartphone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
