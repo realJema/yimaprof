@@ -1,37 +1,58 @@
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { BookOpen, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
-
 export default function Footer() {
-  const { t } = useLanguage();
-
-  const platformLinks = [
-    { label: t('exams'), href: '/exams' },
-    { label: t('dashboard'), href: '/dashboard' },
-    { label: 'Subscriptions', href: '/subscriptions' },
-  ];
-
-  const companyLinks = [
-    { label: t('about_us'), href: '/about' },
-    { label: t('contact'), href: '/contact' },
-    { label: t('privacy_policy'), href: '/privacy' },
-    { label: t('terms_of_service'), href: '/terms' },
-  ];
-
-  const sectionLinks = [
-    { label: t('francophone'), href: '/exams?section=francophone' },
-    { label: t('anglophone'), href: '/exams?section=anglophone' },
-  ];
-
-  const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com/yima', label: 'Facebook' },
-    { icon: Twitter, href: 'https://twitter.com/yima', label: 'Twitter' },
-    { icon: Instagram, href: 'https://instagram.com/yima', label: 'Instagram' },
-    { icon: Youtube, href: 'https://youtube.com/yima', label: 'YouTube' },
-  ];
-
-  return (
-    <footer className="bg-muted/30 border-t border-border/50">
+  const {
+    t
+  } = useLanguage();
+  const platformLinks = [{
+    label: t('exams'),
+    href: '/exams'
+  }, {
+    label: t('dashboard'),
+    href: '/dashboard'
+  }, {
+    label: 'Subscriptions',
+    href: '/subscriptions'
+  }];
+  const companyLinks = [{
+    label: t('about_us'),
+    href: '/about'
+  }, {
+    label: t('contact'),
+    href: '/contact'
+  }, {
+    label: t('privacy_policy'),
+    href: '/privacy'
+  }, {
+    label: t('terms_of_service'),
+    href: '/terms'
+  }];
+  const sectionLinks = [{
+    label: t('francophone'),
+    href: '/exams?section=francophone'
+  }, {
+    label: t('anglophone'),
+    href: '/exams?section=anglophone'
+  }];
+  const socialLinks = [{
+    icon: Facebook,
+    href: 'https://facebook.com/yima',
+    label: 'Facebook'
+  }, {
+    icon: Twitter,
+    href: 'https://twitter.com/yima',
+    label: 'Twitter'
+  }, {
+    icon: Instagram,
+    href: 'https://instagram.com/yima',
+    label: 'Instagram'
+  }, {
+    icon: Youtube,
+    href: 'https://youtube.com/yima',
+    label: 'YouTube'
+  }];
+  return <footer className="bg-muted/30 border-t border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -64,16 +85,11 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-foreground mb-4">{t('platform')}</h3>
             <ul className="space-y-2">
-              {platformLinks.map((link, index) => (
-                <li key={index}>
-                  <Link 
-                    to={link.href} 
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+              {platformLinks.map((link, index) => <li key={index}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {link.label}
                   </Link>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
@@ -81,16 +97,11 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-foreground mb-4">Sections</h3>
             <ul className="space-y-2">
-              {sectionLinks.map((link, index) => (
-                <li key={index}>
-                  <Link 
-                    to={link.href} 
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+              {sectionLinks.map((link, index) => <li key={index}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {link.label}
                   </Link>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
@@ -98,16 +109,11 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-foreground mb-4">{t('company')}</h3>
             <ul className="space-y-2">
-              {companyLinks.map((link, index) => (
-                <li key={index}>
-                  <Link 
-                    to={link.href} 
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+              {companyLinks.map((link, index) => <li key={index}>
+                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     {link.label}
                   </Link>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
         </div>
@@ -124,11 +130,7 @@ export default function Footer() {
               </p>
             </div>
             <div className="flex gap-2">
-              <input 
-                type="email" 
-                placeholder={t('enter_email')}
-                className="flex-1 px-4 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <input type="email" placeholder={t('enter_email')} className="flex-1 px-4 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
               <button className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                 {t('subscribe')}
               </button>
@@ -146,22 +148,12 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{t('follow_us')}:</span>
             <div className="flex gap-3">
-              {socialLinks.map((social, index) => (
-                <a
-                  key={index}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                  aria-label={social.label}
-                >
+              {socialLinks.map((social, index) => <a key={index} href={social.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label={social.label}>
                   <social.icon className="h-5 w-5" />
-                </a>
-              ))}
+                </a>)}
             </div>
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 }
