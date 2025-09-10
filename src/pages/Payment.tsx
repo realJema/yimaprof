@@ -29,12 +29,16 @@ export default function Payment() {
   const planId = searchParams.get('planId');
 
   useEffect(() => {
+    console.log('Payment component mounted, user:', user, 'planId:', planId);
+    
     if (!user) {
+      console.log('No user, redirecting to auth');
       navigate('/auth');
       return;
     }
 
     if (!planId) {
+      console.log('No planId, redirecting to subscriptions');
       navigate('/subscriptions');
       return;
     }

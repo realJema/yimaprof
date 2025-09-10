@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,7 @@ interface UserSubscription {
 export default function Subscriptions() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { subscription: userSubscription, loading: subscriptionLoading, refreshSubscription } = useSubscription();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -70,7 +72,10 @@ export default function Subscriptions() {
 
 
   const handleSubscribe = async (planId: string) => {
+    console.log('Subscribe button clicked for plan:', planId);
+    
     if (!user) {
+      console.log('User not authenticated, showing toast');
       toast({
         title: 'Authentication Required',
         description: 'Please sign in to subscribe',
@@ -79,8 +84,9 @@ export default function Subscriptions() {
       return;
     }
 
-    // Navigate to payment page with plan ID
-    window.location.href = `/payment?planId=${planId}`;
+    console.log('Navigating to payment page with planId:', planId);
+    // Navigate to payment page with plan ID using React Router
+    navigate(`/payment?planId=${planId}`);
   };
 
   const formatPrice = (price: number, currency: string) => {
