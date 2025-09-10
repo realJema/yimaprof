@@ -305,18 +305,24 @@ export default function ExamViewer() {
                 <div className="mt-4 pt-4 border-t bg-green-50 p-4 rounded">
                   <h4 className="font-semibold text-green-800 mb-2">Answer:</h4>
                   {(() => {
-                    const answer = content.answers.find((ans: any) => ans.question_id === question.id);
+                    // Handle nested answers structure
+                    const answersArray = content.answers.answers || content.answers;
+                    const answer = Array.isArray(answersArray) 
+                      ? answersArray.find((ans: any) => ans.question_id === question.id)
+                      : null;
+                    
                     return answer ? (
                       <div className="text-green-700">
+                        {answer.title && <h5 className="font-medium mb-2 text-green-800">{answer.title}</h5>}
                         {answer.solutions && answer.solutions.map((solution: any, solIndex: number) => (
                           <div key={solIndex} className="mb-3 last:mb-0">
                             {solution.part && <p className="font-medium mb-1">Part {solution.part}:</p>}
-                            <pre className="whitespace-pre-wrap text-sm">{solution.solution}</pre>
+                            <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border">{solution.solution}</pre>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-green-600">No answer available</p>
+                      <p className="text-green-600">No answer available for this question</p>
                     );
                   })()}
                 </div>
@@ -353,7 +359,10 @@ export default function ExamViewer() {
     );
   }
 
-  const hasAnswers = exam.content?.answers && Array.isArray(exam.content.answers);
+  const hasAnswers = exam.content?.answers && (
+    Array.isArray(exam.content.answers) || 
+    (exam.content.answers.answers && Array.isArray(exam.content.answers.answers))
+  );
 
   return (
     <div className="bg-gradient-subtle min-h-screen p-6">
