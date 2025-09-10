@@ -54,11 +54,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         `)
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (data) {
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        setSubscription(null);
+      } else if (data) {
         const processedData = {
           ...data,
           subscription_plans: {
