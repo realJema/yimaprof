@@ -108,6 +108,52 @@ export default function Payment() {
 
     setLoading(true);
 
+    // Handle test number directly without edge function
+    if (phoneNumber.trim() === '670000000') {
+      console.log('Test number detected, processing directly');
+      
+      try {
+        // Directly call the database function to activate subscription
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
+          p_user_id: user.id,
+          p_new_plan_id: plan.id
+        });
+        
+        console.log('Subscription transition result:', rpcResult);
+        
+        if (rpcError) {
+          console.error('RPC error:', rpcError);
+          toast({
+            title: 'Error',
+            description: 'Failed to activate subscription',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Show success toast and redirect
+        toast({
+          title: 'Test Payment Successful!',
+          description: 'Your subscription has been activated.',
+        });
+        
+        // Redirect to subscriptions page
+        navigate('/subscriptions');
+        return;
+      } catch (error) {
+        console.error('Error in test payment:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to process test payment',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
+    // For real payments, call the edge function
     try {
       console.log('Calling mesomb-payment function with:', {
         planId: plan.id,
@@ -131,17 +177,8 @@ export default function Payment() {
       }
 
       if (data && data.success) {
-        if (data.testPayment) {
-          // For test payments, show success immediately
-          toast({
-            title: 'Test Payment Successful!',
-            description: 'Your subscription has been activated.',
-          });
-          navigate('/subscriptions');
-        } else {
-          // Navigate to payment processing page
-          navigate(`/payment-processing?transactionId=${data.transactionId}`);
-        }
+        // Navigate to payment processing page
+        navigate(`/payment-processing?transactionId=${data.transactionId}`);
       } else {
         console.error('Payment failed with data:', data);
         toast({
