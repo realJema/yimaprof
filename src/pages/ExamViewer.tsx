@@ -292,51 +292,48 @@ export default function ExamViewer() {
       ? JSON.parse(correction.content) 
       : correction.content;
 
-    return (
-      <div className="space-y-6">
-        {/* Questions Section */}
-        {content.questions && (
-          <div>
-            <h3 className="text-xl font-semibold mb-4">Questions</h3>
-            <div className="space-y-4">
-              {content.questions.map((question: any, index: number) => (
-                <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">{question.title}</h4>
-                  {question.content && <p className="mb-2">{question.content}</p>}
-                  {question.parts && question.parts.length > 0 && (
-                    <div className="space-y-1">
-                      {question.parts.map((part: string, partIndex: number) => (
-                        <p key={partIndex} className="pl-4 text-gray-700">{part}</p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+    if (!content.questions || !content.answers) return null;
 
-        {/* Answers Section */}
-        {content.answers && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h3 className="text-xl font-semibold mb-4 text-green-800">Complete Solutions</h3>
-            <div className="space-y-6">
-              {content.answers.map((answer: any, index: number) => (
-                <div key={answer.question_id || index} className="bg-white border border-green-200 rounded-lg p-4">
-                  <h4 className="font-semibold mb-3 text-green-800">{answer.title}</h4>
+    return (
+      <div className="space-y-8">
+        {content.questions.map((question: any, index: number) => {
+          // Find the corresponding answer
+          const answer = content.answers.find((ans: any) => ans.question_id === question.id);
+          
+          return (
+            <div key={question.id || index} className="space-y-4">
+              {/* Question */}
+              <div className="border border-gray-200 rounded-lg p-6 bg-white">
+                <h4 className="text-lg font-semibold mb-3 text-gray-800">{question.title}</h4>
+                {question.content && <p className="mb-3 text-gray-700">{question.content}</p>}
+                {question.parts && question.parts.length > 0 && (
+                  <div className="space-y-2">
+                    {question.parts.map((part: string, partIndex: number) => (
+                      <p key={partIndex} className="pl-4 text-gray-700">{part}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Answer */}
+              {answer && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold mb-4 text-green-800">{answer.title}</h4>
                   {answer.solutions && answer.solutions.map((solution: any, solIndex: number) => (
                     <div key={solIndex} className="mb-4 last:mb-0">
-                      {solution.part && <p className="font-medium text-green-700 mb-1">Part {solution.part}:</p>}
-                      <div className="bg-green-25 p-3 rounded border-l-4 border-green-400">
-                        <pre className="whitespace-pre-wrap text-sm text-green-800 font-mono">{solution.solution}</pre>
+                      {solution.part && <p className="font-medium text-green-700 mb-2">Part {solution.part}:</p>}
+                      <div className="bg-green-25 p-4 rounded border-l-4 border-green-400">
+                        <pre className="whitespace-pre-wrap text-sm text-green-800 font-mono leading-relaxed">
+                          {solution.solution}
+                        </pre>
                       </div>
                     </div>
                   ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          );
+        })}
       </div>
     );
   };
@@ -500,62 +497,26 @@ export default function ExamViewer() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                {/* Questions Section */}
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Questions
-                    </CardTitle>
-                    <CardDescription>
-                      Exam questions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {exam.content ? (
-                      renderJsonContent(exam.content)
-                    ) : (
-                      <p className="text-muted-foreground">No questions available.</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Correction Section */}
-                {correction ? (
-                  <Card className="border-green-200 bg-green-50 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-green-800">
-                        <CheckCircle className="h-5 w-5" />
-                        Complete Solutions
-                      </CardTitle>
-                      <CardDescription className="text-green-700">
-                        Detailed answers and explanations
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6 bg-green-50">
-                      {renderCorrectionContent(correction)}
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        Complete Solution
-                      </CardTitle>
-                      <CardDescription>
-                        Detailed answers and explanations
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <p className="text-muted-foreground">
-                        Correction not available for this exam yet.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Questions & Solutions
+                  </CardTitle>
+                  <CardDescription>
+                    Exam questions with detailed answers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {correction ? (
+                    renderCorrectionContent(correction)
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Correction not available for this exam yet.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             )}
           </>
         )}
