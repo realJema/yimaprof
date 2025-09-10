@@ -8,36 +8,66 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Check payment status function called with method:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { transactionId } = await req.json();
+    const requestBody = await req.json();
+    console.log('Request body:', requestBody);
+    
+    const { transactionId } = requestBody;
+    
+    if (!transactionId) {
+      console.error('Missing transactionId');
+      return new Response(JSON.stringify({ error: 'Missing transactionId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header exists:', !!authHeader);
+    
     if (!authHeader) {
+      console.error('No authorization header');
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(JSON.stringify({ error: 'Missing Supabase configuration' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user from token
     const token = authHeader.replace('Bearer ', '');
+    console.log('Token extracted, length:', token.length);
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid user' }), {
+      console.error('Invalid user:', userError);
+      return new Response(JSON.stringify({ error: 'Invalid user', details: userError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('User authenticated:', user.id);
 
     // Get transaction details
     const { data: transaction, error: transactionError } = await supabase
@@ -48,14 +78,18 @@ serve(async (req) => {
       .single();
 
     if (transactionError || !transaction) {
-      return new Response(JSON.stringify({ error: 'Transaction not found' }), {
+      console.error('Transaction not found:', transactionError);
+      return new Response(JSON.stringify({ error: 'Transaction not found', details: transactionError?.message }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log('Transaction found:', transaction);
+
     // If transaction is already completed or failed, return status
     if (transaction.status === 'completed' || transaction.status === 'failed') {
+      console.log('Transaction already in final state:', transaction.status);
       return new Response(JSON.stringify({
         status: transaction.status,
         transaction: transaction
@@ -64,71 +98,9 @@ serve(async (req) => {
       });
     }
 
-    // MeSomb API credentials
-    const appKey = Deno.env.get('MESOMB_APP_KEY');
-    const accessKey = Deno.env.get('MESOMB_ACCESS_KEY');
-    const secretKey = Deno.env.get('MESOMB_SECRET_KEY');
-    const apiUrl = Deno.env.get('MESOMB_API_URL') || 'https://mesomb.hachther.com/en/api/v1.1';
-
-    if (!appKey || !accessKey || !secretKey) {
-      return new Response(JSON.stringify({ error: 'MeSomb credentials not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Check payment status with MeSomb
-    if (transaction.provider_reference) {
-      const statusResponse = await fetch(`${apiUrl}/payment/status/${transaction.provider_reference}/`, {
-        method: 'GET',
-        headers: {
-          'X-MeSomb-Application': appKey,
-          'X-MeSomb-AccessKey': accessKey,
-        }
-      });
-
-      const statusResult = await statusResponse.json();
-      console.log('MeSomb Status Response:', statusResult);
-
-      let newStatus = transaction.status;
-      
-      if (statusResponse.ok && statusResult.success) {
-        if (statusResult.transaction?.status === 'SUCCESS') {
-          newStatus = 'completed';
-          
-          // If payment is successful, activate subscription
-          if (transaction.metadata?.plan_id) {
-            try {
-              const result = await supabase.rpc('transition_subscription_plan', {
-                p_user_id: user.id,
-                p_new_plan_id: transaction.metadata.plan_id
-              });
-              
-              console.log('Subscription transition result:', result);
-            } catch (error) {
-              console.error('Error transitioning subscription:', error);
-            }
-          }
-        } else if (statusResult.transaction?.status === 'FAILED') {
-          newStatus = 'failed';
-        }
-      }
-
-      // Update transaction status
-      await supabase
-        .from('transactions')
-        .update({ status: newStatus })
-        .eq('id', transactionId);
-
-      return new Response(JSON.stringify({
-        status: newStatus,
-        transaction: { ...transaction, status: newStatus },
-        mesombData: statusResult
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    // For now, just return the current status since we're not actually calling MeSomb API
+    console.log('Returning current transaction status:', transaction.status);
+    
     return new Response(JSON.stringify({
       status: transaction.status,
       transaction: transaction
@@ -138,7 +110,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in check-payment-status function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error.message,
+      stack: error.stack 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
