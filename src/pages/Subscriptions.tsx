@@ -63,6 +63,8 @@ export default function Subscriptions() {
         description: 'Failed to fetch subscription plans',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 

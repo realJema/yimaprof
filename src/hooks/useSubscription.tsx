@@ -83,7 +83,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     refreshSubscription();
-  }, [user]);
+  }, [user?.id]);
 
   const hasActiveSubscription = subscription !== null;
   const subscriptionTier = subscription?.subscription_plans?.name || null;
