@@ -23,10 +23,24 @@ interface Exam {
   is_published: boolean;
   created_at: string;
   class_id: string;
+  content?: any;
   classes?: {
     display_name: string;
     section: string;
   };
+}
+
+interface Question {
+  id: string;
+  text: string;
+  type: string;
+  answers: Answer[];
+}
+
+interface Answer {
+  id: string;
+  text: string;
+  is_correct: boolean;
 }
 
 interface Class {
@@ -34,6 +48,8 @@ interface Class {
   display_name: string;
   section: string;
 }
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export function ExamManagement() {
   const { user } = useAuth();
@@ -53,6 +69,18 @@ export function ExamManagement() {
     description: '',
     is_published: false,
   });
+
+  const [questions, setQuestions] = useState<Question[]>([{
+    id: generateId(),
+    text: '',
+    type: 'multiple_choice',
+    answers: [
+      { id: generateId(), text: '', is_correct: false },
+      { id: generateId(), text: '', is_correct: false },
+      { id: generateId(), text: '', is_correct: false },
+      { id: generateId(), text: '', is_correct: false }
+    ]
+  }]);
 
   useEffect(() => {
     fetchExams();
@@ -104,10 +132,25 @@ export function ExamManagement() {
     e.preventDefault();
     
     try {
+      const examContent = {
+        questions: questions.map(q => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          answers: q.answers
+        }))
+      };
+
+      const examData = {
+        ...formData,
+        content: examContent as any,
+        created_by: user?.id || '',
+      };
+
       if (editingExam) {
         const { error } = await supabase
           .from('exams')
-          .update(formData)
+          .update(examData)
           .eq('id', editingExam.id);
 
         if (error) throw error;
@@ -116,11 +159,6 @@ export function ExamManagement() {
           description: 'Exam updated successfully',
         });
       } else {
-        const examData = {
-          ...formData,
-          created_by: user?.id || '',
-        };
-        
         const { error } = await supabase
           .from('exams')
           .insert(examData);
@@ -134,15 +172,7 @@ export function ExamManagement() {
 
       setIsDialogOpen(false);
       setEditingExam(null);
-      setFormData({
-        title: '',
-        subject: '',
-        year: new Date().getFullYear(),
-        exam_type: '',
-        class_id: '',
-        description: '',
-        is_published: false,
-      });
+      resetForm();
       fetchExams();
     } catch (error) {
       console.error('Error saving exam:', error);
@@ -152,6 +182,29 @@ export function ExamManagement() {
         variant: 'destructive',
       });
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      subject: '',
+      year: new Date().getFullYear(),
+      exam_type: '',
+      class_id: '',
+      description: '',
+      is_published: false,
+    });
+    setQuestions([{
+      id: generateId(),
+      text: '',
+      type: 'multiple_choice',
+      answers: [
+        { id: generateId(), text: '', is_correct: false },
+        { id: generateId(), text: '', is_correct: false },
+        { id: generateId(), text: '', is_correct: false },
+        { id: generateId(), text: '', is_correct: false }
+      ]
+    }]);
   };
 
   const handleEdit = (exam: Exam) => {
@@ -165,6 +218,24 @@ export function ExamManagement() {
       description: '',
       is_published: exam.is_published,
     });
+    
+    // Load existing questions if available
+    if (exam.content && typeof exam.content === 'object' && exam.content.questions) {
+      setQuestions(exam.content.questions || []);
+    } else {
+      setQuestions([{
+        id: generateId(),
+        text: '',
+        type: 'multiple_choice',
+        answers: [
+          { id: generateId(), text: '', is_correct: false },
+          { id: generateId(), text: '', is_correct: false },
+          { id: generateId(), text: '', is_correct: false },
+          { id: generateId(), text: '', is_correct: false }
+        ]
+      }]);
+    }
+    
     setIsDialogOpen(true);
   };
 
@@ -219,6 +290,54 @@ export function ExamManagement() {
         variant: 'destructive',
       });
     }
+  };
+
+  const addQuestion = () => {
+    setQuestions([...questions, {
+      id: generateId(),
+      text: '',
+      type: 'multiple_choice',
+      answers: [
+        { id: generateId(), text: '', is_correct: false },
+        { id: generateId(), text: '', is_correct: false },
+        { id: generateId(), text: '', is_correct: false },
+        { id: generateId(), text: '', is_correct: false }
+      ]
+    }]);
+  };
+
+  const removeQuestion = (questionId: string) => {
+    setQuestions(questions.filter(q => q.id !== questionId));
+  };
+
+  const updateQuestion = (questionId: string, field: string, value: string) => {
+    setQuestions(questions.map(q => 
+      q.id === questionId ? { ...q, [field]: value } : q
+    ));
+  };
+
+  const updateAnswer = (questionId: string, answerId: string, field: string, value: string | boolean) => {
+    setQuestions(questions.map(q => 
+      q.id === questionId 
+        ? {
+            ...q, 
+            answers: q.answers.map(a => 
+              a.id === answerId ? { ...a, [field]: value } : a
+            )
+          }
+        : q
+    ));
+  };
+
+  const setCorrectAnswer = (questionId: string, answerId: string) => {
+    setQuestions(questions.map(q => 
+      q.id === questionId 
+        ? {
+            ...q, 
+            answers: q.answers.map(a => ({ ...a, is_correct: a.id === answerId }))
+          }
+        : q
+    ));
   };
 
   const columns = [
@@ -312,13 +431,13 @@ export function ExamManagement() {
                 Add Exam
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingExam ? 'Edit Exam' : 'Add New Exam'}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="title">Title</Label>
@@ -385,6 +504,67 @@ export function ExamManagement() {
                     placeholder="Exam description..."
                   />
                 </div>
+
+                {/* Questions Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-lg font-semibold">Questions</Label>
+                    <Button type="button" onClick={addQuestion} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Question
+                    </Button>
+                  </div>
+
+                  {questions.map((question, qIndex) => (
+                    <Card key={question.id} className="p-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label>Question {qIndex + 1}</Label>
+                          {questions.length > 1 && (
+                            <Button 
+                              type="button" 
+                              onClick={() => removeQuestion(question.id)}
+                              size="sm"
+                              variant="destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <Textarea
+                          placeholder="Enter your question..."
+                          value={question.text}
+                          onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                          required
+                        />
+                        
+                        <div className="space-y-2">
+                          <Label>Answers</Label>
+                          {question.answers.map((answer, aIndex) => (
+                            <div key={answer.id} className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name={`correct-${question.id}`}
+                                checked={answer.is_correct}
+                                onChange={() => setCorrectAnswer(question.id, answer.id)}
+                              />
+                              <Input
+                                placeholder={`Answer ${aIndex + 1}`}
+                                value={answer.text}
+                                onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
+                                required
+                              />
+                            </div>
+                          ))}
+                          <p className="text-sm text-muted-foreground">
+                            Select the correct answer using the radio buttons
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
