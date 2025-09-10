@@ -120,9 +120,9 @@ export default function Exams() {
     const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          exam.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          exam.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = !selectedSubject || exam.subject === selectedSubject;
-    const matchesYear = !selectedYear || exam.year?.toString() === selectedYear;
-    const matchesLevel = !selectedLevel || exam.classes?.level === selectedLevel;
+    const matchesSubject = selectedSubject === 'all' || !selectedSubject || exam.subject === selectedSubject;
+    const matchesYear = selectedYear === 'all' || !selectedYear || exam.year?.toString() === selectedYear;
+    const matchesLevel = selectedLevel === 'all' || !selectedLevel || exam.classes?.level === selectedLevel;
     
     return matchesSearch && matchesSubject && matchesYear && matchesLevel;
   });
@@ -197,7 +197,7 @@ export default function Exams() {
             <SelectValue placeholder={language === 'fr' ? 'Matière' : 'Subject'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{language === 'fr' ? 'Toutes les matières' : 'All subjects'}</SelectItem>
+            <SelectItem value="all">{language === 'fr' ? 'Toutes les matières' : 'All subjects'}</SelectItem>
             {subjects.map(subject => (
               <SelectItem key={subject} value={subject}>{subject}</SelectItem>
             ))}
@@ -209,7 +209,7 @@ export default function Exams() {
             <SelectValue placeholder={language === 'fr' ? 'Année' : 'Year'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
+            <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
             {years.map(year => (
               <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
             ))}
@@ -221,7 +221,7 @@ export default function Exams() {
             <SelectValue placeholder={language === 'fr' ? 'Niveau' : 'Level'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
+            <SelectItem value="all">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
             {levels.map(level => (
               <SelectItem key={level} value={level}>{level}</SelectItem>
             ))}
