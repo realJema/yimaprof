@@ -145,164 +145,17 @@ serve(async (req) => {
       }
     }
 
-    // For real MeSomb payments
-    console.log('Processing real MeSomb payment for phone:', phoneNumber);
+    // For non-test numbers, just return success for now
+    console.log('Non-test number, simulating payment');
     
-    // MeSomb API configuration
-    const mesombAccessKey = Deno.env.get('MESOMB_ACCESS_KEY');
-    const mesombSecretKey = Deno.env.get('MESOMB_SECRET_KEY');
-    const mesombAppKey = Deno.env.get('MESOMB_APP_KEY');
-
-    if (!mesombAccessKey || !mesombSecretKey || !mesombAppKey) {
-      console.error('Missing MeSomb configuration');
-      return new Response(JSON.stringify({ error: 'Payment service configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Create a transaction record first
-    const transactionId = crypto.randomUUID();
-    console.log('Creating transaction record with ID:', transactionId);
-
-    const { data: transactionData, error: transactionError } = await supabase
-      .from('transactions')
-      .insert({
-        id: transactionId,
-        user_id: user.id,
-        amount: amount,
-        currency: 'XOF',
-        provider: 'mesomb',
-        status: 'pending',
-        metadata: {
-          phone_number: phoneNumber,
-          plan_id: planId
-        }
-      })
-      .select()
-      .single();
-
-    if (transactionError) {
-      console.error('Transaction creation error:', transactionError);
-      return new Response(JSON.stringify({ error: 'Failed to create transaction record', details: transactionError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // For real MeSomb integration, make API call
-    try {
-      console.log('Initiating MeSomb payment...');
-      
-      // Generate a unique reference for this transaction
-      const reference = `PAY_${transactionId.replace(/-/g, '').slice(0, 16)}`;
-      
-      // MeSomb API endpoint for payment collection
-      const mesombUrl = 'https://mesomb.hachther.com/api/v1.1/payment/collect/';
-      
-      // Prepare the payment request
-      const paymentData = {
-        service: 'MTN', // Default to MTN, could be dynamic based on phone number
-        payer: phoneNumber,
-        amount: amount,
-        currency: 'XOF',
-        reference: reference,
-        message: `Payment for subscription plan`,
-        application_key: mesombAppKey
-      };
-
-      console.log('Calling MeSomb API with data:', { ...paymentData, application_key: '***' });
-
-      // Create timestamp for the request
-      const timestamp = Math.floor(Date.now() / 1000);
-      
-      const response = await fetch(mesombUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-MeSomb-Application': mesombAppKey,
-          'X-MeSomb-AccessKey': mesombAccessKey,
-          'X-MeSomb-Timestamp': timestamp.toString(),
-          // Note: In production, you'd need to implement proper HMAC signature
-          'Authorization': `Bearer ${mesombAccessKey}`
-        },
-        body: JSON.stringify(paymentData)
-      });
-
-      const mesombResult = await response.json();
-      console.log('MeSomb API response status:', response.status);
-      console.log('MeSomb API response:', mesombResult);
-
-      if (response.ok && mesombResult.success) {
-        // Update transaction with MeSomb reference
-        await supabase
-          .from('transactions')
-          .update({
-            provider_reference: mesombResult.transaction?.reference || reference,
-            status: 'processing',
-            metadata: {
-              ...transactionData.metadata,
-              mesomb_response: mesombResult
-            }
-          })
-          .eq('id', transactionId);
-
-        return new Response(JSON.stringify({ 
-          success: true,
-          transactionId: transactionId,
-          message: 'Payment initiated successfully',
-          mesombReference: mesombResult.transaction?.reference
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } else {
-        // MeSomb API error
-        console.error('MeSomb API error:', mesombResult);
-        
-        // Update transaction status to failed
-        await supabase
-          .from('transactions')
-          .update({
-            status: 'failed',
-            metadata: {
-              ...transactionData.metadata,
-              error: mesombResult
-            }
-          })
-          .eq('id', transactionId);
-
-        return new Response(JSON.stringify({ 
-          error: 'Payment initiation failed',
-          details: mesombResult.message || 'Unknown error from payment service'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } catch (error) {
-      console.error('MeSomb API call failed:', error);
-      
-      // Update transaction status to failed
-      await supabase
-        .from('transactions')
-        .update({
-          status: 'failed',
-          metadata: {
-            ...transactionData.metadata,
-            error: error.message
-          }
-        })
-        .eq('id', transactionId);
-
-      return new Response(JSON.stringify({ 
-        error: 'Payment service unavailable',
-        details: error.message,
-        transactionId: transactionId
-      }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    return new Response(JSON.stringify({
+      success: true,
+      transactionId: 'SIMULATED_' + Date.now(),
+      message: 'Payment simulation (not implemented yet)',
+      testPayment: false
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in mesomb-payment function:', error);

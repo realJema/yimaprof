@@ -476,14 +476,9 @@ export type Database = {
       }
     }
     Enums: {
-      payment_provider: "mtn_momo" | "orange_money" | "mesomb"
+      payment_provider: "mtn_momo" | "orange_money"
       subscription_status: "active" | "expired" | "canceled" | "pending"
-      transaction_status:
-        | "pending"
-        | "completed"
-        | "failed"
-        | "refunded"
-        | "processing"
+      transaction_status: "pending" | "completed" | "failed" | "refunded"
       user_role: "student" | "parent" | "teacher" | "admin"
     }
     CompositeTypes: {
@@ -612,15 +607,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      payment_provider: ["mtn_momo", "orange_money", "mesomb"],
+      payment_provider: ["mtn_momo", "orange_money"],
       subscription_status: ["active", "expired", "canceled", "pending"],
-      transaction_status: [
-        "pending",
-        "completed",
-        "failed",
-        "refunded",
-        "processing",
-      ],
+      transaction_status: ["pending", "completed", "failed", "refunded"],
       user_role: ["student", "parent", "teacher", "admin"],
     },
   },
