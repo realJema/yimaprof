@@ -470,6 +470,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      transition_subscription_plan: {
+        Args: { p_new_plan_id: string; p_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       payment_provider: "mtn_momo" | "orange_money"

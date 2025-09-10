@@ -82,48 +82,43 @@ export default function Subscriptions() {
     setSubscribing(planId);
     
     try {
-      // Get plan details for duration
-      const plan = plans.find(p => p.id === planId);
-      if (!plan) throw new Error('Plan not found');
-
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + plan.duration_days);
-
-      // First, deactivate any existing active subscription
-      if (userSubscription) {
-        const { error: deactivateError } = await supabase
-          .from('subscriptions')
-          .update({ 
-            status: 'canceled',
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id)
-          .eq('status', 'active');
-
-        if (deactivateError) {
-          console.error('Error deactivating current subscription:', deactivateError);
-          // Don't throw here, continue with new subscription
-        }
-      }
-
-      // Create new active subscription
-      const { error } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: user.id,
-          plan_id: planId,
-          status: 'active',
-          started_at: new Date().toISOString(),
-          expires_at: expirationDate.toISOString(),
-          auto_renew: false
-        });
+      // Use the database function to handle plan transition
+      const { data, error } = await supabase.rpc('transition_subscription_plan', {
+        p_user_id: user.id,
+        p_new_plan_id: planId
+      });
 
       if (error) throw error;
 
+      // Type assertion for the RPC response
+      const result = data as { success: boolean; error?: string; cancelled_subscription_id?: string; new_subscription_id: string; message: string };
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to transition subscription plan');
+      }
+
       const selectedPlan = plans.find(p => p.id === planId);
+      const isUpgrade = userSubscription && 
+        selectedPlan && 
+        userSubscription.subscription_plans.price < selectedPlan.price;
+      
+      const isDowngrade = userSubscription && 
+        selectedPlan && 
+        userSubscription.subscription_plans.price > selectedPlan.price;
+
+      let description = `You have successfully subscribed to the ${selectedPlan?.name} plan`;
+      
+      if (isUpgrade) {
+        description = `Successfully upgraded to ${selectedPlan?.name} plan!`;
+      } else if (isDowngrade) {
+        description = `Successfully changed to ${selectedPlan?.name} plan!`;
+      } else if (userSubscription) {
+        description = `Successfully switched to ${selectedPlan?.name} plan!`;
+      }
+
       toast({
         title: 'Success!',
-        description: `You have successfully subscribed to the ${selectedPlan?.name} plan`,
+        description: description,
       });
 
       // Refresh subscription immediately
@@ -133,7 +128,7 @@ export default function Subscriptions() {
       console.error('Subscription error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to process subscription. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to process subscription. Please try again.',
         variant: 'destructive',
       });
       setSubscribing(null);
@@ -251,14 +246,17 @@ export default function Subscriptions() {
 
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
-                    disabled={subscribing === plan.id}
+                    disabled={subscribing === plan.id || isCurrentPlan}
                     className={`w-full ${isEverything ? 'bg-primary hover:bg-primary/90' : ''}`}
                     variant={isEverything ? 'default' : 'outline'}
                   >
                     {subscribing === plan.id ? (
-                      'Activating...'
+                      'Processing...'
                     ) : isCurrentPlan ? (
                       'Current Plan'
+                    ) : userSubscription ? (
+                      userSubscription.subscription_plans.price < plan.price ? 'Upgrade' : 
+                      userSubscription.subscription_plans.price > plan.price ? 'Downgrade' : 'Switch Plan'
                     ) : (
                       'Subscribe Now'
                     )}
