@@ -1,46 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Users, 
-  BookOpen, 
-  CreditCard, 
-  TrendingUp, 
-  Settings,
-  FileText,
-  Download,
-  Eye,
-  Shield,
-  BarChart3
-} from 'lucide-react';
+import { Shield, BarChart3 } from 'lucide-react';
 
-interface AdminStats {
-  totalUsers: number;
-  totalExams: number;
-  totalSubscriptions: number;
-  totalRevenue: number;
-  activeUsers: number;
-  downloadsThisMonth: number;
-}
+// Import admin components
+import { AdminStats } from '@/components/admin/AdminStats';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { ExamManagement } from '@/components/admin/ExamManagement';
+import { ClassManagement } from '@/components/admin/ClassManagement';
+import { SubscriptionPlanManagement } from '@/components/admin/SubscriptionPlanManagement';
+import { TransactionViewer } from '@/components/admin/TransactionViewer';
+import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 
 export default function Admin() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalExams: 0,
-    totalSubscriptions: 0,
-    totalRevenue: 0,
-    activeUsers: 0,
-    downloadsThisMonth: 0,
-  });
+  const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,59 +39,22 @@ export default function Admin() {
         .single();
 
       if (error || profile?.role !== 'admin') {
-        throw new Error('Access denied');
+        setHasAccess(false);
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have admin privileges',
+          variant: 'destructive',
+        });
+      } else {
+        setHasAccess(true);
       }
-
-      fetchStats();
     } catch (error) {
+      setHasAccess(false);
       toast({
-        title: 'Access Denied',
-        description: 'You do not have admin privileges',
+        title: 'Error',
+        description: 'Failed to verify admin access',
         variant: 'destructive',
       });
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      // Fetch user count
-      const { count: userCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      // Fetch exam count
-      const { count: examCount } = await supabase
-        .from('exams')
-        .select('*', { count: 'exact', head: true });
-
-      // Fetch active subscriptions
-      const { count: subscriptionCount } = await supabase
-        .from('subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      // Calculate revenue (mock calculation)
-      const { data: subscriptions } = await supabase
-        .from('subscriptions')
-        .select(`
-          subscription_plans (price)
-        `)
-        .eq('status', 'active');
-
-      const totalRevenue = subscriptions?.reduce((sum, sub) => {
-        return sum + (sub.subscription_plans?.price || 0);
-      }, 0) || 0;
-
-      setStats({
-        totalUsers: userCount || 0,
-        totalExams: examCount || 0,
-        totalSubscriptions: subscriptionCount || 0,
-        totalRevenue: totalRevenue / 100, // Convert from cents
-        activeUsers: Math.floor((userCount || 0) * 0.3), // Mock 30% active
-        downloadsThisMonth: Math.floor((examCount || 0) * 2.5), // Mock downloads
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
     }
@@ -136,50 +80,19 @@ export default function Admin() {
     );
   }
 
-  const statCards = [
-    {
-      title: 'Total Users',
-      value: stats.totalUsers.toLocaleString(),
-      icon: Users,
-      description: 'Registered users',
-      color: 'text-blue-600',
-    },
-    {
-      title: 'Total Exams',
-      value: stats.totalExams.toLocaleString(),
-      icon: BookOpen,
-      description: 'Available exam papers',
-      color: 'text-green-600',
-    },
-    {
-      title: 'Active Subscriptions',
-      value: stats.totalSubscriptions.toLocaleString(),
-      icon: CreditCard,
-      description: 'Paying subscribers',
-      color: 'text-purple-600',
-    },
-    {
-      title: 'Revenue',
-      value: `${stats.totalRevenue.toLocaleString()} XAF`,
-      icon: TrendingUp,
-      description: 'Total revenue',
-      color: 'text-orange-600',
-    },
-    {
-      title: 'Active Users',
-      value: stats.activeUsers.toLocaleString(),
-      icon: Eye,
-      description: 'Active this month',
-      color: 'text-indigo-600',
-    },
-    {
-      title: 'Downloads',
-      value: stats.downloadsThisMonth.toLocaleString(),
-      icon: Download,
-      description: 'This month',
-      color: 'text-pink-600',
-    },
-  ];
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground">You do not have admin privileges to access this page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
@@ -201,129 +114,83 @@ export default function Admin() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {statCards.map((stat, index) => (
-            <Card key={index} className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-card-foreground">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stat.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <AdminStats />
 
         {/* Management Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="exams">Exams</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="classes">Classes</TabsTrigger>
+            <TabsTrigger value="plans">Plans</TabsTrigger>
+            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-card-foreground">Recent Activity</CardTitle>
-                  <CardDescription>Latest platform activities</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-card-foreground">
-                        New user registration
-                      </p>
-                      <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Platform Overview</h3>
+                  <div className="space-y-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Revenue</span>
+                      <span className="font-medium">Updated in real-time</span>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-card-foreground">
-                        New subscription activated
-                      </p>
-                      <p className="text-xs text-muted-foreground">15 minutes ago</p>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Active Users</span>
+                      <span className="font-medium">Last 30 days</span>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-card-foreground">
-                        New exam uploaded
-                      </p>
-                      <p className="text-xs text-muted-foreground">1 hour ago</p>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Platform Health</span>
+                      <Badge variant="default">Excellent</Badge>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-card-foreground">Quick Actions</CardTitle>
-                  <CardDescription>Common administrative tasks</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button className="w-full justify-start" variant="outline">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Add New Exam
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Users className="mr-2 h-4 w-4" />
-                    Manage Users
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Platform Settings
-                  </Button>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Quick Navigation</h3>
+                  <div className="space-y-3 text-sm">
+                    <p className="text-muted-foreground">Use the tabs above to navigate between different management sections:</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li>• <strong>Users:</strong> Manage user accounts and roles</li>
+                      <li>• <strong>Exams:</strong> CRUD operations for exam papers</li>
+                      <li>• <strong>Classes:</strong> Manage educational classes</li>
+                      <li>• <strong>Plans:</strong> Subscription plan management</li>
+                      <li>• <strong>Subscriptions:</strong> View active subscriptions</li>
+                      <li>• <strong>Transactions:</strong> Financial transaction history</li>
+                    </ul>
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="users">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">User Management</CardTitle>
-                <CardDescription>Manage registered users and their permissions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">User management interface would be implemented here.</p>
-              </CardContent>
-            </Card>
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="exams">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Exam Management</CardTitle>
-                <CardDescription>Add, edit, and manage exam content</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Exam management interface would be implemented here.</p>
-              </CardContent>
-            </Card>
+            <ExamManagement />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Platform Settings</CardTitle>
-                <CardDescription>Configure platform-wide settings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Platform settings interface would be implemented here.</p>
-              </CardContent>
-            </Card>
+          <TabsContent value="classes">
+            <ClassManagement />
+          </TabsContent>
+
+          <TabsContent value="plans">
+            <SubscriptionPlanManagement />
+          </TabsContent>
+
+          <TabsContent value="subscriptions">
+            <ActiveSubscriptions />
+          </TabsContent>
+
+          <TabsContent value="transactions">
+            <TransactionViewer />
           </TabsContent>
         </Tabs>
       </div>
