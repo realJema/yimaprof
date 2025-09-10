@@ -241,8 +241,96 @@ export default function ExamViewer() {
       return <div className="prose max-w-none">{renderMarkdown(content.raw_text)}</div>;
     }
     
-    // Handle JSON format
+    // Handle new question format with structured questions
     if (content.questions && Array.isArray(content.questions)) {
+      return (
+        <div className="space-y-6">
+          {content.questions.map((question: any, index: number) => (
+            <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-lg font-semibold">Question {index + 1}</h3>
+                <Badge variant="outline" className="text-xs">
+                  {question.type === 'multiple_choice' ? 'Multiple Choice' : 'Long Form'}
+                </Badge>
+              </div>
+              
+              <p className="mb-4 text-gray-700">{question.text}</p>
+              
+              {/* Multiple Choice Questions */}
+              {question.type === 'multiple_choice' && question.answers && (
+                <div className="space-y-3">
+                  {question.answers.map((answer: any, answerIndex: number) => (
+                    <div key={answer.id || answerIndex} className="flex items-start gap-3">
+                      {mode === 'evaluation' && isTimerActive && !showResults ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value={answer.text}
+                            checked={userAnswers.find(a => a.questionIndex === index)?.answer === answer.text}
+                            onChange={(e) => handleAnswerChange(index, e.target.value)}
+                            className="mt-1"
+                          />
+                          <label className="cursor-pointer">{String.fromCharCode(65 + answerIndex)}. {answer.text}</label>
+                        </div>
+                      ) : (
+                        <div className={`flex items-center gap-2 p-2 rounded ${
+                          showAnswers && answer.is_correct 
+                            ? 'bg-green-100 border border-green-300' 
+                            : 'bg-gray-50'
+                        }`}>
+                          <span className="font-medium">{String.fromCharCode(65 + answerIndex)}.</span>
+                          <span>{answer.text}</span>
+                          {showAnswers && answer.is_correct && (
+                            <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Long Form Questions */}
+              {question.type === 'long_form' && (
+                <div className="space-y-3">
+                  {mode === 'evaluation' && isTimerActive && !showResults ? (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Your Answer:</label>
+                      <Textarea
+                        placeholder="Enter your detailed answer here..."
+                        value={userAnswers.find(a => a.questionIndex === index)?.answer || ''}
+                        onChange={(e) => handleAnswerChange(index, e.target.value)}
+                        className="w-full"
+                        rows={6}
+                      />
+                    </div>
+                  ) : showAnswers && question.answers && question.answers[0] ? (
+                    <div className="bg-green-50 p-4 rounded border border-green-200">
+                      <h4 className="font-semibold text-green-800 mb-2">Expected Answer/Key Points:</h4>
+                      <div className="text-green-700 whitespace-pre-wrap">
+                        {question.answers[0].text}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+              
+              {/* Show user's answer in results */}
+              {showResults && userAnswers.find(a => a.questionIndex === index) && (
+                <div className="mt-4 pt-4 border-t bg-blue-50 p-3 rounded">
+                  <h4 className="font-semibold text-blue-800 mb-2">Your Answer:</h4>
+                  <p className="text-blue-700">{userAnswers.find(a => a.questionIndex === index)?.answer}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    // Handle old format with nested structure
+    if (content.exam_info || (content.questions && !Array.isArray(content.questions))) {
       return (
         <div className="space-y-6">
           {content.exam_info && (
@@ -255,80 +343,7 @@ export default function ExamViewer() {
               </div>
             </div>
           )}
-          
-          {content.questions.map((question: any, index: number) => (
-            <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-3">{question.title}</h3>
-              {question.content && <p className="mb-3">{question.content}</p>}
-              {question.parts && question.parts.length > 0 && (
-                <div className="space-y-2">
-                  {question.parts.map((part: string, partIndex: number) => (
-                    <p key={partIndex} className="pl-4">{part}</p>
-                  ))}
-                </div>
-              )}
-              {question.marks && (
-                <p className="text-sm text-gray-600 mt-2 font-medium">[{question.marks} marks]</p>
-              )}
-              
-              {/* Show input boxes in evaluation mode */}
-              {mode === 'evaluation' && isTimerActive && !showResults && (
-                <div className="mt-4 pt-4 border-t">
-                  <label className="block text-sm font-medium mb-2">Your Answer:</label>
-                  <Textarea
-                    placeholder="Enter your answer here..."
-                    value={userAnswers.find(a => a.questionIndex === index)?.answer || ''}
-                    onChange={(e) => handleAnswerChange(index, e.target.value)}
-                    className="w-full"
-                    rows={4}
-                  />
-                </div>
-              )}
-              
-              {/* View Correction Button in preview mode */}
-              {mode === 'preview' && hasAnswers && (
-                <div className="mt-4 pt-4 border-t">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => navigate(`/exam/${examId}?mode=correction`)}
-                    className="flex items-center gap-2"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    View Solution
-                  </Button>
-                </div>
-              )}
-              
-              {/* Show answers in correction mode */}
-              {showAnswers && content.answers && (
-                <div className="mt-4 pt-4 border-t bg-green-50 p-4 rounded">
-                  <h4 className="font-semibold text-green-800 mb-2">Answer:</h4>
-                  {(() => {
-                    // Handle nested answers structure
-                    const answersArray = content.answers.answers || content.answers;
-                    const answer = Array.isArray(answersArray) 
-                      ? answersArray.find((ans: any) => ans.question_id === question.id)
-                      : null;
-                    
-                    return answer ? (
-                      <div className="text-green-700">
-                        {answer.title && <h5 className="font-medium mb-2 text-green-800">{answer.title}</h5>}
-                        {answer.solutions && answer.solutions.map((solution: any, solIndex: number) => (
-                          <div key={solIndex} className="mb-3 last:mb-0">
-                            {solution.part && <p className="font-medium mb-1">Part {solution.part}:</p>}
-                            <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border">{solution.solution}</pre>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-green-600">No answer available for this question</p>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          ))}
+          {/* Handle other legacy formats here if needed */}
         </div>
       );
     }
@@ -359,10 +374,8 @@ export default function ExamViewer() {
     );
   }
 
-  const hasAnswers = exam.content?.answers && (
-    Array.isArray(exam.content.answers) || 
-    (exam.content.answers.answers && Array.isArray(exam.content.answers.answers))
-  );
+  const hasAnswers = exam.content?.questions && Array.isArray(exam.content.questions) && 
+    exam.content.questions.some((q: any) => q.answers && q.answers.length > 0);
 
   return (
     <div className="bg-gradient-subtle min-h-screen p-6">

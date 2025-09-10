@@ -292,6 +292,32 @@ export function ExamManagement() {
     }
   };
 
+  const changeQuestionType = (questionId: string, newType: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId) {
+        if (newType === 'long_form') {
+          return {
+            ...q,
+            type: newType,
+            answers: [{ id: generateId(), text: '', is_correct: true }]
+          };
+        } else {
+          return {
+            ...q,
+            type: newType,
+            answers: [
+              { id: generateId(), text: '', is_correct: false },
+              { id: generateId(), text: '', is_correct: false },
+              { id: generateId(), text: '', is_correct: false },
+              { id: generateId(), text: '', is_correct: false }
+            ]
+          };
+        }
+      }
+      return q;
+    }));
+  };
+
   const addQuestion = () => {
     setQuestions([...questions, {
       id: generateId(),
@@ -520,16 +546,27 @@ export function ExamManagement() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <Label>Question {qIndex + 1}</Label>
-                          {questions.length > 1 && (
-                            <Button 
-                              type="button" 
-                              onClick={() => removeQuestion(question.id)}
-                              size="sm"
-                              variant="destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <div className="flex gap-2">
+                            <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                                <SelectItem value="long_form">Long Form</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {questions.length > 1 && (
+                              <Button 
+                                type="button" 
+                                onClick={() => removeQuestion(question.id)}
+                                size="sm"
+                                variant="destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         <Textarea
                           placeholder="Enter your question..."
@@ -538,28 +575,43 @@ export function ExamManagement() {
                           required
                         />
                         
-                        <div className="space-y-2">
-                          <Label>Answers</Label>
-                          {question.answers.map((answer, aIndex) => (
-                            <div key={answer.id} className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                name={`correct-${question.id}`}
-                                checked={answer.is_correct}
-                                onChange={() => setCorrectAnswer(question.id, answer.id)}
-                              />
-                              <Input
-                                placeholder={`Answer ${aIndex + 1}`}
-                                value={answer.text}
-                                onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
-                                required
-                              />
-                            </div>
-                          ))}
-                          <p className="text-sm text-muted-foreground">
-                            Select the correct answer using the radio buttons
-                          </p>
-                        </div>
+                        {question.type === 'multiple_choice' ? (
+                          <div className="space-y-2">
+                            <Label>Answer Options</Label>
+                            {question.answers.map((answer, aIndex) => (
+                              <div key={answer.id} className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${question.id}`}
+                                  checked={answer.is_correct}
+                                  onChange={() => setCorrectAnswer(question.id, answer.id)}
+                                />
+                                <Input
+                                  placeholder={`Option ${aIndex + 1}`}
+                                  value={answer.text}
+                                  onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
+                                  required
+                                />
+                              </div>
+                            ))}
+                            <p className="text-sm text-muted-foreground">
+                              Select the correct answer using the radio buttons
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label>Expected Answer/Keywords (for evaluation)</Label>
+                            <Textarea
+                              placeholder="Enter the expected answer or key points that should be included in a good answer..."
+                              value={question.answers[0]?.text || ''}
+                              onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
+                              rows={3}
+                            />
+                            <p className="text-sm text-muted-foreground">
+                              This will be used for evaluation purposes and won't be shown to students
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   ))}
