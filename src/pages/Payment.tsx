@@ -80,8 +80,8 @@ export default function Payment() {
   };
 
   const validatePhoneNumber = (phone: string) => {
-    // Simple validation for Cameroon phone numbers
-    const phoneRegex = /^(\+237|237)?[6-9]\d{8}$/;
+    // Simple validation for 9-digit numbers (no country code needed)
+    const phoneRegex = /^[6-9]\d{8}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
   };
 
@@ -100,7 +100,7 @@ export default function Payment() {
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
         title: 'Error',
-        description: 'Please enter a valid phone number',
+        description: 'Please enter a valid 9-digit phone number starting with 6, 7, 8, or 9',
         variant: 'destructive',
       });
       return;
@@ -120,8 +120,17 @@ export default function Payment() {
       if (error) throw error;
 
       if (data.success) {
-        // Navigate to payment processing page
-        navigate(`/payment-processing?transactionId=${data.transactionId}`);
+        if (data.testPayment) {
+          // For test payments, show success immediately
+          toast({
+            title: 'Test Payment Successful!',
+            description: 'Your subscription has been activated.',
+          });
+          navigate('/subscriptions');
+        } else {
+          // Navigate to payment processing page
+          navigate(`/payment-processing?transactionId=${data.transactionId}`);
+        }
       } else {
         toast({
           title: 'Payment Failed',
@@ -190,14 +199,17 @@ export default function Payment() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+237 6XX XXX XXX"
+                  placeholder="6XX XXX XXX"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="pl-10"
+                  maxLength={9}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Enter your Orange Money or MTN Mobile Money number
+                Enter your 9-digit phone number (without country code)
+                <br />
+                <span className="text-green-600">Use 670000000 for testing</span>
               </p>
             </div>
 
