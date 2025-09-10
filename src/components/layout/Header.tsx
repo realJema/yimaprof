@@ -98,6 +98,16 @@ export default function Header() {
             </div>
           ) : (
             <div className="flex items-center space-x-4">
+              {/* Public navigation for non-authenticated users */}
+              <nav className="hidden md:flex items-center space-x-1">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/exams" className="flex items-center space-x-2">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{t('exams')}</span>
+                  </Link>
+                </Button>
+              </nav>
+              
               <LanguageSwitcher />
               <Button
                 variant="ghost"
