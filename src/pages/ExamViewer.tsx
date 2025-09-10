@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,14 +49,17 @@ const EXAM_DURATION = 3600; // 1 hour in seconds
 export default function ExamViewer() {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
   
+  const mode = searchParams.get('mode') || 'preview';
+  
   const [exam, setExam] = useState<Exam | null>(null);
   const [correction, setCorrection] = useState<Correction | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('preview');
+  const [activeTab, setActiveTab] = useState(mode);
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
@@ -69,6 +72,10 @@ export default function ExamViewer() {
       checkAccess();
     }
   }, [examId, user]);
+
+  useEffect(() => {
+    setActiveTab(mode);
+  }, [mode]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -291,11 +298,11 @@ export default function ExamViewer() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="preview" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
-              Preview Questions
+              {t('preview_questions') || 'Preview Questions'}
             </TabsTrigger>
             <TabsTrigger value="evaluation" className="flex items-center gap-2">
               <PenTool className="h-4 w-4" />
-              Evaluation
+              {t('evaluation') || 'Evaluation'}
             </TabsTrigger>
             <TabsTrigger 
               value="correction" 
@@ -303,7 +310,7 @@ export default function ExamViewer() {
               disabled={!hasAccess && activeTab !== 'correction'}
             >
               <CheckCircle className="h-4 w-4" />
-              View Correction
+              {t('view_correction') || 'View Correction'}
             </TabsTrigger>
           </TabsList>
 
@@ -312,10 +319,10 @@ export default function ExamViewer() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Question Preview
+                  {t('question_preview') || 'Question Preview'}
                 </CardTitle>
                 <CardDescription>
-                  Review the exam questions. {!user && 'Sign in to access evaluation and corrections.'}
+                  {t('review_questions_desc') || 'Review the exam questions.'} {!user && (t('sign_in_access') || 'Sign in to access evaluation and corrections.')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

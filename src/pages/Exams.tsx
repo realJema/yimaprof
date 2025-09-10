@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Download, Eye, Search, Calendar, Users } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, Eye, Search, Calendar, Users, FileText, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -413,16 +413,24 @@ export default function Exams() {
                              </p>
                            )}
                            
-                           <div className="flex gap-2">
-                             <Button size="sm" className="flex items-center gap-2" asChild>
-                               <Link to={`/exam/${exam.id}`}>
-                                 <Eye className="h-4 w-4" />
-                                 {language === 'fr' ? 'Voir' : 'View'}
+                           <div className="flex flex-col gap-2">
+                             <Button size="sm" variant="outline" className="flex items-center gap-2 justify-start" asChild>
+                               <Link to={`/exam/${exam.id}?mode=preview`}>
+                                 <FileText className="h-4 w-4" />
+                                 {language === 'fr' ? 'Aperçu questions' : 'Preview Questions'}
                                </Link>
                              </Button>
-                             <Button size="sm" variant="outline" className="flex items-center gap-2">
-                               <Download className="h-4 w-4" />
-                               {t('download')}
+                             <Button size="sm" className="flex items-center gap-2 justify-start" asChild>
+                               <Link to={`/exam/${exam.id}?mode=evaluation`}>
+                                 <Clock className="h-4 w-4" />
+                                 {language === 'fr' ? 'Évaluation' : 'Evaluation'}
+                               </Link>
+                             </Button>
+                             <Button size="sm" variant="secondary" className="flex items-center gap-2 justify-start" asChild>
+                               <Link to={`/exam/${exam.id}?mode=correction`}>
+                                 <CheckCircle className="h-4 w-4" />
+                                 {language === 'fr' ? 'Voir correction' : 'View Correction'}
+                               </Link>
                              </Button>
                            </div>
                          </CardContent>
