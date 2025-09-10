@@ -5,6 +5,7 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { LogOut, User, Menu, BookOpen, BarChart3, Settings } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
+// Header component for YIMA platform
 export default function Header() {
   const { user, signOut } = useAuth();
   const { t } = useLanguage();
