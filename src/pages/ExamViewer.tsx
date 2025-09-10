@@ -256,7 +256,7 @@ export default function ExamViewer() {
   }
 
   return (
-    <div className="bg-gradient-subtle p-6">
+    <div className="bg-gradient-subtle min-h-screen p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -277,7 +277,7 @@ export default function ExamViewer() {
         </div>
 
         {/* Timer for evaluation */}
-        {isTimerActive && (
+        {mode === 'evaluation' && isTimerActive && (
           <Card className="border-orange-500 bg-orange-50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -293,112 +293,84 @@ export default function ExamViewer() {
           </Card>
         )}
 
-        {/* Exam Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="preview" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              {t('preview_questions') || 'Preview Questions'}
-            </TabsTrigger>
-            <TabsTrigger value="evaluation" className="flex items-center gap-2">
-              <PenTool className="h-4 w-4" />
-              {t('evaluation') || 'Evaluation'}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="correction" 
-              className="flex items-center gap-2"
-              disabled={!hasAccess && activeTab !== 'correction'}
-            >
-              <CheckCircle className="h-4 w-4" />
-              {t('view_correction') || 'View Correction'}
-            </TabsTrigger>
-          </TabsList>
+        {/* Content based on mode */}
+        {mode === 'preview' && (
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {t('question_preview') || 'Question Preview'}
+              </CardTitle>
+              <CardDescription>
+                {t('review_questions_desc') || 'Review the exam questions without answers.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 min-h-[60vh]">
+              {exam.content ? (
+                <div className="prose max-w-none">
+                  {renderMarkdown(exam.content)}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No content available for preview.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="preview">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  {t('question_preview') || 'Question Preview'}
-                </CardTitle>
-                <CardDescription>
-                  {t('review_questions_desc') || 'Review the exam questions.'} {!user && (t('sign_in_access') || 'Sign in to access evaluation and corrections.')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {exam.content ? (
+        {mode === 'evaluation' && (
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PenTool className="h-5 w-5" />
+                {t('evaluation') || 'Evaluation Mode'}
+              </CardTitle>
+              <CardDescription>
+                Answer the questions within the time limit
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 min-h-[60vh]">
+              {!isTimerActive && !showResults ? (
+                <div className="text-center py-8">
+                  <Button onClick={handleStartEvaluation} size="lg">
+                    Start Evaluation ({formatTime(EXAM_DURATION)})
+                  </Button>
+                </div>
+              ) : showResults ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-green-600">Evaluation Complete!</h3>
+                  <p>Your answers have been recorded. You can now view the correction to see the correct answers.</p>
+                  <Button 
+                    onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    View Correction
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
                   <div className="prose max-w-none">
-                    {renderMarkdown(exam.content)}
+                    {renderMarkdown(exam.content || '')}
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">No content available for preview.</p>
-                )}
-                
-                {user && (
-                  <div className="pt-4 border-t">
-                    <Button onClick={handleStartEvaluation} className="flex items-center gap-2">
-                      <PenTool className="h-4 w-4" />
-                      Start Evaluation
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="evaluation">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PenTool className="h-5 w-5" />
-                  Evaluation Mode
-                </CardTitle>
-                <CardDescription>
-                  Answer the questions within the time limit
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {!isTimerActive && !showResults ? (
-                  <div className="text-center py-8">
-                    <Button onClick={handleStartEvaluation} size="lg">
-                      Start Evaluation ({formatTime(EXAM_DURATION)})
-                    </Button>
-                  </div>
-                ) : showResults ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-green-600">Evaluation Complete!</h3>
-                    <p>Your answers have been recorded. You can now view the correction to see the correct answers.</p>
+                  <div className="pt-4 border-t flex gap-4">
                     <Button 
-                      onClick={() => setActiveTab('correction')}
+                      onClick={handleSubmitEvaluation}
                       className="flex items-center gap-2"
                     >
-                      <CheckCircle className="h-4 w-4" />
-                      View Correction
+                      Submit Answers
                     </Button>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="prose max-w-none">
-                      {renderMarkdown(exam.content || '')}
-                    </div>
-                    <div className="pt-4 border-t flex gap-4">
-                      <Button 
-                        onClick={handleSubmitEvaluation}
-                        className="flex items-center gap-2"
-                      >
-                        Submit Answers
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="correction">
+        {mode === 'correction' && (
+          <>
             {!hasAccess && !user ? (
               <Card className="border-orange-500 bg-orange-50">
-                <CardContent className="pt-6 text-center">
+                <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
                   <p className="text-orange-700 mb-4">
                     Sign in and subscribe to access corrections
                   </p>
@@ -409,7 +381,7 @@ export default function ExamViewer() {
               </Card>
             ) : !hasAccess ? (
               <Card className="border-orange-500 bg-orange-50">
-                <CardContent className="pt-6 text-center">
+                <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
                   <p className="text-orange-700 mb-4">
                     Subscribe to access corrections
                   </p>
@@ -419,31 +391,56 @@ export default function ExamViewer() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Complete Solution
-                  </CardTitle>
-                  <CardDescription>
-                    Detailed answers and explanations
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {correction ? (
-                    <div className="prose max-w-none">
-                      {renderMarkdown(correction.content)}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">
-                      Correction not available for this exam yet.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                {/* Questions Section */}
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Questions
+                    </CardTitle>
+                    <CardDescription>
+                      Exam questions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {exam.content ? (
+                      <div className="prose max-w-none">
+                        {renderMarkdown(exam.content)}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No questions available.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Correction Section */}
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      Complete Solution
+                    </CardTitle>
+                    <CardDescription>
+                      Detailed answers and explanations
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {correction ? (
+                      <div className="prose max-w-none">
+                        {renderMarkdown(correction.content)}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Correction not available for this exam yet.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </>
+        )}
       </div>
     </div>
   );
