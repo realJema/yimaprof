@@ -22,7 +22,7 @@ interface Transaction {
     email: string;
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 export function TransactionViewer() {
@@ -36,24 +36,30 @@ export function TransactionViewer() {
 
   const fetchTransactions = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: transactionsData, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          profiles (
-            email,
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      const processedTransactions = (data || []).map(transaction => ({
-        ...transaction,
-        profiles: transaction.profiles || { email: '', first_name: '', last_name: '' }
-      }));
-      setTransactions(processedTransactions);
+
+      // Fetch related profile data separately
+      const transactionsWithProfiles = await Promise.all(
+        (transactionsData || []).map(async (transaction) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('email, first_name, last_name')
+            .eq('id', transaction.user_id)
+            .single();
+
+          return {
+            ...transaction,
+            profiles: profileData
+          };
+        })
+      );
+
+      setTransactions(transactionsWithProfiles);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -159,7 +165,7 @@ export function TransactionViewer() {
         <AdminDataTable
           data={transactions}
           columns={columns}
-          searchKey="email"
+          searchKey="id"
           loading={loading}
         />
       </CardContent>

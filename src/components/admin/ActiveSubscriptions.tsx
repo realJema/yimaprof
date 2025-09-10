@@ -21,12 +21,12 @@ interface ActiveSubscription {
     email: string;
     first_name: string;
     last_name: string;
-  };
+  } | null;
   subscription_plans?: {
     name: string;
     price: number;
     currency: string;
-  };
+  } | null;
 }
 
 export function ActiveSubscriptions() {
@@ -40,30 +40,39 @@ export function ActiveSubscriptions() {
 
   const fetchSubscriptions = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: subscriptionsData, error } = await supabase
         .from('subscriptions')
-        .select(`
-          *,
-          profiles (
-            email,
-            first_name,
-            last_name
-          ),
-          subscription_plans (
-            name,
-            price,
-            currency
-          )
-        `)
+        .select('*')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      const processedSubscriptions = (data || []).map(subscription => ({
-        ...subscription,
-        profiles: subscription.profiles || { email: '', first_name: '', last_name: '' }
-      }));
-      setSubscriptions(processedSubscriptions);
+
+      // Fetch related data separately
+      const subscriptionsWithRelations = await Promise.all(
+        (subscriptionsData || []).map(async (subscription) => {
+          const [profileData, planData] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('email, first_name, last_name')
+              .eq('id', subscription.user_id)
+              .single(),
+            supabase
+              .from('subscription_plans')
+              .select('name, price, currency')
+              .eq('id', subscription.plan_id)
+              .single()
+          ]);
+
+          return {
+            ...subscription,
+            profiles: profileData.data,
+            subscription_plans: planData.data
+          };
+        })
+      );
+
+      setSubscriptions(subscriptionsWithRelations);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
       toast({
@@ -205,7 +214,7 @@ export function ActiveSubscriptions() {
         <AdminDataTable
           data={subscriptions}
           columns={columns}
-          searchKey="email"
+          searchKey="id"
           actions={actions}
           loading={loading}
         />
