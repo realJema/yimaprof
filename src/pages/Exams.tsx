@@ -110,70 +110,86 @@ export default function Exams() {
     exam.subject.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleClassSelect = (classLevel: string) => {
+    // Determine section based on class
+    const section = FRANCOPHONE_CLASSES.some(c => c.id === classLevel) ? 'francophone' : 'anglophone';
+    setSelectedSection(section);
+    setCurrentView('exams');
+    
+    // Fetch exams for specific class
+    setLoading(true);
+    supabase
+      .from('exams')
+      .select('*')
+      .eq('is_published', true)
+      .eq('class_level', classLevel)
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          toast({
+            title: t('error'),
+            description: 'Failed to fetch exams',
+            variant: 'destructive',
+          });
+        } else {
+          setExams(data || []);
+        }
+        setLoading(false);
+      });
+  };
+
   const renderSections = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <h1 className="text-3xl font-bold text-foreground mb-8">{t('exams')}</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card 
-          className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
-          onClick={() => handleSectionSelect('francophone')}
-        >
-          <CardHeader>
-            <CardTitle className="text-card-foreground flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              {t('francophone')}
-            </CardTitle>
-            <CardDescription>
-              Classes de la 6ème à la Terminale
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              7 niveaux disponibles • {language === 'fr' ? 'Système français' : 'French system'}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Francophone Section */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+          <BookOpen className="h-6 w-6 text-primary" />
+          {t('francophone')} Section
+        </h2>
+        <p className="text-muted-foreground mb-4">Classes de la 6ème à la Terminale • {language === 'fr' ? 'Système français' : 'French system'}</p>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          {FRANCOPHONE_CLASSES.map((classItem) => (
+            <Card 
+              key={classItem.id}
+              className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
+              onClick={() => handleClassSelect(classItem.id)}
+            >
+              <CardHeader className="p-4">
+                <CardTitle className="text-card-foreground text-lg text-center">
+                  {t(classItem.name)}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </div>
 
-        <Card 
-          className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
-          onClick={() => handleSectionSelect('anglophone')}
-        >
-          <CardHeader>
-            <CardTitle className="text-card-foreground flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              {t('anglophone')}
-            </CardTitle>
-            <CardDescription>
-              Form 1 to Upper Sixth
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              7 levels available • {language === 'fr' ? 'Système anglais' : 'English system'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
-          onClick={() => handleSectionSelect('all')}
-        >
-          <CardHeader>
-            <CardTitle className="text-card-foreground flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              All Sections
-            </CardTitle>
-            <CardDescription>
-              Both Francophone and Anglophone
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Complete access to all educational systems
-            </p>
-          </CardContent>
-        </Card>
+      {/* Anglophone Section */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+          <BookOpen className="h-6 w-6 text-primary" />
+          {t('anglophone')} Section
+        </h2>
+        <p className="text-muted-foreground mb-4">Form 1 to Upper Sixth • {language === 'fr' ? 'Système anglais' : 'English system'}</p>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          {ANGLOPHONE_CLASSES.map((classItem) => (
+            <Card 
+              key={classItem.id}
+              className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
+              onClick={() => handleClassSelect(classItem.id)}
+            >
+              <CardHeader className="p-4">
+                <CardTitle className="text-card-foreground text-lg text-center">
+                  {t(classItem.name)}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
