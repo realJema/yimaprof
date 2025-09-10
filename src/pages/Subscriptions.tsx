@@ -87,15 +87,24 @@ export default function Subscriptions() {
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + plan.duration_days);
 
-      // Cancel any existing subscription
+      // First, deactivate any existing active subscription
       if (userSubscription) {
-        await supabase
+        const { error: deactivateError } = await supabase
           .from('subscriptions')
-          .update({ status: 'canceled' })
-          .eq('id', userSubscription.id);
+          .update({ 
+            status: 'canceled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+
+        if (deactivateError) {
+          console.error('Error deactivating current subscription:', deactivateError);
+          // Don't throw here, continue with new subscription
+        }
       }
 
-      // Create new subscription immediately
+      // Create new active subscription
       const { error } = await supabase
         .from('subscriptions')
         .insert({
@@ -104,22 +113,25 @@ export default function Subscriptions() {
           status: 'active',
           started_at: new Date().toISOString(),
           expires_at: expirationDate.toISOString(),
+          auto_renew: false
         });
 
       if (error) throw error;
 
+      const selectedPlan = plans.find(p => p.id === planId);
       toast({
         title: 'Success!',
-        description: 'Your subscription has been activated instantly',
+        description: `You have successfully subscribed to the ${selectedPlan?.name} plan`,
       });
 
       // Refresh subscription immediately
       await refreshSubscription();
       setSubscribing(null);
     } catch (error) {
+      console.error('Subscription error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to process subscription',
+        description: 'Failed to process subscription. Please try again.',
         variant: 'destructive',
       });
       setSubscribing(null);
@@ -127,9 +139,12 @@ export default function Subscriptions() {
   };
 
   const formatPrice = (price: number, currency: string) => {
+    if (currency === 'XOF') {
+      return `${price.toLocaleString('fr-FR')} FCFA`;
+    }
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: currency === 'XAF' ? 'XAF' : 'USD',
+      currency: currency,
     }).format(price / 100);
   };
 
@@ -173,7 +188,10 @@ export default function Subscriptions() {
                 <div>
                   <h3 className="font-semibold">{userSubscription.subscription_plans.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Expires: {new Date(userSubscription.expires_at).toLocaleDateString()}
+                    Expires: {new Date(userSubscription.expires_at).toLocaleDateString('fr-FR')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Started: {new Date(userSubscription.started_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
                 <Badge variant="secondary">Active</Badge>
@@ -238,7 +256,7 @@ export default function Subscriptions() {
                     {subscribing === plan.id ? (
                       'Activating...'
                     ) : isCurrentPlan ? (
-                      'Switch to This Plan'
+                      'Current Plan'
                     ) : (
                       'Subscribe Now'
                     )}
@@ -251,7 +269,7 @@ export default function Subscriptions() {
 
         <div className="text-center pt-8">
           <p className="text-sm text-muted-foreground">
-            All plans include access to offline downloads and regular content updates
+            All plans include access to exam papers, corrections, and regular content updates. No payment required - instant activation!
           </p>
         </div>
       </div>
