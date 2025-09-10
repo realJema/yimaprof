@@ -109,6 +109,12 @@ export default function Payment() {
     setLoading(true);
 
     try {
+      console.log('Calling mesomb-payment function with:', {
+        planId: plan.id,
+        phoneNumber: phoneNumber.replace(/\s/g, ''),
+        amount: plan.price
+      });
+
       const { data, error } = await supabase.functions.invoke('mesomb-payment', {
         body: {
           planId: plan.id,
@@ -117,9 +123,14 @@ export default function Payment() {
         }
       });
 
-      if (error) throw error;
+      console.log('Function response:', { data, error });
 
-      if (data.success) {
+      if (error) {
+        console.error('Function error:', error);
+        throw error;
+      }
+
+      if (data && data.success) {
         if (data.testPayment) {
           // For test payments, show success immediately
           toast({
@@ -132,9 +143,10 @@ export default function Payment() {
           navigate(`/payment-processing?transactionId=${data.transactionId}`);
         }
       } else {
+        console.error('Payment failed with data:', data);
         toast({
           title: 'Payment Failed',
-          description: data.error || 'Failed to initiate payment',
+          description: data?.error || 'Failed to initiate payment',
           variant: 'destructive',
         });
       }

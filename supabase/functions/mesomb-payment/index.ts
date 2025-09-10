@@ -8,17 +8,38 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('MeSomb Payment function called with method:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { planId, phoneNumber, amount } = await req.json();
+    // Log all environment variables (safely)
+    console.log('Environment check:');
+    console.log('SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
+    console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    console.log('MESOMB_APP_KEY exists:', !!Deno.env.get('MESOMB_APP_KEY'));
+    console.log('MESOMB_ACCESS_KEY exists:', !!Deno.env.get('MESOMB_ACCESS_KEY'));
+    console.log('MESOMB_SECRET_KEY exists:', !!Deno.env.get('MESOMB_SECRET_KEY'));
+
+    const requestBody = await req.json();
+    console.log('Request body:', requestBody);
     
-    console.log('MeSomb Payment request:', { planId, phoneNumber, amount });
+    const { planId, phoneNumber, amount } = requestBody;
+    
+    if (!planId || !phoneNumber || !amount) {
+      console.error('Missing required fields:', { planId, phoneNumber, amount });
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header exists:', !!authHeader);
+    
     if (!authHeader) {
       console.error('No authorization header');
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
@@ -27,17 +48,30 @@ serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT SET');
+      console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? 'SET' : 'NOT SET');
+      return new Response(JSON.stringify({ error: 'Missing Supabase configuration' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user from token
     const token = authHeader.replace('Bearer ', '');
+    console.log('Token extracted, length:', token.length);
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
       console.error('Invalid user:', userError);
-      return new Response(JSON.stringify({ error: 'Invalid user' }), {
+      return new Response(JSON.stringify({ error: 'Invalid user', details: userError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -51,12 +85,20 @@ serve(async (req) => {
       
       try {
         // Activate subscription directly
-        const result = await supabase.rpc('transition_subscription_plan', {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
           p_user_id: user.id,
           p_new_plan_id: planId
         });
         
-        console.log('Subscription transition result:', result);
+        console.log('Subscription transition result:', rpcResult);
+        
+        if (rpcError) {
+          console.error('RPC error:', rpcError);
+          return new Response(JSON.stringify({ error: 'Failed to activate subscription', details: rpcError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
 
         // Create a completed transaction record
         const { data: transactionData, error: transactionError } = await supabase
@@ -79,12 +121,13 @@ serve(async (req) => {
 
         if (transactionError) {
           console.error('Transaction creation error:', transactionError);
-          return new Response(JSON.stringify({ error: 'Failed to create transaction record' }), {
+          return new Response(JSON.stringify({ error: 'Failed to create transaction record', details: transactionError.message }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
 
+        console.log('Test payment completed successfully');
         return new Response(JSON.stringify({
           success: true,
           transactionId: transactionData.id,
@@ -95,74 +138,21 @@ serve(async (req) => {
         });
       } catch (error) {
         console.error('Error in test payment:', error);
-        return new Response(JSON.stringify({ error: 'Failed to process test payment' }), {
+        return new Response(JSON.stringify({ error: 'Failed to process test payment', details: error.message }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
 
-    // Format phone number to include country code
-    const formattedPhone = `237${phoneNumber}`;
-    console.log('Formatted phone:', formattedPhone);
-
-    // Create transaction record first
-    const { data: transactionData, error: transactionError } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        amount: amount,
-        currency: 'XOF',
-        provider: 'mesomb',
-        status: 'pending',
-        metadata: {
-          phone_number: formattedPhone,
-          plan_id: planId
-        }
-      })
-      .select()
-      .single();
-
-    if (transactionError) {
-      console.error('Transaction creation error:', transactionError);
-      return new Response(JSON.stringify({ error: 'Failed to create transaction' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('Transaction created:', transactionData.id);
-
-    // MeSomb API credentials
-    const appKey = Deno.env.get('MESOMB_APP_KEY');
-    const accessKey = Deno.env.get('MESOMB_ACCESS_KEY');
-    const secretKey = Deno.env.get('MESOMB_SECRET_KEY');
-
-    if (!appKey || !accessKey || !secretKey) {
-      console.error('MeSomb credentials not configured');
-      return new Response(JSON.stringify({ error: 'MeSomb credentials not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // For now, simulate successful payment initiation
-    // In a real implementation, you would integrate with MeSomb API here
-    console.log('Simulating MeSomb payment initiation');
-
-    // Update transaction status to processing
-    await supabase
-      .from('transactions')
-      .update({
-        provider_reference: 'MESOMB_' + Date.now(),
-        status: 'processing'
-      })
-      .eq('id', transactionData.id);
-
+    // For non-test numbers, just return success for now
+    console.log('Non-test number, simulating payment');
+    
     return new Response(JSON.stringify({
       success: true,
-      transactionId: transactionData.id,
-      message: 'Payment initiated successfully (simulated)'
+      transactionId: 'SIMULATED_' + Date.now(),
+      message: 'Payment simulation (not implemented yet)',
+      testPayment: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -171,7 +161,8 @@ serve(async (req) => {
     console.error('Error in mesomb-payment function:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error.message,
+      stack: error.stack
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
