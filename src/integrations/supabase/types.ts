@@ -172,6 +172,7 @@ export type Database = {
       exams: {
         Row: {
           class_level: string | null
+          content: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -194,6 +195,7 @@ export type Database = {
         }
         Insert: {
           class_level?: string | null
+          content?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -216,6 +218,7 @@ export type Database = {
         }
         Update: {
           class_level?: string | null
+          content?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
