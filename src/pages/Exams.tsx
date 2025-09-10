@@ -10,6 +10,7 @@ import { BookOpen, Clock, Calendar, Users, Lock, Crown, Search } from 'lucide-re
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface Exam {
   id: string;
@@ -44,9 +45,8 @@ export default function Exams() {
   const { language } = useLanguage();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { hasActiveSubscription, subscriptionTier, subscription } = useSubscription();
   const [exams, setExams] = useState<Exam[]>([]);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [hasSubscription, setHasSubscription] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -55,10 +55,7 @@ export default function Exams() {
 
   useEffect(() => {
     fetchExams();
-    if (user) {
-      fetchSubscription();
-    }
-  }, [user]);
+  }, []);
 
   const fetchExams = async () => {
     try {
@@ -89,47 +86,6 @@ export default function Exams() {
     }
   };
 
-  const fetchSubscription = async () => {
-    if (!user) {
-      setHasSubscription(false);
-      return;
-    }
-    
-    try {
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.role === 'admin') {
-        setHasSubscription(true);
-        return;
-      }
-
-      // Check for active subscription
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          subscription_plans (
-            name,
-            max_downloads
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      setSubscription(data);
-      setHasSubscription(!!data);
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-      setHasSubscription(false);
-    }
-  };
 
   const subjects = [...new Set(exams.map(exam => exam.subject))];
   const years = [...new Set(exams.map(exam => exam.year).filter(Boolean))].sort((a, b) => b - a);
@@ -146,7 +102,6 @@ export default function Exams() {
     return matchesSearch && matchesSubject && matchesYear && matchesLevel;
   });
 
-  const hasActiveSubscription = subscription && new Date(subscription.expires_at) > new Date();
   const freeExamsLimit = 3;
   const displayedExams = hasActiveSubscription ? filteredExams : filteredExams.slice(0, freeExamsLimit);
 
@@ -306,8 +261,14 @@ export default function Exams() {
                   </Button>
                 </Link>
                 <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
-                  <Button className="w-full">
-                    {language === 'fr' ? 'Passer l\'examen' : 'Take Exam'}
+                  <Button 
+                    className="w-full" 
+                    disabled={!hasActiveSubscription}
+                  >
+                    {hasActiveSubscription 
+                      ? (language === 'fr' ? 'Passer l\'examen' : 'Take Exam')
+                      : (language === 'fr' ? 'Abonnement requis' : 'Subscription Required')
+                    }
                   </Button>
                 </Link>
               </div>
@@ -349,8 +310,8 @@ export default function Exams() {
           </div>
           <p className="text-green-700 text-sm">
             {language === 'fr' 
-              ? `Vous avez accès à tous les ${filteredExams.length} examens disponibles avec votre abonnement ${subscription.subscription_plans.name}.`
-              : `You have access to all ${filteredExams.length} available exams with your ${subscription.subscription_plans.name} subscription.`
+              ? `Vous avez accès à tous les ${filteredExams.length} examens disponibles avec votre abonnement ${subscriptionTier}.`
+              : `You have access to all ${filteredExams.length} available exams with your ${subscriptionTier} subscription.`
             }
           </p>
         </div>

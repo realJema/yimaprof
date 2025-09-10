@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Crown, Globe, BookOpen, Zap } from 'lucide-react';
@@ -32,18 +33,15 @@ interface UserSubscription {
 export default function Subscriptions() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { subscription: userSubscription, loading: subscriptionLoading, refreshSubscription } = useSubscription();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPlans();
-    if (user) {
-      fetchUserSubscription();
-    }
-  }, [user]);
+  }, []);
 
   const fetchPlans = async () => {
     try {
@@ -68,37 +66,6 @@ export default function Subscriptions() {
     }
   };
 
-  const fetchUserSubscription = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          subscription_plans (*)
-        `)
-        .eq('user_id', user?.id)
-        .eq('status', 'active')
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      if (data) {
-        const processedData = {
-          ...data,
-          subscription_plans: {
-            ...data.subscription_plans,
-            features: Array.isArray(data.subscription_plans.features) 
-              ? data.subscription_plans.features 
-              : JSON.parse(data.subscription_plans.features as string)
-          }
-        };
-        setUserSubscription(processedData);
-      }
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
@@ -113,40 +80,42 @@ export default function Subscriptions() {
     setSubscribing(planId);
     
     try {
-      // Mock subscription - simulate payment success
-      setTimeout(async () => {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + 30);
+      // Get plan details for duration
+      const plan = plans.find(p => p.id === planId);
+      if (!plan) throw new Error('Plan not found');
 
-        // Cancel any existing subscription
-        if (userSubscription) {
-          await supabase
-            .from('subscriptions')
-            .update({ status: 'canceled' })
-            .eq('id', userSubscription.id);
-        }
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + plan.duration_days);
 
-        // Create new subscription
-        const { error } = await supabase
+      // Cancel any existing subscription
+      if (userSubscription) {
+        await supabase
           .from('subscriptions')
-          .insert({
-            user_id: user.id,
-            plan_id: planId,
-            status: 'active',
-            started_at: new Date().toISOString(),
-            expires_at: expirationDate.toISOString(),
-          });
+          .update({ status: 'canceled' })
+          .eq('id', userSubscription.id);
+      }
 
-        if (error) throw error;
-
-        toast({
-          title: 'Success!',
-          description: 'Your subscription has been activated',
+      // Create new subscription immediately
+      const { error } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          plan_id: planId,
+          status: 'active',
+          started_at: new Date().toISOString(),
+          expires_at: expirationDate.toISOString(),
         });
 
-        fetchUserSubscription();
-        setSubscribing(null);
-      }, 2000); // Simulate 2-second payment processing
+      if (error) throw error;
+
+      toast({
+        title: 'Success!',
+        description: 'Your subscription has been activated instantly',
+      });
+
+      // Refresh subscription immediately
+      await refreshSubscription();
+      setSubscribing(null);
     } catch (error) {
       toast({
         title: 'Error',
@@ -171,7 +140,7 @@ export default function Subscriptions() {
     return Zap;
   };
 
-  if (loading) {
+  if (loading || subscriptionLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -262,14 +231,14 @@ export default function Subscriptions() {
 
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
-                    disabled={subscribing === plan.id || isCurrentPlan}
+                    disabled={subscribing === plan.id}
                     className={`w-full ${isEverything ? 'bg-primary hover:bg-primary/90' : ''}`}
                     variant={isEverything ? 'default' : 'outline'}
                   >
                     {subscribing === plan.id ? (
-                      'Processing...'
+                      'Activating...'
                     ) : isCurrentPlan ? (
-                      'Current Plan'
+                      'Switch to This Plan'
                     ) : (
                       'Subscribe Now'
                     )}
