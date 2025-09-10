@@ -92,7 +92,7 @@ export default function Header() {
     <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <BookOpen className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold text-foreground">YIMA</span>
           </Link>
