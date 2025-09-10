@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from '@/components/layout/Header';
 import { BookOpen, Search, Download, Users, Star, CheckCircle, Globe, Smartphone } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -39,9 +38,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
+    <div className="bg-background">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20 px-4">
         <div className="container mx-auto max-w-6xl text-center">
@@ -169,35 +166,13 @@ const Index = () => {
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 py-6 bg-transparent border-white text-white hover:bg-white hover:text-primary" asChild>
-              <Link to="/pricing">
+              <Link to="/subscriptions">
                 Voir les abonnements
               </Link>
             </Button>
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-12 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-6xl text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">YIMA</span>
-          </div>
-          <p className="text-muted-foreground mb-6">
-            La plateforme éducative qui révolutionne l'apprentissage en Afrique
-          </p>
-          <div className="flex justify-center gap-6 text-sm text-muted-foreground">
-            <Link to="/about" className="hover:text-primary">À propos</Link>
-            <Link to="/contact" className="hover:text-primary">Contact</Link>
-            <Link to="/privacy" className="hover:text-primary">Confidentialité</Link>
-            <Link to="/terms" className="hover:text-primary">Conditions</Link>
-          </div>
-          <div className="mt-6 pt-6 border-t border-border text-sm text-muted-foreground">
-            © 2024 YIMA. Tous droits réservés.
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

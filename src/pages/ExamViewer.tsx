@@ -249,7 +249,7 @@ export default function ExamViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
+    <div className="bg-gradient-subtle p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">

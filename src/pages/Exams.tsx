@@ -7,6 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 interface Exam {
   id: string;
@@ -41,28 +42,33 @@ const ANGLOPHONE_CLASSES = [
   { id: 'upper_sixth', name: 'upper_sixth' },
 ];
 
-type ViewType = 'sections' | 'classes' | 'exams';
+type ViewType = 'sections' | 'exams';
 
 export default function Exams() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState<ViewType>('sections');
-  const [selectedSection, setSelectedSection] = useState<'francophone' | 'anglophone' | null>(null);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [selectedSection, setSelectedSection] = useState<'francophone' | 'anglophone' | 'all' | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchExams = async (classLevel: string) => {
+  const fetchExamsBySection = async (section: 'francophone' | 'anglophone' | 'all') => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('exams')
         .select('*')
-        .eq('class_level', classLevel)
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
+      if (section === 'francophone') {
+        query = query.in('class_level', FRANCOPHONE_CLASSES.map(c => c.id));
+      } else if (section === 'anglophone') {
+        query = query.in('class_level', ANGLOPHONE_CLASSES.map(c => c.id));
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setExams(data || []);
     } catch (error) {
@@ -76,25 +82,27 @@ export default function Exams() {
     }
   };
 
-  const handleSectionSelect = (section: 'francophone' | 'anglophone') => {
+  const handleSectionSelect = (section: 'francophone' | 'anglophone' | 'all') => {
     setSelectedSection(section);
-    setCurrentView('classes');
-  };
-
-  const handleClassSelect = (classId: string) => {
-    setSelectedClass(classId);
     setCurrentView('exams');
-    fetchExams(classId);
+    fetchExamsBySection(section);
   };
 
   const handleBack = () => {
-    if (currentView === 'exams') {
-      setCurrentView('classes');
-      setSelectedClass(null);
-    } else if (currentView === 'classes') {
-      setCurrentView('sections');
-      setSelectedSection(null);
-    }
+    setCurrentView('sections');
+    setSelectedSection(null);
+  };
+
+  const groupExamsByClass = (exams: Exam[]) => {
+    const grouped: { [key: string]: Exam[] } = {};
+    exams.forEach(exam => {
+      const classLevel = exam.class_level || 'other';
+      if (!grouped[classLevel]) {
+        grouped[classLevel] = [];
+      }
+      grouped[classLevel].push(exam);
+    });
+    return grouped;
   };
 
   const filteredExams = exams.filter(exam =>
@@ -106,7 +114,7 @@ export default function Exams() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-foreground mb-8">{t('exams')}</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card 
           className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
           onClick={() => handleSectionSelect('francophone')}
@@ -146,12 +154,33 @@ export default function Exams() {
             </p>
           </CardContent>
         </Card>
+
+        <Card 
+          className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
+          onClick={() => handleSectionSelect('all')}
+        >
+          <CardHeader>
+            <CardTitle className="text-card-foreground flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              All Sections
+            </CardTitle>
+            <CardDescription>
+              Both Francophone and Anglophone
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Complete access to all educational systems
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 
-  const renderClasses = () => {
-    const classes = selectedSection === 'francophone' ? FRANCOPHONE_CLASSES : ANGLOPHONE_CLASSES;
+  const renderExams = () => {
+    const groupedExams = groupExamsByClass(filteredExams);
+    const allClasses = [...FRANCOPHONE_CLASSES, ...ANGLOPHONE_CLASSES];
     
     return (
       <div className="space-y-6">
@@ -165,116 +194,92 @@ export default function Exams() {
             {t('back')}
           </Button>
           <h1 className="text-3xl font-bold text-foreground">
-            {t(selectedSection!)}
+            {selectedSection === 'francophone' 
+              ? t('francophone') 
+              : selectedSection === 'anglophone' 
+                ? t('anglophone') 
+                : 'All Exams'
+            }
           </h1>
         </div>
 
-        <p className="text-muted-foreground">{t('select_class')}</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map((classItem) => (
-            <Card 
-              key={classItem.id}
-              className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
-              onClick={() => handleClassSelect(classItem.id)}
-            >
-              <CardHeader>
-                <CardTitle className="text-card-foreground text-lg">
-                  {t(classItem.name)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {language === 'fr' ? 'Examens disponibles' : 'Available exams'}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder={t('search')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
+
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">{t('loading')}</p>
+          </div>
+        ) : Object.keys(groupedExams).length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">{t('no_exams')}</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {allClasses
+              .filter(classItem => groupedExams[classItem.id])
+              .map(classItem => (
+                <div key={classItem.id} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-semibold text-foreground">{t(classItem.name)}</h2>
+                    <Badge variant="secondary">{groupedExams[classItem.id].length} exams</Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {groupedExams[classItem.id].map((exam) => (
+                      <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
+                        <CardHeader>
+                          <CardTitle className="text-card-foreground text-lg line-clamp-2">
+                            {exam.title}
+                          </CardTitle>
+                          <CardDescription>
+                            {exam.subject} • {exam.year} • {exam.period}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {exam.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                              {exam.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex gap-2">
+                            <Button size="sm" className="flex items-center gap-2" asChild>
+                              <Link to={`/exam/${exam.id}`}>
+                                <Eye className="h-4 w-4" />
+                                {language === 'fr' ? 'Voir' : 'View'}
+                              </Link>
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex items-center gap-2">
+                              <Download className="h-4 w-4" />
+                              {t('download')}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderExams = () => (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          onClick={handleBack}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('back')}
-        </Button>
-        <h1 className="text-3xl font-bold text-foreground">
-          {selectedClass && t(selectedClass)}
-        </h1>
-      </div>
-
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder={t('search')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{t('loading')}</p>
-        </div>
-      ) : filteredExams.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{t('no_exams')}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredExams.map((exam) => (
-            <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-card-foreground text-lg line-clamp-2">
-                  {exam.title}
-                </CardTitle>
-                <CardDescription>
-                  {exam.subject} • {exam.year} • {exam.period}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {exam.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {exam.description}
-                  </p>
-                )}
-                
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex items-center gap-2" asChild>
-                    <Link to={`/exam/${exam.id}`}>
-                      <Eye className="h-4 w-4" />
-                      {language === 'fr' ? 'Voir' : 'View'}
-                    </Link>
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    {t('download')}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
+    <div className="bg-gradient-subtle p-6">
       <div className="max-w-7xl mx-auto">
         {currentView === 'sections' && renderSections()}
-        {currentView === 'classes' && renderClasses()}
         {currentView === 'exams' && renderExams()}
       </div>
     </div>
