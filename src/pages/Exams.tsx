@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Download, Eye, Search } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, Eye, Search, Calendar, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,14 @@ const ANGLOPHONE_CLASSES = [
 
 type ViewType = 'sections' | 'exams';
 
+interface ClassStats {
+  [key: string]: {
+    count: number;
+    subjects: string[];
+    latestYear?: number;
+  };
+}
+
 export default function Exams() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
@@ -52,6 +60,45 @@ export default function Exams() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [classStats, setClassStats] = useState<ClassStats>({});
+
+  const fetchClassStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('exams')
+        .select('class_level, subject, year')
+        .eq('is_published', true);
+
+      if (error) throw error;
+
+      const stats: ClassStats = {};
+      data?.forEach(exam => {
+        if (!exam.class_level) return;
+        
+        if (!stats[exam.class_level]) {
+          stats[exam.class_level] = {
+            count: 0,
+            subjects: [],
+            latestYear: undefined
+          };
+        }
+        
+        stats[exam.class_level].count++;
+        
+        if (exam.subject && !stats[exam.class_level].subjects.includes(exam.subject)) {
+          stats[exam.class_level].subjects.push(exam.subject);
+        }
+        
+        if (exam.year && (!stats[exam.class_level].latestYear || exam.year > stats[exam.class_level].latestYear)) {
+          stats[exam.class_level].latestYear = exam.year;
+        }
+      });
+      
+      setClassStats(stats);
+    } catch (error) {
+      console.error('Failed to fetch class stats:', error);
+    }
+  };
 
   const fetchExamsBySection = async (section: 'francophone' | 'anglophone' | 'all') => {
     setLoading(true);
@@ -143,52 +190,134 @@ export default function Exams() {
       <h1 className="text-3xl font-bold text-foreground mb-8">{t('exams')}</h1>
       
       {/* Francophone Section */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          {t('francophone')} Section
-        </h2>
-        <p className="text-muted-foreground mb-4">Classes de la 6ème à la Terminale • {language === 'fr' ? 'Système français' : 'French system'}</p>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <BookOpen className="h-8 w-8 text-primary" />
+          <div>
+            <h2 className="text-2xl font-semibold text-foreground">{t('francophone')} Section</h2>
+            <p className="text-muted-foreground">Classes de la 6ème à la Terminale • {language === 'fr' ? 'Système français' : 'French system'}</p>
+          </div>
+        </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {FRANCOPHONE_CLASSES.map((classItem) => (
-            <Card 
-              key={classItem.id}
-              className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
-              onClick={() => handleClassSelect(classItem.id)}
-            >
-              <CardHeader className="p-4">
-                <CardTitle className="text-card-foreground text-lg text-center">
-                  {t(classItem.name)}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {FRANCOPHONE_CLASSES.map((classItem) => {
+            const stats = classStats[classItem.id];
+            return (
+              <Card 
+                key={classItem.id}
+                className="cursor-pointer hover:bg-card/90 transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:shadow-lg hover:scale-105"
+                onClick={() => handleClassSelect(classItem.id)}
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-card-foreground text-xl text-center font-bold">
+                    {t(classItem.name)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge variant="secondary" className="text-sm font-medium">
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      {stats?.count || 0} {language === 'fr' ? 'épreuves' : 'papers'}
+                    </Badge>
+                  </div>
+                  
+                  {stats && stats.subjects.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Users className="h-3 w-3" />
+                        {stats.subjects.length} {language === 'fr' ? 'matières' : 'subjects'}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {stats.subjects.slice(0, 3).map((subject, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {subject}
+                          </Badge>
+                        ))}
+                        {stats.subjects.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{stats.subjects.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {stats?.latestYear && (
+                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {language === 'fr' ? 'Jusqu\'à' : 'Up to'} {stats.latestYear}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
       {/* Anglophone Section */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          {t('anglophone')} Section
-        </h2>
-        <p className="text-muted-foreground mb-4">Form 1 to Upper Sixth • {language === 'fr' ? 'Système anglais' : 'English system'}</p>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <BookOpen className="h-8 w-8 text-primary" />
+          <div>
+            <h2 className="text-2xl font-semibold text-foreground">{t('anglophone')} Section</h2>
+            <p className="text-muted-foreground">Form 1 to Upper Sixth • {language === 'fr' ? 'Système anglais' : 'English system'}</p>
+          </div>
+        </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {ANGLOPHONE_CLASSES.map((classItem) => (
-            <Card 
-              key={classItem.id}
-              className="cursor-pointer hover:bg-card/90 transition-colors border-border/50 bg-card/80 backdrop-blur-sm"
-              onClick={() => handleClassSelect(classItem.id)}
-            >
-              <CardHeader className="p-4">
-                <CardTitle className="text-card-foreground text-lg text-center">
-                  {t(classItem.name)}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {ANGLOPHONE_CLASSES.map((classItem) => {
+            const stats = classStats[classItem.id];
+            return (
+              <Card 
+                key={classItem.id}
+                className="cursor-pointer hover:bg-card/90 transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:shadow-lg hover:scale-105"
+                onClick={() => handleClassSelect(classItem.id)}
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-card-foreground text-xl text-center font-bold">
+                    {t(classItem.name)}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge variant="secondary" className="text-sm font-medium">
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      {stats?.count || 0} {language === 'fr' ? 'épreuves' : 'papers'}
+                    </Badge>
+                  </div>
+                  
+                  {stats && stats.subjects.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Users className="h-3 w-3" />
+                        {stats.subjects.length} {language === 'fr' ? 'matières' : 'subjects'}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {stats.subjects.slice(0, 3).map((subject, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {subject}
+                          </Badge>
+                        ))}
+                        {stats.subjects.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{stats.subjects.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {stats?.latestYear && (
+                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {language === 'fr' ? 'Jusqu\'à' : 'Up to'} {stats.latestYear}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -291,6 +420,19 @@ export default function Exams() {
       </div>
     );
   };
+
+  return (
+    <div className="bg-gradient-subtle p-6">
+      <div className="max-w-7xl mx-auto">
+        {currentView === 'sections' && renderSections()}
+        {currentView === 'exams' && renderExams()}
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    fetchClassStats();
+  }, []);
 
   return (
     <div className="bg-gradient-subtle p-6">
