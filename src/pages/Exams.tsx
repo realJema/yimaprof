@@ -327,98 +327,114 @@ export default function Exams() {
     const groupedExams = groupExamsByClass(filteredExams);
     const allClasses = [...FRANCOPHONE_CLASSES, ...ANGLOPHONE_CLASSES];
     
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            onClick={handleBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('back')}
-          </Button>
-          <h1 className="text-3xl font-bold text-foreground">
-            {selectedSection === 'francophone' 
-              ? t('francophone') 
-              : selectedSection === 'anglophone' 
-                ? t('anglophone') 
-                : 'All Exams'
-            }
-          </h1>
-        </div>
-
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={t('search')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">{t('loading')}</p>
-          </div>
-        ) : Object.keys(groupedExams).length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">{t('no_exams')}</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {allClasses
-              .filter(classItem => groupedExams[classItem.id])
-              .map(classItem => (
-                <div key={classItem.id} className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-semibold text-foreground">{t(classItem.name)}</h2>
-                    <Badge variant="secondary">{groupedExams[classItem.id].length} exams</Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {groupedExams[classItem.id].map((exam) => (
-                      <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-colors">
-                        <CardHeader>
-                          <CardTitle className="text-card-foreground text-lg line-clamp-2">
-                            {exam.title}
-                          </CardTitle>
-                          <CardDescription>
-                            {exam.subject} • {exam.year} • {exam.period}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {exam.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-3">
-                              {exam.description}
-                            </p>
-                          )}
-                          
-                          <div className="flex gap-2">
-                            <Button size="sm" className="flex items-center gap-2" asChild>
-                              <Link to={`/exam/${exam.id}`}>
-                                <Eye className="h-4 w-4" />
-                                {language === 'fr' ? 'Voir' : 'View'}
-                              </Link>
-                            </Button>
-                            <Button size="sm" variant="outline" className="flex items-center gap-2">
-                              <Download className="h-4 w-4" />
-                              {t('download')}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
-    );
+     return (
+       <div className="min-h-screen space-y-6">
+         <div className="flex items-center gap-4">
+           <Button 
+             variant="ghost" 
+             onClick={handleBack}
+             className="flex items-center gap-2"
+           >
+             <ArrowLeft className="h-4 w-4" />
+             {t('back')}
+           </Button>
+           <h1 className="text-3xl font-bold text-foreground">
+             {selectedSection === 'francophone' 
+               ? t('francophone') 
+               : selectedSection === 'anglophone' 
+                 ? t('anglophone') 
+                 : 'All Exams'
+             }
+           </h1>
+         </div>
+ 
+         <div className="flex gap-4 items-center">
+           <div className="relative flex-1">
+             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+             <Input
+               placeholder={t('search')}
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="pl-10"
+             />
+           </div>
+         </div>
+ 
+         {loading ? (
+           <div className="text-center py-16">
+             <p className="text-muted-foreground text-lg">{t('loading')}</p>
+           </div>
+         ) : Object.keys(groupedExams).length === 0 ? (
+           <div className="text-center py-16">
+             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+             <p className="text-muted-foreground text-lg">{t('no_exams')}</p>
+           </div>
+         ) : (
+           <div className="space-y-12 pb-16">
+             {allClasses
+               .filter(classItem => groupedExams[classItem.id])
+               .map(classItem => (
+                 <div key={classItem.id} className="space-y-6">
+                   <div className="flex items-center gap-3">
+                     <BookOpen className="h-6 w-6 text-primary" />
+                     <h2 className="text-2xl font-semibold text-foreground">{t(classItem.name)}</h2>
+                     <Badge variant="secondary" className="text-sm font-medium">
+                       {groupedExams[classItem.id].length} {language === 'fr' ? 'épreuves' : 'exams'}
+                     </Badge>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {groupedExams[classItem.id].map((exam) => (
+                       <Card key={exam.id} className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-all duration-300 hover:shadow-lg">
+                         <CardHeader>
+                           <CardTitle className="text-card-foreground text-lg line-clamp-2">
+                             {exam.title}
+                           </CardTitle>
+                           <CardDescription className="flex items-center gap-2">
+                             <span>{exam.subject}</span>
+                             {exam.year && (
+                               <>
+                                 <span>•</span>
+                                 <span>{exam.year}</span>
+                               </>
+                             )}
+                             {exam.period && (
+                               <>
+                                 <span>•</span>
+                                 <span>{exam.period}</span>
+                               </>
+                             )}
+                           </CardDescription>
+                         </CardHeader>
+                         <CardContent className="space-y-4">
+                           {exam.description && (
+                             <p className="text-sm text-muted-foreground line-clamp-3">
+                               {exam.description}
+                             </p>
+                           )}
+                           
+                           <div className="flex gap-2">
+                             <Button size="sm" className="flex items-center gap-2" asChild>
+                               <Link to={`/exam/${exam.id}`}>
+                                 <Eye className="h-4 w-4" />
+                                 {language === 'fr' ? 'Voir' : 'View'}
+                               </Link>
+                             </Button>
+                             <Button size="sm" variant="outline" className="flex items-center gap-2">
+                               <Download className="h-4 w-4" />
+                               {t('download')}
+                             </Button>
+                           </div>
+                         </CardContent>
+                       </Card>
+                     ))}
+                   </div>
+                 </div>
+               ))}
+           </div>
+         )}
+       </div>
+     );
   };
 
   return (
@@ -435,7 +451,7 @@ export default function Exams() {
   }, []);
 
   return (
-    <div className="bg-gradient-subtle p-6">
+    <div className="bg-gradient-subtle min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         {currentView === 'sections' && renderSections()}
         {currentView === 'exams' && renderExams()}
