@@ -423,37 +423,59 @@ export default function ExamViewer() {
         {/* Content based on mode */}
         {mode === 'preview' && (
           <div className="space-y-6">
-            {/* PDF Viewer (Collapsible) */}
-            {exam.file_url && (
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                      <CardTitle className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          PDF Document
+            {/* Layout: PDF on left, Content on right */}
+            {exam.file_url ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* PDF Viewer (Collapsible) */}
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            PDF Document
+                          </div>
+                          {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="w-full h-[600px] border rounded-lg overflow-hidden">
+                          <iframe
+                            src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                            className="w-full h-full"
+                            title="Exam PDF"
+                          />
                         </div>
-                        {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </CardTitle>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <div className="w-full h-[600px] border rounded-lg overflow-hidden">
-                        <iframe
-                          src={exam.file_url}
-                          className="w-full h-full"
-                          title="Exam PDF"
-                        />
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
 
-            <div className="grid grid-cols-1 gap-6">
+                {/* Content */}
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="h-5 w-5" />
+                      {t('question_preview') || 'Question Preview'}
+                    </CardTitle>
+                    <CardDescription>
+                      {t('review_questions_desc') || 'Review the exam questions without answers.'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 min-h-[60vh]">
+                    {exam.content ? (
+                      renderJsonContent(exam.content, false)
+                    ) : (
+                      <p className="text-muted-foreground">No content available for preview.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              /* No PDF - Full width content */
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -472,7 +494,7 @@ export default function ExamViewer() {
                   )}
                 </CardContent>
               </Card>
-            </div>
+            )}
           </div>
         )}
 
@@ -533,36 +555,6 @@ export default function ExamViewer() {
 
         {mode === 'correction' && (
           <div className="space-y-6">
-            {/* PDF Viewer (Collapsible) */}
-            {exam.file_url && hasAccess && (
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                      <CardTitle className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          PDF Document
-                        </div>
-                        {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </CardTitle>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <div className="w-full h-[600px] border rounded-lg overflow-hidden">
-                        <iframe
-                          src={exam.file_url}
-                          className="w-full h-full"
-                          title="Exam PDF"
-                        />
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
-
             {!hasAccess && !user ? (
               <Card className="border-orange-500 bg-orange-50">
                 <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
@@ -586,26 +578,82 @@ export default function ExamViewer() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Questions & Solutions
-                  </CardTitle>
-                  <CardDescription>
-                    Exam questions with detailed answers
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {hasAnswers ? (
-                    renderJsonContent(exam.content, true)
-                  ) : (
-                    <p className="text-muted-foreground">
-                      Correction not available for this exam yet.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              /* Layout: PDF on left, Content on right */
+              exam.file_url ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* PDF Viewer (Collapsible) */}
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardTitle className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-5 w-5" />
+                              PDF Document
+                            </div>
+                            {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </CardTitle>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent>
+                          <div className="w-full h-[600px] border rounded-lg overflow-hidden">
+                            <iframe
+                              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                              className="w-full h-full"
+                              title="Exam PDF"
+                            />
+                          </div>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+
+                  {/* Content */}
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Questions & Solutions
+                      </CardTitle>
+                      <CardDescription>
+                        Exam questions with detailed answers
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {hasAnswers ? (
+                        renderJsonContent(exam.content, true)
+                      ) : (
+                        <p className="text-muted-foreground">
+                          Correction not available for this exam yet.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                /* No PDF - Full width content */
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      Questions & Solutions
+                    </CardTitle>
+                    <CardDescription>
+                      Exam questions with detailed answers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {hasAnswers ? (
+                      renderJsonContent(exam.content, true)
+                    ) : (
+                      <p className="text-muted-foreground">
+                        Correction not available for this exam yet.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )
             )}
           </div>
         )}
