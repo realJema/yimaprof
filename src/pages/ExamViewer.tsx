@@ -449,7 +449,7 @@ export default function ExamViewer() {
                   </Button>
                 </CardContent>
               </Card> : (/* Layout: PDF on left, Content on right */
-        exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                   {/* PDF Viewer (Collapsible) */}
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                     <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
