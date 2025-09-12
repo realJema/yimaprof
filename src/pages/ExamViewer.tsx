@@ -189,24 +189,35 @@ export default function ExamViewer() {
   const renderMarkdown = (content: string) => {
     if (!content) return null;
 
-    // Simple markdown rendering (you might want to use a proper markdown library)
+    const processInlineMarkdown = (text: string) => {
+      // Handle bold text **text**
+      const parts = text.split(/(\*\*.*?\*\*)/g);
+      return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={index}>{part.slice(2, -2)}</strong>;
+        }
+        // Handle italic text *text*
+        if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+          return <em key={index}>{part.slice(1, -1)}</em>;
+        }
+        return part;
+      });
+    };
+
     return content.split('\n').map((line, index) => {
       if (line.startsWith('# ')) {
-        return <h1 key={index} className="text-2xl font-bold mb-4">{line.substring(2)}</h1>;
+        return <h1 key={index} className="text-2xl font-bold mb-4">{processInlineMarkdown(line.substring(2))}</h1>;
       }
       if (line.startsWith('## ')) {
-        return <h2 key={index} className="text-xl font-semibold mb-3">{line.substring(3)}</h2>;
+        return <h2 key={index} className="text-xl font-semibold mb-3">{processInlineMarkdown(line.substring(3))}</h2>;
       }
       if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-medium mb-2">{line.substring(4)}</h3>;
-      }
-      if (line.startsWith('**') && line.endsWith('**')) {
-        return <p key={index} className="font-bold mb-2">{line.slice(2, -2)}</p>;
+        return <h3 key={index} className="text-lg font-medium mb-2">{processInlineMarkdown(line.substring(4))}</h3>;
       }
       if (line.trim() === '') {
         return <br key={index} />;
       }
-      return <p key={index} className="mb-2">{line}</p>;
+      return <p key={index} className="mb-2">{processInlineMarkdown(line)}</p>;
     });
   };
   const renderJsonContent = (content: any, showAnswers = false) => {
