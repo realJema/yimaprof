@@ -251,10 +251,10 @@ export default function ExamViewer() {
                   {question.answers.map((answer: any, answerIndex: number) => <div key={answer.id || answerIndex} className="flex items-start gap-3">
                       {mode === 'evaluation' && isTimerActive && !showResults ? <div className="flex items-center gap-2">
                           <input type="radio" name={`question-${index}`} value={answer.text} checked={userAnswers.find(a => a.questionIndex === index)?.answer === answer.text} onChange={e => handleAnswerChange(index, e.target.value)} className="mt-1" />
-                          <label className="cursor-pointer">{String.fromCharCode(65 + answerIndex)}. {answer.text}</label>
+                          <label className="cursor-pointer">{String.fromCharCode(65 + answerIndex)}. {renderMarkdown(answer.text)}</label>
                         </div> : <div className={`flex items-center gap-2 p-2 rounded ${showAnswers && answer.is_correct ? 'bg-green-100 border border-green-300' : 'bg-gray-50'}`}>
                           <span className="font-medium">{String.fromCharCode(65 + answerIndex)}.</span>
-                          <span>{answer.text}</span>
+                          <div>{renderMarkdown(answer.text)}</div>
                           {showAnswers && answer.is_correct && <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />}
                         </div>}
                     </div>)}
@@ -267,8 +267,8 @@ export default function ExamViewer() {
                       <Textarea placeholder="Enter your detailed answer here..." value={userAnswers.find(a => a.questionIndex === index)?.answer || ''} onChange={e => handleAnswerChange(index, e.target.value)} className="w-full" rows={6} />
                     </div> : showAnswers && question.answers && question.answers[0] ? <div className="bg-green-50 p-4 rounded border border-green-200">
                       <h4 className="font-semibold text-green-800 mb-2">Expected Answer/Key Points:</h4>
-                      <div className="text-green-700 whitespace-pre-wrap">
-                        {question.answers[0].text}
+                      <div className="text-green-700">
+                        {renderMarkdown(question.answers[0].text)}
                       </div>
                     </div> : null}
                 </div>}
