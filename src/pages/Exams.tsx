@@ -207,7 +207,7 @@ export default function Exams() {
       </div>
 
       {/* Exams Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
          {displayedExams.map(exam => <Card key={exam.id} className="hover:shadow-lg transition-shadow animate-fade-in flex flex-col h-full">
             <CardHeader className="pb-4">
               <div className="flex justify-between items-start mb-3">
@@ -267,22 +267,15 @@ export default function Exams() {
                 
                 <div className="grid grid-cols-2 gap-2">
                   <Link to={`/exam/${exam.id}?mode=correction`} className="flex-1">
-                    <Button 
-                      variant={hasActiveSubscription ? "default" : "secondary"} 
-                      className={`w-full hover-scale ${hasActiveSubscription ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-                      disabled={!hasActiveSubscription}
-                    >
+                    <Button variant={hasActiveSubscription ? "default" : "secondary"} className={`w-full hover-scale ${hasActiveSubscription ? 'bg-orange-500 hover:bg-orange-600' : ''}`} disabled={!hasActiveSubscription}>
                       <Check className="h-4 w-4 mr-2" />
-                      {hasActiveSubscription ? (language === 'fr' ? 'Solution' : 'Solution') : (language === 'fr' ? 'Premium' : 'Premium')}
+                      {hasActiveSubscription ? language === 'fr' ? 'Solution' : 'Solution' : language === 'fr' ? 'Premium' : 'Premium'}
                     </Button>
                   </Link>
                   
                   <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
-                    <Button 
-                      className={`w-full hover-scale ${hasActiveSubscription ? 'bg-blue-500 hover:bg-blue-600' : 'bg-muted'}`}
-                      disabled={!hasActiveSubscription}
-                    >
-                      {hasActiveSubscription ? (language === 'fr' ? 'Passer' : 'Take') : (language === 'fr' ? 'Premium' : 'Premium')}
+                    <Button className={`w-full hover-scale ${hasActiveSubscription ? 'bg-blue-500 hover:bg-blue-600' : 'bg-muted'}`} disabled={!hasActiveSubscription}>
+                      {hasActiveSubscription ? language === 'fr' ? 'Passer' : 'Take' : language === 'fr' ? 'Premium' : 'Premium'}
                     </Button>
                   </Link>
                 </div>
