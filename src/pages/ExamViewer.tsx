@@ -233,7 +233,7 @@ export default function ExamViewer() {
                 </Badge>
               </div>
               
-              <p className="mb-4 text-gray-700">{question.text}</p>
+              <div className="mb-4 text-gray-700">{renderMarkdown(question.text)}</div>
               
               {/* Multiple Choice Questions */}
               {question.type === 'multiple_choice' && question.answers && <div className="space-y-3">
