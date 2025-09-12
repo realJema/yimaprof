@@ -208,49 +208,58 @@ export default function Exams() {
 
       {/* Exams Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-         {displayedExams.map(exam => <Card key={exam.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex gap-2">
-                  <Badge variant="secondary">{exam.subject}</Badge>
-                  {exam.classes?.section && <Badge variant="outline" className="capitalize">
+         {displayedExams.map(exam => <Card key={exam.id} className="hover:shadow-lg transition-shadow animate-fade-in flex flex-col h-full">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="secondary" className="text-xs font-medium">{exam.subject}</Badge>
+                  {exam.classes?.section && <Badge variant="outline" className="text-xs capitalize">
                       {exam.classes.section}
                     </Badge>}
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(exam.created_at).getFullYear()}
+                <span className="text-sm text-muted-foreground font-medium bg-muted/50 px-2 py-1 rounded">
+                  {exam.year || new Date(exam.created_at).getFullYear()}
                 </span>
               </div>
-              <CardTitle className="line-clamp-2">{exam.title}</CardTitle>
-              {exam.description && <CardDescription className="line-clamp-2">
+              <CardTitle className="line-clamp-2 text-lg leading-tight">{exam.title}</CardTitle>
+              {exam.description && <CardDescription className="line-clamp-2 text-sm">
                   {exam.description}
                 </CardDescription>}
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2 mb-4">
-                {exam.classes && <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 mr-2" />
-                    {exam.classes.display_name} ({exam.classes.level} - {exam.classes.section})
+            
+            <CardContent className="flex-1 flex flex-col justify-between">
+              <div className="space-y-3 mb-6">
+                {exam.classes && <div className="flex items-center text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+                    <Users className="h-4 w-4 mr-2 text-primary" />
+                    <span className="font-medium">{exam.classes.display_name}</span>
+                    <span className="ml-auto text-xs">({exam.classes.level} - {exam.classes.section})</span>
                   </div>}
-                {exam.duration_minutes && <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {exam.duration_minutes} {language === 'fr' ? 'minutes' : 'minutes'}
-                  </div>}
-                {exam.year && <div className="flex items-center text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    {exam.year}
+                  
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {exam.duration_minutes && <div className="flex items-center text-muted-foreground">
+                      <Clock className="h-3 w-3 mr-1 text-primary" />
+                      <span className="text-xs">{exam.duration_minutes} min</span>
+                    </div>}
+                  {exam.year && <div className="flex items-center text-muted-foreground">
+                      <Calendar className="h-3 w-3 mr-1 text-primary" />
+                      <span className="text-xs">{exam.year}</span>
+                    </div>}
+                </div>
+                
+                {exam.tags && exam.tags.length > 0 && <div className="flex flex-wrap gap-1">
+                    {exam.tags.slice(0, 3).map((tag, index) => <Badge key={index} variant="outline" className="text-xs px-2 py-0">
+                        {tag}
+                      </Badge>)}
+                    {exam.tags.length > 3 && <Badge variant="outline" className="text-xs px-2 py-0">
+                        +{exam.tags.length - 3}
+                      </Badge>}
                   </div>}
               </div>
               
-              {exam.tags && exam.tags.length > 0 && <div className="flex flex-wrap gap-1 mb-4">
-                  {exam.tags.map((tag, index) => <Badge key={index} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>)}
-                </div>}
-              
-              <div className="grid grid-cols-1 gap-2">
+              {/* Buttons at bottom */}
+              <div className="space-y-2 mt-auto">
                 <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full hover-scale">
                     <BookOpen className="h-4 w-4 mr-2" />
                     {language === 'fr' ? 'Aperçu' : 'Preview'}
                   </Button>
@@ -258,15 +267,22 @@ export default function Exams() {
                 
                 <div className="grid grid-cols-2 gap-2">
                   <Link to={`/exam/${exam.id}?mode=correction`} className="flex-1">
-                    <Button variant="secondary" className="w-full" disabled={!hasActiveSubscription}>
+                    <Button 
+                      variant={hasActiveSubscription ? "default" : "secondary"} 
+                      className={`w-full hover-scale ${hasActiveSubscription ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+                      disabled={!hasActiveSubscription}
+                    >
                       <Check className="h-4 w-4 mr-2" />
-                      {hasActiveSubscription ? language === 'fr' ? 'Correction' : 'Solution' : language === 'fr' ? 'Premium' : 'Premium'}
+                      {hasActiveSubscription ? (language === 'fr' ? 'Solution' : 'Solution') : (language === 'fr' ? 'Premium' : 'Premium')}
                     </Button>
                   </Link>
                   
                   <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
-                    <Button className="w-full" disabled={!hasActiveSubscription}>
-                      {hasActiveSubscription ? language === 'fr' ? 'Passer' : 'Take' : language === 'fr' ? 'Premium' : 'Premium'}
+                    <Button 
+                      className={`w-full hover-scale ${hasActiveSubscription ? 'bg-blue-500 hover:bg-blue-600' : 'bg-muted'}`}
+                      disabled={!hasActiveSubscription}
+                    >
+                      {hasActiveSubscription ? (language === 'fr' ? 'Passer' : 'Take') : (language === 'fr' ? 'Premium' : 'Premium')}
                     </Button>
                   </Link>
                 </div>
