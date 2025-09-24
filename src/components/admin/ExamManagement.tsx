@@ -425,13 +425,14 @@ export function ExamManagement() {
           <Eye className="h-4 w-4" />
         </Button>
       </Link>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handleEdit(exam)}
-      >
-        <Edit className="h-4 w-4" />
-      </Button>
+      <Link to={`/admin/exam/edit/${exam.id}`}>
+        <Button
+          variant="outline"
+          size="sm"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+      </Link>
       <Button
         variant="destructive"
         size="sm"
@@ -450,193 +451,12 @@ export function ExamManagement() {
             <BookOpen className="h-5 w-5" />
             Exam Management
           </CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Add Exam
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingExam ? 'Edit Exam' : 'Add New Exam'}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={formData.subject}
-                      onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="year">Year</Label>
-                    <Input
-                      id="year"
-                      type="number"
-                      value={formData.year}
-                      onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="exam_type">Type</Label>
-                    <Input
-                      id="exam_type"
-                      value={formData.exam_type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
-                      placeholder="e.g., Test, Exam"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="class_id">Class</Label>
-                    <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classes.map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.display_name} ({cls.section})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Exam description..."
-                  />
-                </div>
-
-                {/* Questions Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-lg font-semibold">Questions</Label>
-                    <Button type="button" onClick={addQuestion} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Question
-                    </Button>
-                  </div>
-
-                  {questions.map((question, qIndex) => (
-                    <Card key={question.id} className="p-4">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <Label>Question {qIndex + 1}</Label>
-                          <div className="flex gap-2">
-                            <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
-                              <SelectTrigger className="w-40">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                                <SelectItem value="long_form">Long Form</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {questions.length > 1 && (
-                              <Button 
-                                type="button" 
-                                onClick={() => removeQuestion(question.id)}
-                                size="sm"
-                                variant="destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <Textarea
-                          placeholder="Enter your question..."
-                          value={question.text}
-                          onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                          required
-                        />
-                        
-                        {question.type === 'multiple_choice' ? (
-                          <div className="space-y-2">
-                            <Label>Answer Options</Label>
-                            {question.answers.map((answer, aIndex) => (
-                              <div key={answer.id} className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  name={`correct-${question.id}`}
-                                  checked={answer.is_correct}
-                                  onChange={() => setCorrectAnswer(question.id, answer.id)}
-                                />
-                                <Input
-                                  placeholder={`Option ${aIndex + 1}`}
-                                  value={answer.text}
-                                  onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
-                                  required
-                                />
-                              </div>
-                            ))}
-                            <p className="text-sm text-muted-foreground">
-                              Select the correct answer using the radio buttons
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <Label>Expected Answer/Keywords (for evaluation)</Label>
-                            <Textarea
-                              placeholder="Enter the expected answer or key points that should be included in a good answer..."
-                              value={question.answers[0]?.text || ''}
-                              onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
-                              rows={3}
-                            />
-                            <p className="text-sm text-muted-foreground">
-                              This will be used for evaluation purposes and won't be shown to students
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_published"
-                    checked={formData.is_published}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_published: e.target.checked }))}
-                  />
-                  <Label htmlFor="is_published">Publish immediately</Label>
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit">
-                    {editingExam ? 'Update' : 'Create'} Exam
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Link to="/admin/exam/new">
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Exam
+            </Button>
+          </Link>
         </div>
       </CardHeader>
       <CardContent>

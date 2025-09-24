@@ -18,6 +18,7 @@ import Subscriptions from "./pages/Subscriptions";
 import Payment from "./pages/Payment";
 import PaymentProcessing from "./pages/PaymentProcessing";
 import Admin from "./pages/Admin";
+import ExamManager from "./pages/ExamManager";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -48,6 +49,8 @@ const App = () => (
                   <Route path="/payment" element={<Payment />} />
                   <Route path="/payment-processing" element={<PaymentProcessing />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/exam/new" element={<ExamManager />} />
+                  <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/privacy" element={<Privacy />} />
