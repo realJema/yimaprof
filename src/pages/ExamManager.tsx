@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -95,6 +97,11 @@ export default function ExamManager() {
   // PDF upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Draft and preview functionality
+  const [isDraft, setIsDraft] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
 
   useEffect(() => {
     fetchClasses();
@@ -220,20 +227,154 @@ export default function ExamManager() {
     return urlData.publicUrl;
   };
 
-  const handleSubmit = async () => {
+  const validateFormData = () => {
+    const errors = [];
+    if (!formData.title.trim()) errors.push('Title is required');
+    if (!formData.subject.trim()) errors.push('Subject is required');
+    if (!formData.class_id) errors.push('Class is required');
+    if (!formData.exam_type.trim()) errors.push('Exam type is required');
+    
+    if (activeTab === 'form' && questions.length === 0) {
+      errors.push('At least one question is required');
+    }
+    
+    if (activeTab === 'json' && !parsedJson) {
+      errors.push('Valid JSON data is required');
+    }
+    
+    return errors;
+  };
+
+  const generatePreview = () => {
+    const errors = validateFormData();
+    if (errors.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: errors.join(', '),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let examContent = null;
+    if (activeTab === 'form') {
+      examContent = {
+        questions: questions.map(q => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          answers: q.answers
+        }))
+      };
+    } else if (activeTab === 'json' && parsedJson) {
+      examContent = parsedJson;
+    }
+
+    setPreviewData({
+      ...formData,
+      content: examContent,
+    });
+    setShowPreview(true);
+  };
+
+  const saveDraft = async () => {
     setLoading(true);
     try {
       let examContent = null;
       let fileUrl = formData.file_url;
 
-      // Handle PDF upload if file is selected
       if (selectedFile) {
         setUploading(true);
         fileUrl = await uploadPdfFile(selectedFile);
         setUploading(false);
       }
 
-      // Prepare content based on active tab
+      if (activeTab === 'form') {
+        examContent = {
+          questions: questions.map(q => ({
+            id: q.id,
+            text: q.text,
+            type: q.type,
+            answers: q.answers
+          }))
+        };
+      } else if (activeTab === 'json' && parsedJson) {
+        examContent = parsedJson;
+      }
+
+      const examData = {
+        ...formData,
+        content: examContent,
+        file_url: fileUrl,
+        created_by: user?.id || '',
+        is_published: false, // Always save as unpublished for drafts
+      };
+
+      if (isEditing) {
+        const { error } = await supabase
+          .from('exams')
+          .update(examData)
+          .eq('id', examId);
+
+        if (error) throw error;
+        toast({
+          title: 'Success',
+          description: 'Draft saved successfully',
+        });
+      } else {
+        const { data, error } = await supabase
+          .from('exams')
+          .insert(examData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setIsDraft(true);
+        toast({
+          title: 'Success',
+          description: 'Draft saved successfully',
+        });
+        
+        // Update URL to edit mode if this was a new exam
+        if (data?.id) {
+          window.history.replaceState({}, '', `/admin/exam/edit/${data.id}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save draft',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const errors = validateFormData();
+    if (errors.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: errors.join(', '),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let examContent = null;
+      let fileUrl = formData.file_url;
+
+      if (selectedFile) {
+        setUploading(true);
+        fileUrl = await uploadPdfFile(selectedFile);
+        setUploading(false);
+      }
+
       if (activeTab === 'form') {
         examContent = {
           questions: questions.map(q => ({
@@ -282,7 +423,7 @@ export default function ExamManager() {
       console.error('Error saving exam:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save exam',
+        description: `Failed to save exam: ${error.message || 'Unknown error'}`,
         variant: 'destructive',
       });
     } finally {
@@ -367,21 +508,122 @@ export default function ExamManager() {
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <BookOpen className="h-8 w-8 text-primary" />
-              {isEditing ? 'Edit Exam' : 'Create New Exam'}
-            </h1>
-            <p className="text-muted-foreground">
-              {isEditing ? 'Update exam details and content' : 'Create exam using form, JSON, or PDF upload'}
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                <BookOpen className="h-8 w-8 text-primary" />
+                {isEditing ? 'Edit Exam' : 'Create New Exam'}
+              </h1>
+              <p className="text-muted-foreground">
+                {isEditing ? 'Update exam details and content' : 'Create exam using form, JSON, or PDF upload'}
+              </p>
+            </div>
+            {isDraft && (
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                Draft
+              </Badge>
+            )}
           </div>
-          <Button variant="outline" onClick={() => navigate('/admin')}>
-            Back to Admin
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={generatePreview} className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Preview
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/admin')}>
+              Back to Admin
+            </Button>
+          </div>
         </div>
+
+        {/* Preview Modal */}
+        {showPreview && previewData && (
+          <Card className="border-2 border-primary/20 bg-primary/5 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-primary" />
+                  Exam Preview
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)}>
+                  ×
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-xl font-bold">{previewData.title}</h3>
+                    <p className="text-muted-foreground">{previewData.subject}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">
+                      {previewData.exam_type} • {previewData.year}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Duration: {previewData.duration_minutes} minutes
+                    </p>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                {previewData.description && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Description</h4>
+                    <p className="text-muted-foreground">{previewData.description}</p>
+                  </div>
+                )}
+                
+                {previewData.content?.questions && (
+                  <div>
+                    <h4 className="font-semibold mb-4">Questions ({previewData.content.questions.length})</h4>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {previewData.content.questions.map((q: any, index: number) => (
+                        <Card key={q.id} className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-2">
+                              <Badge variant="outline">{index + 1}</Badge>
+                              <p className="font-medium">{q.text}</p>
+                            </div>
+                            {q.type === 'multiple_choice' && (
+                              <div className="pl-8 space-y-1">
+                                {q.answers.map((answer: any, aIndex: number) => (
+                                  <div key={answer.id} className={`flex items-center gap-2 p-2 rounded ${answer.is_correct ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                                    <span className="text-sm font-mono">
+                                      {String.fromCharCode(65 + aIndex)}.
+                                    </span>
+                                    <span className={answer.is_correct ? 'font-medium text-green-800' : ''}>
+                                      {answer.text}
+                                    </span>
+                                    {answer.is_correct && (
+                                      <Badge variant="default" className="bg-green-600 text-xs">
+                                        Correct
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {q.type === 'long_form' && (
+                              <div className="pl-8">
+                                <p className="text-sm text-muted-foreground italic">
+                                  Long form answer expected
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader>
@@ -678,18 +920,53 @@ export default function ExamManager() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => navigate('/admin')}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={loading || uploading}
-            className="flex items-center gap-2"
-          >
-            {(loading || uploading) ? 'Saving...' : (isEditing ? 'Update Exam' : 'Create Exam')}
-          </Button>
-        </div>
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="pt-6">
+            <div className="flex gap-3 justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => navigate('/admin')}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="secondary"
+                  onClick={saveDraft}
+                  disabled={loading || uploading}
+                  className="flex items-center gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  {(loading && !uploading) ? 'Saving Draft...' : 'Save Draft'}
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={generatePreview}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </Button>
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={loading || uploading}
+                  className="flex items-center gap-2 bg-gradient-primary hover:opacity-90"
+                >
+                  {(loading || uploading) ? (
+                    <>
+                      <AlertCircle className="h-4 w-4 animate-spin" />
+                      {uploading ? 'Uploading...' : 'Saving...'}
+                    </>
+                  ) : (
+                    <>
+                      <FileCheck className="h-4 w-4" />
+                      {isEditing ? 'Update Exam' : 'Create Exam'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
