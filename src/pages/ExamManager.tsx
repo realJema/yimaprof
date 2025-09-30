@@ -19,6 +19,7 @@ interface Question {
   text: string;
   type: string;
   answers: Answer[];
+  sub_questions?: Question[];
 }
 
 interface Answer {
@@ -178,18 +179,35 @@ export default function ExamManager() {
         throw new Error('JSON must contain a "questions" array');
       }
 
-      parsed.questions.forEach((q: any, index: number) => {
+      const validateQuestionRecursive = (q: any, questionPath: string) => {
         if (!q.id || !q.text || !q.type) {
-          throw new Error(`Question ${index + 1} must have id, text, and type fields`);
+          throw new Error(`${questionPath} must have id, text, and type fields`);
         }
         if (!q.answers || !Array.isArray(q.answers)) {
-          throw new Error(`Question ${index + 1} must have an "answers" array`);
+          throw new Error(`${questionPath} must have an "answers" array`);
         }
         q.answers.forEach((a: any, aIndex: number) => {
           if (!a.id || !a.text || typeof a.is_correct !== 'boolean') {
-            throw new Error(`Answer ${aIndex + 1} in question ${index + 1} must have id, text, and is_correct fields`);
+            throw new Error(`Answer ${aIndex + 1} in ${questionPath} must have id, text, and is_correct fields`);
           }
         });
+        
+        // Validate sub-questions for long_form questions only
+        if (q.sub_questions) {
+          if (q.type !== 'long_form') {
+            throw new Error(`${questionPath} can only have sub-questions if type is "long_form"`);
+          }
+          if (!Array.isArray(q.sub_questions)) {
+            throw new Error(`${questionPath} sub_questions must be an array`);
+          }
+          q.sub_questions.forEach((subQ: any, subIndex: number) => {
+            validateQuestionRecursive(subQ, `${questionPath} sub-question ${subIndex + 1}`);
+          });
+        }
+      };
+
+      parsed.questions.forEach((q: any, index: number) => {
+        validateQuestionRecursive(q, `Question ${index + 1}`);
       });
 
       setJsonError('');
@@ -487,11 +505,13 @@ export default function ExamManager() {
           return {
             ...q,
             type: newType,
-            answers: [{ id: generateId(), text: '', is_correct: true }]
+            answers: [{ id: generateId(), text: '', is_correct: true }],
+            sub_questions: []
           };
         } else {
+          const { sub_questions, ...questionWithoutSubs } = q;
           return {
-            ...q,
+            ...questionWithoutSubs,
             type: newType,
             answers: [
               { id: generateId(), text: '', is_correct: false },
@@ -501,6 +521,73 @@ export default function ExamManager() {
             ]
           };
         }
+      }
+      return q;
+    }));
+  };
+
+  const addSubQuestion = (parentQuestionId: string) => {
+    const newSubQuestion: Question = {
+      id: generateId(),
+      text: '',
+      type: 'long_form',
+      answers: [{ id: generateId(), text: '', is_correct: true }]
+    };
+
+    setQuestions(questions.map(q => {
+      if (q.id === parentQuestionId && q.type === 'long_form') {
+        return {
+          ...q,
+          sub_questions: [...(q.sub_questions || []), newSubQuestion]
+        };
+      }
+      return q;
+    }));
+  };
+
+  const removeSubQuestion = (parentQuestionId: string, subQuestionId: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === parentQuestionId) {
+        return {
+          ...q,
+          sub_questions: q.sub_questions?.filter(sq => sq.id !== subQuestionId) || []
+        };
+      }
+      return q;
+    }));
+  };
+
+  const updateSubQuestion = (parentQuestionId: string, subQuestionId: string, field: string, value: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === parentQuestionId) {
+        return {
+          ...q,
+          sub_questions: q.sub_questions?.map(sq => 
+            sq.id === subQuestionId ? { ...sq, [field]: value } : sq
+          ) || []
+        };
+      }
+      return q;
+    }));
+  };
+
+  const updateSubQuestionAnswer = (parentQuestionId: string, subQuestionId: string, answerId: string, field: string, value: string | boolean) => {
+    setQuestions(questions.map(q => {
+      if (q.id === parentQuestionId) {
+        return {
+          ...q,
+          sub_questions: q.sub_questions?.map(sq => {
+            if (sq.id === subQuestionId) {
+              return {
+                ...sq,
+                answers: sq.answers.map(a => 
+                  a.id === answerId ? { ...a, [field]: value } : a
+                )
+              };
+            }
+            return sq;
+          }) || []
+        };
       }
       return q;
     }));
@@ -608,10 +695,25 @@ export default function ExamManager() {
                               </div>
                             )}
                             {q.type === 'long_form' && (
-                              <div className="pl-8">
+                              <div className="pl-8 space-y-2">
                                 <p className="text-sm text-muted-foreground italic">
                                   Long form answer expected
                                 </p>
+                                {q.sub_questions && q.sub_questions.length > 0 && (
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-medium text-muted-foreground">Sub-questions:</p>
+                                    {q.sub_questions.map((subQ: any, subIndex: number) => (
+                                      <div key={subQ.id} className="ml-4 p-2 bg-muted/50 rounded">
+                                        <div className="flex items-start gap-2">
+                                          <Badge variant="outline" className="text-xs">
+                                            {index + 1}.{String.fromCharCode(97 + subIndex)}
+                                          </Badge>
+                                          <p className="text-sm">{subQ.text}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -822,17 +924,69 @@ export default function ExamManager() {
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-2">
-                          <Label>Expected Answer/Keywords (for evaluation)</Label>
-                          <Textarea
-                            placeholder="Enter the expected answer or key points that should be included in a good answer..."
-                            value={question.answers[0]?.text || ''}
-                            onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
-                            rows={3}
-                          />
-                          <p className="text-sm text-muted-foreground">
-                            This will be used for evaluation purposes and won't be shown to students
-                          </p>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Expected Answer/Keywords (for evaluation)</Label>
+                            <Textarea
+                              placeholder="Enter the expected answer or key points that should be included in a good answer..."
+                              value={question.answers[0]?.text || ''}
+                              onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
+                              rows={3}
+                            />
+                            <p className="text-sm text-muted-foreground">
+                              This will be used for evaluation purposes and won't be shown to students
+                            </p>
+                          </div>
+
+                          {/* Sub-questions for long_form questions */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">Sub-questions</Label>
+                              <Button 
+                                type="button" 
+                                onClick={() => addSubQuestion(question.id)}
+                                size="sm"
+                                variant="outline"
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add Sub-question
+                              </Button>
+                            </div>
+                            
+                            {question.sub_questions?.map((subQuestion, subIndex) => (
+                              <Card key={subQuestion.id} className="ml-6 p-3 bg-muted/30">
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-sm">Sub-question {qIndex + 1}.{String.fromCharCode(97 + subIndex)}</Label>
+                                    <Button 
+                                      type="button" 
+                                      onClick={() => removeSubQuestion(question.id, subQuestion.id)}
+                                      size="sm"
+                                      variant="destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <Textarea
+                                    placeholder={`Enter sub-question ${String.fromCharCode(97 + subIndex)})...`}
+                                    value={subQuestion.text}
+                                    onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'text', e.target.value)}
+                                    rows={2}
+                                  />
+                                  <div>
+                                    <Label className="text-xs">Expected Answer/Keywords</Label>
+                                    <Textarea
+                                      placeholder="Enter expected answer for this sub-question..."
+                                      value={subQuestion.answers[0]?.text || ''}
+                                      onChange={(e) => updateSubQuestionAnswer(question.id, subQuestion.id, subQuestion.answers[0]?.id, 'text', e.target.value)}
+                                      rows={2}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -861,6 +1015,32 @@ export default function ExamManager() {
         {"id": "a2", "text": "London", "is_correct": false},
         {"id": "a3", "text": "Berlin", "is_correct": false},
         {"id": "a4", "text": "Madrid", "is_correct": false}
+      ]
+    },
+    {
+      "id": "q2",
+      "text": "Analyze the following text:",
+      "type": "long_form",
+      "answers": [
+        {"id": "a5", "text": "Expected analysis points...", "is_correct": true}
+      ],
+      "sub_questions": [
+        {
+          "id": "q2_a",
+          "text": "a) Identify the main theme",
+          "type": "long_form",
+          "answers": [
+            {"id": "a6", "text": "Main theme should be...", "is_correct": true}
+          ]
+        },
+        {
+          "id": "q2_b", 
+          "text": "b) Explain the author's arguments",
+          "type": "long_form",
+          "answers": [
+            {"id": "a7", "text": "Arguments include...", "is_correct": true}
+          ]
+        }
       ]
     }
   ]
