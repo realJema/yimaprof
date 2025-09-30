@@ -12,7 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Question {
   id: string;
@@ -231,18 +232,34 @@ export default function ExamManager() {
   };
 
   const uploadPdfFile = async (file: File): Promise<string> => {
-    const fileName = `${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('papers')
-      .upload(fileName, file);
+    try {
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      console.log('Uploading file:', fileName, 'to papers bucket');
+      
+      const { data, error } = await supabase.storage
+        .from('papers')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
 
-    const { data: urlData } = supabase.storage
-      .from('papers')
-      .getPublicUrl(fileName);
+      console.log('Upload successful:', data);
 
-    return urlData.publicUrl;
+      const { data: urlData } = supabase.storage
+        .from('papers')
+        .getPublicUrl(fileName);
+
+      console.log('Public URL:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('PDF upload failed:', error);
+      throw new Error(`Failed to upload PDF: ${error.message}`);
+    }
   };
 
   const validateFormData = () => {
@@ -313,7 +330,8 @@ export default function ExamManager() {
             id: q.id,
             text: q.text,
             type: q.type,
-            answers: q.answers
+            answers: q.answers,
+            sub_questions: q.sub_questions
           }))
         };
       } else if (activeTab === 'json' && parsedJson) {
@@ -358,6 +376,9 @@ export default function ExamManager() {
           window.history.replaceState({}, '', `/admin/exam/edit/${data.id}`);
         }
       }
+      
+      // Navigate to admin page after saving draft
+      navigate('/admin');
     } catch (error) {
       console.error('Error saving draft:', error);
       toast({
@@ -371,7 +392,7 @@ export default function ExamManager() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (shouldPublish = false) => {
     const errors = validateFormData();
     if (errors.length > 0) {
       toast({
@@ -399,7 +420,8 @@ export default function ExamManager() {
             id: q.id,
             text: q.text,
             type: q.type,
-            answers: q.answers
+            answers: q.answers,
+            sub_questions: q.sub_questions
           }))
         };
       } else if (activeTab === 'json' && parsedJson) {
@@ -411,6 +433,7 @@ export default function ExamManager() {
         content: examContent,
         file_url: fileUrl,
         created_by: user?.id || '',
+        is_published: shouldPublish,
       };
 
       if (isEditing) {
@@ -422,7 +445,7 @@ export default function ExamManager() {
         if (error) throw error;
         toast({
           title: 'Success',
-          description: 'Exam updated successfully',
+          description: shouldPublish ? 'Exam published successfully' : 'Exam updated successfully',
         });
       } else {
         const { error } = await supabase
@@ -432,7 +455,7 @@ export default function ExamManager() {
         if (error) throw error;
         toast({
           title: 'Success',
-          description: 'Exam created successfully',
+          description: shouldPublish ? 'Exam published successfully' : 'Exam created successfully',
         });
       }
 
@@ -448,6 +471,14 @@ export default function ExamManager() {
       setLoading(false);
       setUploading(false);
     }
+  };
+
+  const handleSaveDraft = async () => {
+    await handleSubmit(false);
+  };
+
+  const handlePublish = async () => {
+    await handleSubmit(true);
   };
 
   const addQuestion = () => {
@@ -613,15 +644,19 @@ export default function ExamManager() {
               </Badge>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={generatePreview} className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Preview
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/admin')}>
-              Back to Admin
-            </Button>
-          </div>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={generatePreview} className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => navigate('/admin')}>
+                  Back to Admin
+                </Button>
+              </div>
+            </div>
         </div>
 
         {/* Preview Modal */}
@@ -821,16 +856,6 @@ export default function ExamManager() {
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Exam description..."
               />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_published"
-                checked={formData.is_published}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_published: e.target.checked }))}
-              />
-              <Label htmlFor="is_published">Publish immediately</Label>
             </div>
           </CardContent>
         </Card>
@@ -1109,7 +1134,7 @@ export default function ExamManager() {
                 </Button>
                 <Button 
                   variant="secondary"
-                  onClick={saveDraft}
+                  onClick={handleSaveDraft}
                   disabled={loading || uploading}
                   className="flex items-center gap-2"
                 >
@@ -1127,19 +1152,19 @@ export default function ExamManager() {
                   Preview
                 </Button>
                 <Button 
-                  onClick={handleSubmit} 
+                  onClick={handlePublish} 
                   disabled={loading || uploading}
                   className="flex items-center gap-2 bg-gradient-primary hover:opacity-90"
                 >
                   {(loading || uploading) ? (
                     <>
                       <AlertCircle className="h-4 w-4 animate-spin" />
-                      {uploading ? 'Uploading...' : 'Saving...'}
+                      {uploading ? 'Uploading...' : 'Publishing...'}
                     </>
                   ) : (
                     <>
                       <FileCheck className="h-4 w-4" />
-                      {isEditing ? 'Update Exam' : 'Create Exam'}
+                      Publish
                     </>
                   )}
                 </Button>
