@@ -644,36 +644,18 @@ export default function ExamManager() {
               </Badge>
             )}
           </div>
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={generatePreview} className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  Preview
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => navigate('/admin')}>
-                  Back to Admin
-                </Button>
-              </div>
-            </div>
         </div>
 
-        {/* Preview Modal */}
-        {showPreview && previewData && (
-          <Card className="border-2 border-primary/20 bg-primary/5 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-primary" />
-                  Exam Preview
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)}>
-                  ×
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
+        {/* Preview Dialog */}
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                Exam Preview
+              </DialogTitle>
+            </DialogHeader>
+            {previewData && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div>
@@ -702,7 +684,7 @@ export default function ExamManager() {
                 {previewData.content?.questions && (
                   <div>
                     <h4 className="font-semibold mb-4">Questions ({previewData.content.questions.length})</h4>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <div className="space-y-4">
                       {previewData.content.questions.map((q: any, index: number) => (
                         <Card key={q.id} className="p-4">
                           <div className="space-y-3">
@@ -758,9 +740,9 @@ export default function ExamManager() {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </DialogContent>
+        </Dialog>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader>
