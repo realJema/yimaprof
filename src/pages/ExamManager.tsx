@@ -12,9 +12,9 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X, CheckCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 
 interface Question {
   id: string;
@@ -105,7 +105,6 @@ export default function ExamManager() {
   const [isDraft, setIsDraft] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
-  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -829,116 +828,135 @@ export default function ExamManager() {
         </DialogContent>
       </Dialog>
 
-      {/* 2-Column Layout with Collapsible Left Panel */}
-      <div className="max-w-[1800px] mx-auto p-6">
-        <div className="flex gap-4 relative">
-          {/* LEFT COLUMN - Collapsible Input Form */}
-          <div className={`transition-all duration-300 ease-in-out ${isLeftPanelCollapsed ? 'w-0' : 'w-[30%]'} overflow-hidden`}>
-            <div className="space-y-6 h-[calc(100vh-180px)] overflow-y-auto pr-4">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Exam Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Basic Information Form */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  value={formData.subject}
-                  onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
+      {/* Resizable 2-Column Layout */}
+      <div className="max-w-full mx-auto p-6">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-180px)] rounded-lg border">
+          {/* LEFT PANEL - Resizable Input Form */}
+          <ResizablePanel defaultSize={35} minSize={20} maxSize={60}>
+            <div className="h-full overflow-y-auto p-6 bg-gradient-to-br from-background to-muted/20">
+              <div className="space-y-6">
+                <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Exam Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Fluid Layout - Each field on its own row */}
+                    <div className="space-y-4">
+                      <div className="w-full">
+                        <Label htmlFor="title" className="text-sm font-medium">Exam Title</Label>
+                        <Input
+                          id="title"
+                          value={formData.title}
+                          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Enter exam title..."
+                          className="mt-1.5"
+                          required
+                        />
+                      </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="year">Year</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  value={formData.year}
-                  onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="exam_type">Type</Label>
-                <Input
-                  id="exam_type"
-                  value={formData.exam_type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
-                  placeholder="e.g., Test, Exam"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="class_id">Class</Label>
-                <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.display_name} ({cls.section})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                      <div className="w-full">
+                        <Label htmlFor="subject" className="text-sm font-medium">Subject</Label>
+                        <Input
+                          id="subject"
+                          value={formData.subject}
+                          onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                          placeholder="Enter subject..."
+                          className="mt-1.5"
+                          required
+                        />
+                      </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="period">Period</Label>
-                <Input
-                  id="period"
-                  value={formData.period}
-                  onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
-                  placeholder="e.g., 1st Semester, 2nd Trimester"
-                />
-              </div>
-              <div>
-                <Label htmlFor="duration">Duration (minutes)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={formData.duration_minutes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
-                />
-              </div>
-            </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="year" className="text-sm font-medium">Year</Label>
+                          <Input
+                            id="year"
+                            type="number"
+                            value={formData.year}
+                            onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                            className="mt-1.5"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="exam_type" className="text-sm font-medium">Type</Label>
+                          <Input
+                            id="exam_type"
+                            value={formData.exam_type}
+                            onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
+                            placeholder="Test, Exam..."
+                            className="mt-1.5"
+                            required
+                          />
+                        </div>
+                      </div>
 
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Exam description..."
-              />
-            </div>
-          </CardContent>
-        </Card>
+                      <div className="w-full">
+                        <Label htmlFor="class_id" className="text-sm font-medium">Class</Label>
+                        <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue placeholder="Select class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classes.map((cls) => (
+                              <SelectItem key={cls.id} value={cls.id}>
+                                {cls.display_name} ({cls.section})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-        {/* Content Creation Methods */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Exam Content</CardTitle>
-          </CardHeader>
-          <CardContent>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="period" className="text-sm font-medium">Period</Label>
+                          <Input
+                            id="period"
+                            value={formData.period}
+                            onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
+                            placeholder="1st Semester..."
+                            className="mt-1.5"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="duration" className="text-sm font-medium">Duration (min)</Label>
+                          <Input
+                            id="duration"
+                            type="number"
+                            value={formData.duration_minutes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
+                            className="mt-1.5"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="w-full">
+                        <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+                        <Textarea
+                          id="description"
+                          value={formData.description}
+                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Brief description of the exam..."
+                          className="mt-1.5"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Content Creation Methods */}
+                <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      Exam Content
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="form" className="flex items-center gap-2">
@@ -1194,32 +1212,26 @@ export default function ExamManager() {
                 </div>
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
+          </ResizablePanel>
 
-          {/* Collapse/Expand Toggle Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute left-[30%] top-1/2 -translate-y-1/2 z-10 h-16 w-8 p-0 rounded-r-lg rounded-l-none border-l-0 transition-all duration-300"
-            style={{ left: isLeftPanelCollapsed ? '0' : '30%' }}
-            onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
-          >
-            {isLeftPanelCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
+          {/* Resizable Handle */}
+          <ResizableHandle withHandle className="bg-border hover:bg-primary/20 transition-colors" />
 
-          {/* RIGHT COLUMN - Live Preview (70% of screen) */}
-          <div className={`transition-all duration-300 ${isLeftPanelCollapsed ? 'w-full' : 'w-[70%]'}`}>
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm h-[calc(100vh-180px)] flex flex-col">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-primary" />
-                  Live Preview - All Questions & Answers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto space-y-4">
+          {/* RIGHT PANEL - Live Preview */}
+          <ResizablePanel defaultSize={65} minSize={40}>
+            <div className="h-full overflow-y-auto p-6 bg-gradient-to-br from-muted/10 to-background">
+              <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg h-full flex flex-col">
+                <CardHeader className="flex-shrink-0 border-b bg-muted/30">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Eye className="h-5 w-5 text-primary" />
+                    Live Preview - All Questions & Answers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto space-y-4 p-6">
                 {previewData && previewData.title ? (
                   <>
                     <div className="sticky top-0 bg-card z-10 pb-4">
@@ -1313,10 +1325,11 @@ export default function ExamManager() {
                     <p className="text-xs mt-1">Preview will appear here</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                </CardContent>
+              </Card>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
