@@ -265,11 +265,38 @@ export default function ExamViewer() {
                   {mode === 'evaluation' && isTimerActive && !showResults ? <div>
                       <label className="block text-sm font-medium mb-2">Your Answer:</label>
                       <Textarea placeholder="Enter your detailed answer here..." value={userAnswers.find(a => a.questionIndex === index)?.answer || ''} onChange={e => handleAnswerChange(index, e.target.value)} className="w-full" rows={6} />
-                    </div> : showAnswers && question.answers && question.answers[0] ? <div className="bg-green-50 p-4 rounded border border-green-200">
-                      <h4 className="font-semibold text-green-800 mb-2">Expected Answer/Key Points:</h4>
-                      <div className="text-green-700">
-                        {renderMarkdown(question.answers[0].text)}
+                    </div> : showAnswers && question.answers && question.answers[0] ? <div className="space-y-3">
+                      <div className="bg-green-50 p-4 rounded border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2">Expected Answer/Key Points:</h4>
+                        <div className="text-green-700">
+                          {renderMarkdown(question.answers[0].text)}
+                        </div>
                       </div>
+                      
+                      {/* Display Sub-questions */}
+                      {question.sub_questions && question.sub_questions.length > 0 && (
+                        <div className="space-y-3 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-2">Sub-questions:</h4>
+                          {question.sub_questions.map((subQ: any, subIndex: number) => (
+                            <div key={subQ.id || subIndex} className="ml-6 p-3 bg-muted rounded border">
+                              <div className="flex items-start gap-2 mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {index + 1}.{String.fromCharCode(97 + subIndex)}
+                                </Badge>
+                                <p className="font-medium text-sm">{renderMarkdown(subQ.text)}</p>
+                              </div>
+                              {showAnswers && subQ.answers && subQ.answers[0] && (
+                                <div className="ml-6 bg-green-50 p-3 rounded border border-green-200 mt-2">
+                                  <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
+                                  <div className="text-sm text-green-700">
+                                    {renderMarkdown(subQ.answers[0].text)}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div> : null}
                 </div>}
               

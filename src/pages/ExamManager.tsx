@@ -12,8 +12,9 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface Question {
   id: string;
@@ -104,6 +105,7 @@ export default function ExamManager() {
   const [isDraft, setIsDraft] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -624,6 +626,30 @@ export default function ExamManager() {
     }));
   };
 
+  // Sync JSON data when form questions change
+  useEffect(() => {
+    if (activeTab === 'form' && questions.length > 0) {
+      const formContent = {
+        questions: questions.map(q => ({
+          id: q.id,
+          text: q.text,
+          type: q.type,
+          answers: q.answers,
+          sub_questions: q.sub_questions
+        }))
+      };
+      setJsonData(JSON.stringify(formContent, null, 2));
+      setParsedJson(formContent);
+    }
+  }, [questions, activeTab]);
+
+  // Sync form questions when JSON changes
+  useEffect(() => {
+    if (activeTab === 'json' && parsedJson?.questions && Array.isArray(parsedJson.questions)) {
+      setQuestions(parsedJson.questions);
+    }
+  }, [parsedJson, activeTab]);
+
   // Auto-generate preview when data changes
   useEffect(() => {
     if (formData.title || formData.subject) {
@@ -700,109 +726,115 @@ export default function ExamManager() {
         </div>
       </div>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog with Scrollbar */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
               Exam Preview
             </DialogTitle>
           </DialogHeader>
-          {previewData && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-xl font-bold">{previewData.title}</h3>
-                  <p className="text-muted-foreground">{previewData.subject}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">
-                    {previewData.exam_type} • {previewData.year}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Duration: {previewData.duration_minutes} minutes
-                  </p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {previewData.description && (
-                <div>
-                  <h4 className="font-semibold mb-2">Description</h4>
-                  <p className="text-muted-foreground">{previewData.description}</p>
-                </div>
-              )}
-              
-              {previewData.content?.questions && (
-                <div>
-                  <h4 className="font-semibold mb-4">Questions ({previewData.content.questions.length})</h4>
-                  <div className="space-y-4">
-                    {previewData.content.questions.map((q: any, index: number) => (
-                      <Card key={q.id} className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-2">
-                            <Badge variant="outline">{index + 1}</Badge>
-                            <p className="font-medium">{q.text}</p>
-                          </div>
-                          {q.type === 'multiple_choice' && (
-                            <div className="pl-8 space-y-1">
-                              {q.answers.map((answer: any, aIndex: number) => (
-                                <div key={answer.id} className={`flex items-center gap-2 p-2 rounded ${answer.is_correct ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                                  <span className="text-sm font-mono">
-                                    {String.fromCharCode(65 + aIndex)}.
-                                  </span>
-                                  <span className={answer.is_correct ? 'font-medium text-green-800' : ''}>
-                                    {answer.text}
-                                  </span>
-                                  {answer.is_correct && (
-                                    <Badge variant="default" className="bg-green-600 text-xs">
-                                      Correct
-                                    </Badge>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {q.type === 'long_form' && (
-                            <div className="pl-8 space-y-2">
-                              <p className="text-sm text-muted-foreground italic">
-                                Long form answer expected
-                              </p>
-                              {q.sub_questions && q.sub_questions.length > 0 && (
-                                <div className="space-y-2">
-                                  <p className="text-sm font-medium text-muted-foreground">Sub-questions:</p>
-                                  {q.sub_questions.map((subQ: any, subIndex: number) => (
-                                    <div key={subQ.id} className="ml-4 p-2 bg-muted/50 rounded">
-                                      <div className="flex items-start gap-2">
-                                        <Badge variant="outline" className="text-xs">
-                                          {index + 1}.{String.fromCharCode(97 + subIndex)}
-                                        </Badge>
-                                        <p className="text-sm">{subQ.text}</p>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    ))}
+          <div className="flex-1 overflow-y-auto pr-2">
+            {previewData && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-xl font-bold">{previewData.title}</h3>
+                    <p className="text-muted-foreground">{previewData.subject}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">
+                      {previewData.exam_type} • {previewData.year}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Duration: {previewData.duration_minutes} minutes
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+                
+                <Separator />
+                
+                {previewData.description && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Description</h4>
+                    <p className="text-muted-foreground">{previewData.description}</p>
+                  </div>
+                )}
+                
+                {previewData.content?.questions && (
+                  <div>
+                    <h4 className="font-semibold mb-4">Questions ({previewData.content.questions.length})</h4>
+                    <div className="space-y-4">
+                      {previewData.content.questions.map((q: any, index: number) => (
+                        <Card key={q.id} className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-2">
+                              <Badge variant="outline">{index + 1}</Badge>
+                              <p className="font-medium">{q.text}</p>
+                            </div>
+                            {q.type === 'multiple_choice' && (
+                              <div className="pl-8 space-y-1">
+                                {q.answers.map((answer: any, aIndex: number) => (
+                                  <div key={answer.id} className={`flex items-center gap-2 p-2 rounded ${answer.is_correct ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                                    <span className="text-sm font-mono">
+                                      {String.fromCharCode(65 + aIndex)}.
+                                    </span>
+                                    <span className={answer.is_correct ? 'font-medium text-green-800' : ''}>
+                                      {answer.text}
+                                    </span>
+                                    {answer.is_correct && (
+                                      <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {q.type === 'long_form' && (
+                              <div className="pl-8 space-y-2">
+                                <div className="bg-green-50 p-3 rounded border border-green-200">
+                                  <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
+                                  <p className="text-sm text-green-700">{q.answers[0]?.text || 'Not provided'}</p>
+                                </div>
+                                {q.sub_questions && q.sub_questions.length > 0 && (
+                                  <div className="space-y-2 mt-3">
+                                    <p className="text-sm font-medium text-muted-foreground">Sub-questions:</p>
+                                    {q.sub_questions.map((subQ: any, subIndex: number) => (
+                                      <div key={subQ.id} className="ml-4 p-3 bg-muted/50 rounded border">
+                                        <div className="flex items-start gap-2 mb-2">
+                                          <Badge variant="outline" className="text-xs">
+                                            {index + 1}.{String.fromCharCode(97 + subIndex)}
+                                          </Badge>
+                                          <p className="text-sm font-medium">{subQ.text}</p>
+                                        </div>
+                                        <div className="ml-6 bg-green-50 p-2 rounded border border-green-200">
+                                          <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
+                                          <p className="text-xs text-green-700">{subQ.answers[0]?.text || 'Not provided'}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* 2-Column Layout */}
+      {/* 2-Column Layout with Collapsible Left Panel */}
       <div className="max-w-[1800px] mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* LEFT COLUMN - Input Form */}
-          <div className="space-y-6 lg:overflow-y-auto lg:max-h-[calc(100vh-180px)]">
+        <div className="flex gap-4 relative">
+          {/* LEFT COLUMN - Collapsible Input Form */}
+          <div className={`transition-all duration-300 ease-in-out ${isLeftPanelCollapsed ? 'w-0' : 'w-[30%]'} overflow-hidden`}>
+            <div className="space-y-6 h-[calc(100vh-180px)] overflow-y-auto pr-4">
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Exam Details</CardTitle>
@@ -1164,21 +1196,33 @@ export default function ExamManager() {
             </Tabs>
           </CardContent>
         </Card>
+            </div>
           </div>
 
-          {/* RIGHT COLUMN - Live Preview */}
-          <div className="hidden lg:block sticky top-24 h-fit">
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardHeader>
+          {/* Collapse/Expand Toggle Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute left-[30%] top-1/2 -translate-y-1/2 z-10 h-16 w-8 p-0 rounded-r-lg rounded-l-none border-l-0 transition-all duration-300"
+            style={{ left: isLeftPanelCollapsed ? '0' : '30%' }}
+            onClick={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+          >
+            {isLeftPanelCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+
+          {/* RIGHT COLUMN - Live Preview (70% of screen) */}
+          <div className={`transition-all duration-300 ${isLeftPanelCollapsed ? 'w-full' : 'w-[70%]'}`}>
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm h-[calc(100vh-180px)] flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center gap-2">
                   <Eye className="h-5 w-5 text-primary" />
-                  Live Preview
+                  Live Preview - All Questions & Answers
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="flex-1 overflow-y-auto space-y-4">
                 {previewData && previewData.title ? (
                   <>
-                    <div>
+                    <div className="sticky top-0 bg-card z-10 pb-4">
                       <h3 className="text-xl font-bold">{previewData.title || 'Untitled Exam'}</h3>
                       <p className="text-sm text-muted-foreground">{previewData.subject || 'No subject'}</p>
                       <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
@@ -1199,58 +1243,72 @@ export default function ExamManager() {
                     
                     {previewData.content?.questions && previewData.content.questions.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">
+                        <h4 className="text-sm font-semibold mb-3">
                           Questions ({previewData.content.questions.length})
                         </h4>
-                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                          {previewData.content.questions.slice(0, 5).map((q: any, index: number) => (
-                            <Card key={q.id} className="p-3 bg-muted/50">
-                              <div className="space-y-2">
+                        <div className="space-y-4">
+                          {previewData.content.questions.map((q: any, index: number) => (
+                            <Card key={q.id} className="p-4 bg-muted/30">
+                              <div className="space-y-3">
                                 <div className="flex items-start gap-2">
                                   <Badge variant="outline" className="text-xs">{index + 1}</Badge>
-                                  <p className="text-sm font-medium line-clamp-2">{q.text || 'Empty question'}</p>
+                                  <p className="text-sm font-medium flex-1">{q.text || 'Empty question'}</p>
                                 </div>
                                 {q.type === 'multiple_choice' && q.answers && (
-                                  <div className="pl-6 space-y-1">
-                                    {q.answers.slice(0, 4).map((answer: any, aIndex: number) => (
-                                      <div key={answer.id} className={`text-xs p-1.5 rounded ${answer.is_correct ? 'bg-green-100 text-green-800 font-medium' : 'bg-background'}`}>
-                                        {String.fromCharCode(65 + aIndex)}. {answer.text || 'Empty answer'}
+                                  <div className="pl-8 space-y-1.5">
+                                    {q.answers.map((answer: any, aIndex: number) => (
+                                      <div key={answer.id} className={`text-xs p-2 rounded flex items-center gap-2 ${answer.is_correct ? 'bg-green-100 text-green-800 font-medium border border-green-300' : 'bg-background'}`}>
+                                        <span className="font-mono">{String.fromCharCode(65 + aIndex)}.</span>
+                                        <span className="flex-1">{answer.text || 'Empty answer'}</span>
+                                        {answer.is_correct && <CheckCircle className="h-3 w-3 text-green-600" />}
                                       </div>
                                     ))}
                                   </div>
                                 )}
                                 {q.type === 'long_form' && (
-                                  <div className="pl-6">
-                                    <p className="text-xs text-muted-foreground italic">Long form answer</p>
+                                  <div className="pl-8 space-y-3">
+                                    <div className="bg-green-50 p-2 rounded border border-green-200">
+                                      <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
+                                      <p className="text-xs text-green-700">{q.answers[0]?.text || 'Not provided'}</p>
+                                    </div>
                                     {q.sub_questions && q.sub_questions.length > 0 && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        {q.sub_questions.length} sub-question(s)
-                                      </p>
+                                      <div className="space-y-2">
+                                        <p className="text-xs font-medium text-muted-foreground">Sub-questions ({q.sub_questions.length}):</p>
+                                        {q.sub_questions.map((subQ: any, subIndex: number) => (
+                                          <div key={subQ.id} className="ml-4 p-2 bg-background rounded border">
+                                            <div className="flex items-start gap-2 mb-2">
+                                              <Badge variant="outline" className="text-xs">
+                                                {index + 1}.{String.fromCharCode(97 + subIndex)}
+                                              </Badge>
+                                              <p className="text-xs font-medium flex-1">{subQ.text || 'Empty sub-question'}</p>
+                                            </div>
+                                            <div className="ml-6 bg-green-50 p-2 rounded border border-green-200">
+                                              <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
+                                              <p className="text-xs text-green-700">{subQ.answers[0]?.text || 'Not provided'}</p>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                 )}
                               </div>
                             </Card>
                           ))}
-                          {previewData.content.questions.length > 5 && (
-                            <p className="text-xs text-center text-muted-foreground">
-                              ... and {previewData.content.questions.length - 5} more questions
-                            </p>
-                          )}
                         </div>
                       </div>
                     )}
 
                     {(!previewData.content?.questions || previewData.content.questions.length === 0) && (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-center py-12 text-muted-foreground">
                         <p className="text-sm">No questions added yet</p>
                         <p className="text-xs mt-1">Add questions to see them here</p>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Eye className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Eye className="h-16 w-16 mx-auto mb-4 opacity-50" />
                     <p className="text-sm">Start filling the form</p>
                     <p className="text-xs mt-1">Preview will appear here</p>
                   </div>
