@@ -841,8 +841,6 @@ export default function ExamManager() {
                         <FileCheck className="h-3.5 w-3.5" />
                         Basic Information
                       </h3>
-                      
-                      <div className="space-y-3">
                         <div>
                           <Label htmlFor="title" className="text-xs">Exam Title *</Label>
                           <Input
@@ -910,305 +908,214 @@ export default function ExamManager() {
                         </div>
                       </div>
 
-                      <div className="w-full">
-                        <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+                      <div>
+                        <Label htmlFor="class_id" className="text-xs">Class *</Label>
+                        <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classes.map((cls) => (
+                              <SelectItem key={cls.id} value={cls.id}>
+                                {cls.display_name} - {cls.section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="description" className="text-xs">Description</Label>
                         <Textarea
                           id="description"
                           value={formData.description}
                           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="Brief description of the exam..."
-                          className="mt-1.5"
-                          rows={3}
+                          className="mt-1"
+                          rows={2}
                         />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
 
-                {/* Content Creation Methods */}
-                <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-primary" />
-                      Exam Content
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="form" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Form Builder
-                </TabsTrigger>
-                <TabsTrigger value="json" className="flex items-center gap-2">
-                  <Code2 className="h-4 w-4" />
-                  JSON Data
-                </TabsTrigger>
-                <TabsTrigger value="pdf" className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  PDF Upload
-                </TabsTrigger>
-              </TabsList>
+                    <Separator className="my-4" />
 
-              <TabsContent value="form" className="space-y-6 mt-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-lg font-semibold">Questions</Label>
-                  <Button type="button" onClick={addQuestion} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Question
-                  </Button>
-                </div>
-
-                {questions.map((question, qIndex) => (
-                  <Card key={question.id} className="p-4">
-                    <div className="space-y-4">
+                    {/* Questions Section */}
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label>Question {qIndex + 1}</Label>
-                        <div className="flex gap-2">
-                          <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
-                            <SelectTrigger className="w-40">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                              <SelectItem value="long_form">Long Form</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {questions.length > 1 && (
-                            <Button 
-                              type="button" 
-                              onClick={() => removeQuestion(question.id)}
-                              size="sm"
-                              variant="destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
+                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
+                          <BookOpen className="h-3.5 w-3.5" />
+                          Questions
+                        </h3>
+                        <Button type="button" onClick={addQuestion} size="sm" variant="outline">
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Add Question
+                        </Button>
                       </div>
-                      <Textarea
-                        placeholder="Enter your question..."
-                        value={question.text}
-                        onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                        required
-                      />
-                      
-                      {question.type === 'multiple_choice' ? (
-                        <div className="space-y-2">
-                          <Label>Answer Options</Label>
-                          {question.answers.map((answer, aIndex) => (
-                            <div key={answer.id} className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                name={`correct-${question.id}`}
-                                checked={answer.is_correct}
-                                onChange={() => setCorrectAnswer(question.id, answer.id)}
-                              />
-                              <Input
-                                placeholder={`Option ${aIndex + 1}`}
-                                value={answer.text}
-                                onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
-                                required
-                              />
-                            </div>
-                          ))}
-                          <p className="text-sm text-muted-foreground">
-                            Select the correct answer using the radio buttons
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label>Expected Answer/Keywords (for evaluation)</Label>
-                            <Textarea
-                              placeholder="Enter the expected answer or key points that should be included in a good answer..."
-                              value={question.answers[0]?.text || ''}
-                              onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
-                              rows={3}
-                            />
-                            <p className="text-sm text-muted-foreground">
-                              This will be used for evaluation purposes and won't be shown to students
-                            </p>
-                          </div>
 
-                          {/* Sub-questions for long_form questions */}
+                      {questions.map((question, qIndex) => (
+                        <Card key={question.id} className="p-3 bg-muted/20">
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <Label className="text-sm font-medium">Sub-questions</Label>
-                              <Button 
-                                type="button" 
-                                onClick={() => addSubQuestion(question.id)}
-                                size="sm"
-                                variant="outline"
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Add Sub-question
-                              </Button>
+                              <Label className="text-xs font-medium">Question {qIndex + 1}</Label>
+                              <div className="flex gap-1.5">
+                                <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
+                                  <SelectTrigger className="w-32 h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                                    <SelectItem value="long_form">Long Form</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {questions.length > 1 && (
+                                  <Button 
+                                    type="button" 
+                                    onClick={() => removeQuestion(question.id)}
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
+                            <Textarea
+                              placeholder="Enter your question..."
+                              value={question.text}
+                              onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                              rows={2}
+                              className="text-sm"
+                            />
                             
-                            {question.sub_questions?.map((subQuestion, subIndex) => (
-                              <Card key={subQuestion.id} className="ml-6 p-3 bg-muted/30">
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-sm">Sub-question {qIndex + 1}.{String.fromCharCode(97 + subIndex)}</Label>
-                                    <Button 
-                                      type="button" 
-                                      onClick={() => removeSubQuestion(question.id, subQuestion.id)}
-                                      size="sm"
-                                      variant="destructive"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                  <Textarea
-                                    placeholder={`Enter sub-question ${String.fromCharCode(97 + subIndex)})...`}
-                                    value={subQuestion.text}
-                                    onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'text', e.target.value)}
-                                    rows={2}
-                                  />
-                                  <div>
-                                    <Label className="text-xs">Expected Answer/Keywords</Label>
-                                    <Textarea
-                                      placeholder="Enter expected answer for this sub-question..."
-                                      value={subQuestion.answers[0]?.text || ''}
-                                      onChange={(e) => updateSubQuestionAnswer(question.id, subQuestion.id, subQuestion.answers[0]?.id, 'text', e.target.value)}
-                                      rows={2}
-                                      className="text-sm"
+                            {question.type === 'multiple_choice' ? (
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">Answer Options</Label>
+                                {question.answers.map((answer, aIndex) => (
+                                  <div key={answer.id} className="flex items-center space-x-2">
+                                    <input
+                                      type="radio"
+                                      name={`correct-${question.id}`}
+                                      checked={answer.is_correct}
+                                      onChange={() => setCorrectAnswer(question.id, answer.id)}
+                                      className="h-3.5 w-3.5"
+                                    />
+                                    <Input
+                                      placeholder={`Option ${aIndex + 1}`}
+                                      value={answer.text}
+                                      onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
+                                      className="text-sm h-8"
                                     />
                                   </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Expected Answer</Label>
+                                  <Textarea
+                                    placeholder="Enter expected answer..."
+                                    value={question.answers[0]?.text || ''}
+                                    onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
+                                    rows={2}
+                                    className="text-sm"
+                                  />
                                 </div>
-                              </Card>
-                            ))}
+
+                                {/* Sub-questions */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs">Sub-questions</Label>
+                                    <Button 
+                                      type="button" 
+                                      onClick={() => addSubQuestion(question.id)}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 text-xs"
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add
+                                    </Button>
+                                  </div>
+                                  
+                                  {question.sub_questions?.map((subQuestion, subIndex) => (
+                                    <Card key={subQuestion.id} className="ml-4 p-2 bg-background">
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <Label className="text-xs">Sub {qIndex + 1}.{String.fromCharCode(97 + subIndex)}</Label>
+                                          <Button 
+                                            type="button" 
+                                            onClick={() => removeSubQuestion(question.id, subQuestion.id)}
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                        <Textarea
+                                          placeholder="Enter sub-question..."
+                                          value={subQuestion.text}
+                                          onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'text', e.target.value)}
+                                          rows={1}
+                                          className="text-xs"
+                                        />
+                                        <Textarea
+                                          placeholder="Expected answer..."
+                                          value={subQuestion.answers[0]?.text || ''}
+                                          onChange={(e) => updateSubQuestionAnswer(question.id, subQuestion.id, subQuestion.answers[0]?.id, 'text', e.target.value)}
+                                          rows={1}
+                                          className="text-xs"
+                                        />
+                                      </div>
+                                    </Card>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        </Card>
+                      ))}
                     </div>
-                  </Card>
-                ))}
-              </TabsContent>
+                  </TabsContent>
 
-              <TabsContent value="json" className="space-y-6 mt-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label>JSON Data</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Enter the exam content in JSON format. The structure should include a "questions" array with proper question and answer objects.
-                    </p>
-                    <Textarea
-                      value={jsonData}
-                      onChange={(e) => handleJsonChange(e.target.value)}
-                      placeholder={`{
-  "questions": [
-    {
-      "id": "q1",
-      "text": "What is the capital of France?",
-      "type": "multiple_choice",
-      "answers": [
-        {"id": "a1", "text": "Paris", "is_correct": true},
-        {"id": "a2", "text": "London", "is_correct": false},
-        {"id": "a3", "text": "Berlin", "is_correct": false},
-        {"id": "a4", "text": "Madrid", "is_correct": false}
-      ]
-    },
-    {
-      "id": "q2",
-      "text": "Analyze the following text:",
-      "type": "long_form",
-      "answers": [
-        {"id": "a5", "text": "Expected analysis points...", "is_correct": true}
-      ],
-      "sub_questions": [
-        {
-          "id": "q2_a",
-          "text": "a) Identify the main theme",
-          "type": "long_form",
-          "answers": [
-            {"id": "a6", "text": "Main theme should be...", "is_correct": true}
-          ]
-        },
-        {
-          "id": "q2_b", 
-          "text": "b) Explain the author's arguments",
-          "type": "long_form",
-          "answers": [
-            {"id": "a7", "text": "Arguments include...", "is_correct": true}
-          ]
-        }
-      ]
-    }
-  ]
-}`}
-                      rows={15}
-                      className="font-mono"
-                    />
-                  </div>
-                  {jsonError && (
-                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                      <p className="text-sm text-destructive">{jsonError}</p>
+                  <TabsContent value="json" className="space-y-3 mt-0">
+                    <div className="space-y-2">
+                      <Label className="text-xs">JSON Data</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Enter the exam content in JSON format.
+                      </p>
+                      <Textarea
+                        value={jsonData}
+                        onChange={(e) => handleJsonChange(e.target.value)}
+                        placeholder={`{"questions": [{"id": "q1", "text": "...", "type": "multiple_choice", "answers": [...]}]}`}
+                        rows={12}
+                        className="font-mono text-xs"
+                      />
                     </div>
-                  )}
-                  {parsedJson && !jsonError && (
-                    <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-md">
-                      <div className="flex items-center gap-2 text-green-600">
-                        <FileCheck className="h-4 w-4" />
-                        <p className="text-sm">JSON is valid! Found {parsedJson.questions?.length || 0} questions.</p>
+                    {jsonError && (
+                      <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                        <p className="text-xs text-destructive">{jsonError}</p>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="pdf" className="space-y-6 mt-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label>PDF File Upload</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Upload a PDF file containing the exam questions. This will be stored and can be downloaded by students.
-                    </p>
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="cursor-pointer"
-                    />
-                  </div>
-                  {selectedFile && (
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
-                      <p className="text-sm text-blue-600">
-                        Selected file: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </p>
-                    </div>
-                  )}
-                  {formData.file_url && (
-                    <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-md">
-                      <p className="text-sm text-green-600">
-                        Current PDF: <a href={formData.file_url} target="_blank" rel="noopener noreferrer" className="underline">View PDF</a>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </ResizablePanel>
-
-          {/* Resizable Handle */}
-          <ResizableHandle withHandle className="bg-border hover:bg-primary/20 transition-colors" />
+                    )}
+                    {parsedJson && !jsonError && (
+                      <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          Valid JSON - {parsedJson.questions?.length || 0} questions
+                        </p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* RIGHT PANEL - Live Preview */}
-          <ResizablePanel defaultSize={65} minSize={40}>
-            <div className="h-full overflow-y-auto p-6 bg-gradient-to-br from-muted/10 to-background">
-              <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-lg h-full flex flex-col">
-                <CardHeader className="flex-shrink-0 border-b bg-muted/30">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Eye className="h-5 w-5 text-primary" />
-                    Live Preview - All Questions & Answers
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto space-y-4 p-6">
+          <div className="overflow-y-auto">
+            <Card className="border-border/50 bg-card h-full">
+              <CardContent className="p-4 space-y-4">
                 {previewData && previewData.title ? (
                   <>
                     <div className="sticky top-0 bg-card z-10 pb-4">
@@ -1305,9 +1212,8 @@ export default function ExamManager() {
                 </CardContent>
               </Card>
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
