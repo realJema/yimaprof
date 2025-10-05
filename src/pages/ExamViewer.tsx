@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Eye, PenTool, CheckCircle, Clock, FileText, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 interface Exam {
   id: string;
   title: string;
@@ -186,144 +187,16 @@ export default function ExamViewer() {
       description: 'Your answers have been submitted'
     });
   };
-  const renderMarkdown = (content: string) => {
-    if (!content) return null;
-
-    const processInlineMarkdown = (text: string) => {
-      // Handle bold text **text**
-      const parts = text.split(/(\*\*.*?\*\*)/g);
-      return parts.map((part, index) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={index}>{part.slice(2, -2)}</strong>;
-        }
-        // Handle italic text *text*
-        if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-          return <em key={index}>{part.slice(1, -1)}</em>;
-        }
-        return part;
-      });
-    };
-
-    return content.split('\n').map((line, index) => {
-      if (line.startsWith('# ')) {
-        return <h1 key={index} className="text-2xl font-bold mb-4">{processInlineMarkdown(line.substring(2))}</h1>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={index} className="text-xl font-semibold mb-3">{processInlineMarkdown(line.substring(3))}</h2>;
-      }
-      if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-medium mb-2">{processInlineMarkdown(line.substring(4))}</h3>;
-      }
-      if (line.trim() === '') {
-        return <br key={index} />;
-      }
-      return <p key={index} className="mb-2">{processInlineMarkdown(line)}</p>;
-    });
-  };
   const renderJsonContent = (content: any, showAnswers = false) => {
-    if (!content) return null;
-
-    // Handle both old string format and new JSON format
-    if (typeof content === 'string') {
-      return <div className="prose max-w-none">{renderMarkdown(content)}</div>;
-    }
-
-    // Handle raw text wrapped content
-    if (content.raw_text) {
-      return <div className="prose max-w-none">{renderMarkdown(content.raw_text)}</div>;
-    }
-
-    // Handle new question format with structured questions
-    if (content.questions && Array.isArray(content.questions)) {
-      return <div className="space-y-6">
-          {content.questions.map((question: any, index: number) => <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-lg font-semibold">Question {index + 1}</h3>
-                <Badge variant="outline" className="text-xs">
-                  {question.type === 'multiple_choice' ? 'Multiple Choice' : 'Long Form'}
-                </Badge>
-              </div>
-              
-              <div className="mb-4 text-gray-700">{renderMarkdown(question.text)}</div>
-              
-              {/* Multiple Choice Questions */}
-              {question.type === 'multiple_choice' && question.answers && <div className="space-y-3">
-                  {question.answers.map((answer: any, answerIndex: number) => <div key={answer.id || answerIndex} className="flex items-start gap-3">
-                      {mode === 'evaluation' && isTimerActive && !showResults ? <div className="flex items-center gap-2">
-                          <input type="radio" name={`question-${index}`} value={answer.text} checked={userAnswers.find(a => a.questionIndex === index)?.answer === answer.text} onChange={e => handleAnswerChange(index, e.target.value)} className="mt-1" />
-                          <label className="cursor-pointer">{String.fromCharCode(65 + answerIndex)}. {renderMarkdown(answer.text)}</label>
-                        </div> : <div className={`flex items-center gap-2 p-2 rounded ${showAnswers && answer.is_correct ? 'bg-green-100 border border-green-300' : 'bg-gray-50'}`}>
-                          <span className="font-medium">{String.fromCharCode(65 + answerIndex)}.</span>
-                          <div>{renderMarkdown(answer.text)}</div>
-                          {showAnswers && answer.is_correct && <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />}
-                        </div>}
-                    </div>)}
-                </div>}
-              
-              {/* Long Form Questions */}
-              {question.type === 'long_form' && <div className="space-y-3">
-                  {mode === 'evaluation' && isTimerActive && !showResults ? <div>
-                      <label className="block text-sm font-medium mb-2">Your Answer:</label>
-                      <Textarea placeholder="Enter your detailed answer here..." value={userAnswers.find(a => a.questionIndex === index)?.answer || ''} onChange={e => handleAnswerChange(index, e.target.value)} className="w-full" rows={6} />
-                    </div> : showAnswers && question.answers && question.answers[0] ? <div className="space-y-3">
-                      <div className="bg-green-50 p-4 rounded border border-green-200">
-                        <h4 className="font-semibold text-green-800 mb-2">Expected Answer/Key Points:</h4>
-                        <div className="text-green-700">
-                          {renderMarkdown(question.answers[0].text)}
-                        </div>
-                      </div>
-                      
-                      {/* Display Sub-questions */}
-                      {question.sub_questions && question.sub_questions.length > 0 && (
-                        <div className="space-y-3 mt-4">
-                          <h4 className="font-semibold text-gray-700 mb-2">Sub-questions:</h4>
-                          {question.sub_questions.map((subQ: any, subIndex: number) => (
-                            <div key={subQ.id || subIndex} className="ml-6 p-3 bg-muted rounded border">
-                              <div className="flex items-start gap-2 mb-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {index + 1}.{String.fromCharCode(97 + subIndex)}
-                                </Badge>
-                                <p className="font-medium text-sm">{renderMarkdown(subQ.text)}</p>
-                              </div>
-                              {showAnswers && subQ.answers && subQ.answers[0] && (
-                                <div className="ml-6 bg-green-50 p-3 rounded border border-green-200 mt-2">
-                                  <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
-                                  <div className="text-sm text-green-700">
-                                    {renderMarkdown(subQ.answers[0].text)}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div> : null}
-                </div>}
-              
-              {/* Show user's answer in results */}
-              {showResults && userAnswers.find(a => a.questionIndex === index) && <div className="mt-4 pt-4 border-t bg-blue-50 p-3 rounded">
-                  <h4 className="font-semibold text-blue-800 mb-2">Your Answer:</h4>
-                  <p className="text-blue-700">{userAnswers.find(a => a.questionIndex === index)?.answer}</p>
-                </div>}
-            </div>)}
-        </div>;
-    }
-
-    // Handle old format with nested structure
-    if (content.exam_info || content.questions && !Array.isArray(content.questions)) {
-      return <div className="space-y-6">
-          {content.exam_info && <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h3 className="font-semibold text-blue-800 mb-2">Exam Information</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm text-blue-700">
-                {content.exam_info.duration && <p><strong>Duration:</strong> {content.exam_info.duration}</p>}
-                {content.exam_info.total_marks && <p><strong>Total Marks:</strong> {content.exam_info.total_marks}</p>}
-                {content.exam_info.instructions && <p className="col-span-2"><strong>Instructions:</strong> {content.exam_info.instructions}</p>}
-              </div>
-            </div>}
-          {/* Handle other legacy formats here if needed */}
-        </div>;
-    }
-    return <p className="text-muted-foreground">No content available.</p>;
+    return (
+      <ExamContentRenderer
+        content={content}
+        showAnswers={showAnswers}
+        mode={mode as 'preview' | 'evaluation' | 'solution'}
+        userAnswers={userAnswers}
+        onAnswerChange={handleAnswerChange}
+      />
+    );
   };
   if (loading) {
     return <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
@@ -342,7 +215,13 @@ export default function ExamViewer() {
         </Card>
       </div>;
   }
-  const hasAnswers = exam.content?.questions && Array.isArray(exam.content.questions) && exam.content.questions.some((q: any) => q.answers && q.answers.length > 0);
+  const hasAnswers = 
+    exam.content?.questions && 
+    Array.isArray(exam.content.questions) && 
+    exam.content.questions.some((q: any) => q.answers && q.answers.length > 0) ||
+    (Array.isArray(exam.content) && exam.content.some((item: any) => 
+      item.item_type === 'question' && item.answers && item.answers.length > 0
+    ));
   return <div className="bg-gradient-subtle min-h-screen p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}

@@ -15,6 +15,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X, CheckCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { EXAM_JSON_TEMPLATE } from '@/components/exam/ExamJsonTemplate';
 
 interface Question {
   id: string;
@@ -176,44 +178,76 @@ export default function ExamManager() {
     try {
       const parsed = JSON.parse(jsonString);
       
-      // Validate structure
-      if (!parsed.questions || !Array.isArray(parsed.questions)) {
-        throw new Error('JSON must contain a "questions" array');
+      // Support both new format (array of items) and legacy format (object with questions)
+      let items: any[] = [];
+      
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      } else if (parsed.questions && Array.isArray(parsed.questions)) {
+        items = parsed.questions;
+      } else {
+        throw new Error('JSON must be an array of items or contain a "questions" array');
       }
 
-      const validateQuestionRecursive = (q: any, questionPath: string) => {
-        if (!q.id || !q.text || !q.type) {
-          throw new Error(`${questionPath} must have id, text, and type fields`);
+      const validateItem = (item: any, index: number) => {
+        if (!item.id || !item.item_type) {
+          throw new Error(`Item ${index + 1} must have id and item_type fields`);
         }
-        if (!q.answers || !Array.isArray(q.answers)) {
-          throw new Error(`${questionPath} must have an "answers" array`);
+
+        const validItemTypes = ['heading', 'instruction', 'passage', 'question', 'image'];
+        if (!validItemTypes.includes(item.item_type)) {
+          throw new Error(`Item ${index + 1} has invalid item_type: ${item.item_type}`);
         }
-        q.answers.forEach((a: any, aIndex: number) => {
-          if (!a.id || !a.text || typeof a.is_correct !== 'boolean') {
-            throw new Error(`Answer ${aIndex + 1} in ${questionPath} must have id, text, and is_correct fields`);
+
+        // Validate questions
+        if (item.item_type === 'question') {
+          if (!item.question_type || !item.text) {
+            throw new Error(`Question item ${index + 1} must have question_type and text`);
           }
-        });
-        
-        // Validate sub-questions for long_form questions only
-        if (q.sub_questions) {
-          if (q.type !== 'long_form') {
-            throw new Error(`${questionPath} can only have sub-questions if type is "long_form"`);
+          
+          const validQuestionTypes = ['multiple_choice', 'long_form'];
+          if (!validQuestionTypes.includes(item.question_type)) {
+            throw new Error(`Question ${index + 1} has invalid question_type: ${item.question_type}`);
           }
-          if (!Array.isArray(q.sub_questions)) {
-            throw new Error(`${questionPath} sub_questions must be an array`);
+
+          // Validate answers
+          if (item.answers && Array.isArray(item.answers)) {
+            item.answers.forEach((a: any, aIndex: number) => {
+              if (!a.id || !a.text || typeof a.is_correct !== 'boolean') {
+                throw new Error(`Answer ${aIndex + 1} in question ${index + 1} must have id, text, and is_correct fields`);
+              }
+            });
           }
-          q.sub_questions.forEach((subQ: any, subIndex: number) => {
-            validateQuestionRecursive(subQ, `${questionPath} sub-question ${subIndex + 1}`);
-          });
+
+          // Validate sub-questions
+          if (item.sub_questions && Array.isArray(item.sub_questions)) {
+            item.sub_questions.forEach((subQ: any, subIndex: number) => {
+              if (!subQ.id || !subQ.text) {
+                throw new Error(`Sub-question ${subIndex + 1} in question ${index + 1} must have id and text`);
+              }
+              if (subQ.answers && Array.isArray(subQ.answers)) {
+                subQ.answers.forEach((a: any, aIndex: number) => {
+                  if (!a.id || !a.text || typeof a.is_correct !== 'boolean') {
+                    throw new Error(`Answer ${aIndex + 1} in sub-question ${subIndex + 1} of question ${index + 1} must have id, text, and is_correct`);
+                  }
+                });
+              }
+            });
+          }
+        }
+
+        // Validate images
+        if (item.item_type === 'image' && item.assets) {
+          if (!Array.isArray(item.assets)) {
+            throw new Error(`Image item ${index + 1} assets must be an array`);
+          }
         }
       };
 
-      parsed.questions.forEach((q: any, index: number) => {
-        validateQuestionRecursive(q, `Question ${index + 1}`);
-      });
+      items.forEach((item, index) => validateItem(item, index));
 
       setJsonError('');
-      setParsedJson(parsed);
+      setParsedJson(Array.isArray(parsed) ? parsed : { questions: parsed.questions });
       return true;
     } catch (error) {
       setJsonError((error as Error).message);
@@ -747,65 +781,14 @@ export default function ExamManager() {
                   </div>
                 )}
                 
-                {previewData.content?.questions && (
+                {previewData.content && (
                   <div>
-                    <h4 className="font-semibold mb-4">Questions ({previewData.content.questions.length})</h4>
-                    <div className="space-y-4">
-                      {previewData.content.questions.map((q: any, index: number) => (
-                        <Card key={q.id} className="p-4">
-                          <div className="space-y-3">
-                            <div className="flex items-start gap-2">
-                              <Badge variant="outline">{index + 1}</Badge>
-                              <p className="font-medium">{q.text}</p>
-                            </div>
-                            {q.type === 'multiple_choice' && (
-                              <div className="pl-8 space-y-1">
-                                {q.answers.map((answer: any, aIndex: number) => (
-                                  <div key={answer.id} className={`flex items-center gap-2 p-2 rounded ${answer.is_correct ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                                    <span className="text-sm font-mono">
-                                      {String.fromCharCode(65 + aIndex)}.
-                                    </span>
-                                    <span className={answer.is_correct ? 'font-medium text-green-800' : ''}>
-                                      {answer.text}
-                                    </span>
-                                    {answer.is_correct && (
-                                      <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {q.type === 'long_form' && (
-                              <div className="pl-8 space-y-2">
-                                <div className="bg-green-50 p-3 rounded border border-green-200">
-                                  <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
-                                  <p className="text-sm text-green-700">{q.answers[0]?.text || 'Not provided'}</p>
-                                </div>
-                                {q.sub_questions && q.sub_questions.length > 0 && (
-                                  <div className="space-y-2 mt-3">
-                                    <p className="text-sm font-medium text-muted-foreground">Sub-questions:</p>
-                                    {q.sub_questions.map((subQ: any, subIndex: number) => (
-                                      <div key={subQ.id} className="ml-4 p-3 bg-muted/50 rounded border">
-                                        <div className="flex items-start gap-2 mb-2">
-                                          <Badge variant="outline" className="text-xs">
-                                            {index + 1}.{String.fromCharCode(97 + subIndex)}
-                                          </Badge>
-                                          <p className="text-sm font-medium">{subQ.text}</p>
-                                        </div>
-                                        <div className="ml-6 bg-green-50 p-2 rounded border border-green-200">
-                                          <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
-                                          <p className="text-xs text-green-700">{subQ.answers[0]?.text || 'Not provided'}</p>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
+                    <h4 className="font-semibold mb-4">Content Preview</h4>
+                    <ExamContentRenderer
+                      content={previewData.content}
+                      showAnswers={true}
+                      mode="preview"
+                    />
                   </div>
                 )}
               </div>
@@ -1081,14 +1064,25 @@ export default function ExamManager() {
 
                   <TabsContent value="json" className="space-y-3 mt-0">
                     <div className="space-y-2">
-                      <Label className="text-xs">JSON Data</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">JSON Data</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
+                          className="h-7 text-xs"
+                        >
+                          Load Template
+                        </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        Enter the exam content in JSON format.
+                        Enter the exam content in JSON format. Supports headings, instructions, passages, questions, sub-questions, images, and rubrics.
                       </p>
                       <Textarea
                         value={jsonData}
                         onChange={(e) => handleJsonChange(e.target.value)}
-                        placeholder={`{"questions": [{"id": "q1", "text": "...", "type": "multiple_choice", "answers": [...]}]}`}
+                        placeholder='Click "Load Template" to see an example with the new format'
                         rows={12}
                         className="font-mono text-xs"
                       />
@@ -1137,68 +1131,23 @@ export default function ExamManager() {
                       </div>
                     )}
                     
-                    {previewData.content?.questions && previewData.content.questions.length > 0 && (
+                    {previewData.content && (
                       <div>
-                        <h4 className="text-sm font-semibold mb-3">
-                          Questions ({previewData.content.questions.length})
-                        </h4>
+                        <h4 className="text-sm font-semibold mb-3">Live Preview</h4>
                         <div className="space-y-4">
-                          {previewData.content.questions.map((q: any, index: number) => (
-                            <Card key={q.id} className="p-4 bg-muted/30">
-                              <div className="space-y-3">
-                                <div className="flex items-start gap-2">
-                                  <Badge variant="outline" className="text-xs">{index + 1}</Badge>
-                                  <p className="text-sm font-medium flex-1">{q.text || 'Empty question'}</p>
-                                </div>
-                                {q.type === 'multiple_choice' && q.answers && (
-                                  <div className="pl-8 space-y-1.5">
-                                    {q.answers.map((answer: any, aIndex: number) => (
-                                      <div key={answer.id} className={`text-xs p-2 rounded flex items-center gap-2 ${answer.is_correct ? 'bg-green-100 text-green-800 font-medium border border-green-300' : 'bg-background'}`}>
-                                        <span className="font-mono">{String.fromCharCode(65 + aIndex)}.</span>
-                                        <span className="flex-1">{answer.text || 'Empty answer'}</span>
-                                        {answer.is_correct && <CheckCircle className="h-3 w-3 text-green-600" />}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                {q.type === 'long_form' && (
-                                  <div className="pl-8 space-y-3">
-                                    <div className="bg-green-50 p-2 rounded border border-green-200">
-                                      <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
-                                      <p className="text-xs text-green-700">{q.answers[0]?.text || 'Not provided'}</p>
-                                    </div>
-                                    {q.sub_questions && q.sub_questions.length > 0 && (
-                                      <div className="space-y-2">
-                                        <p className="text-xs font-medium text-muted-foreground">Sub-questions ({q.sub_questions.length}):</p>
-                                        {q.sub_questions.map((subQ: any, subIndex: number) => (
-                                          <div key={subQ.id} className="ml-4 p-2 bg-background rounded border">
-                                            <div className="flex items-start gap-2 mb-2">
-                                              <Badge variant="outline" className="text-xs">
-                                                {index + 1}.{String.fromCharCode(97 + subIndex)}
-                                              </Badge>
-                                              <p className="text-xs font-medium flex-1">{subQ.text || 'Empty sub-question'}</p>
-                                            </div>
-                                            <div className="ml-6 bg-green-50 p-2 rounded border border-green-200">
-                                              <p className="text-xs font-medium text-green-800 mb-1">Expected Answer:</p>
-                                              <p className="text-xs text-green-700">{subQ.answers[0]?.text || 'Not provided'}</p>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </Card>
-                          ))}
+                          <ExamContentRenderer
+                            content={previewData.content}
+                            showAnswers={true}
+                            mode="preview"
+                          />
                         </div>
                       </div>
                     )}
 
-                    {(!previewData.content?.questions || previewData.content.questions.length === 0) && (
+                    {!previewData.content && (
                       <div className="text-center py-12 text-muted-foreground">
-                        <p className="text-sm">No questions added yet</p>
-                        <p className="text-xs mt-1">Add questions to see them here</p>
+                        <p className="text-sm">No content added yet</p>
+                        <p className="text-xs mt-1">Add questions or paste JSON to see preview</p>
                       </div>
                     )}
                   </>
