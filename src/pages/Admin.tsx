@@ -94,105 +94,120 @@ export default function Admin() {
     );
   }
 
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'users', label: 'Users', icon: Shield },
+    { id: 'exams', label: 'Exams', icon: Shield },
+    { id: 'classes', label: 'Classes', icon: Shield },
+    { id: 'plans', label: 'Plans', icon: Shield },
+    { id: 'subscriptions', label: 'Subscriptions', icon: Shield },
+    { id: 'transactions', label: 'Transactions', icon: Shield },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" />
-              Admin Dashboard
-            </h1>
-            <p className="text-muted-foreground">
-              Platform management and analytics
-            </p>
-          </div>
-          <Badge variant="secondary" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Admin Access
-          </Badge>
-        </div>
-
-        {/* Stats Overview */}
-        <AdminStats />
-
-        {/* Management Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="exams">Exams</TabsTrigger>
-            <TabsTrigger value="classes">Classes</TabsTrigger>
-            <TabsTrigger value="plans">Plans</TabsTrigger>
-            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Platform Overview</h3>
-                  <div className="space-y-4 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Revenue</span>
-                      <span className="font-medium">Updated in real-time</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Active Users</span>
-                      <span className="font-medium">Last 30 days</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Platform Health</span>
-                      <Badge variant="default">Excellent</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Quick Navigation</h3>
-                  <div className="space-y-3 text-sm">
-                    <p className="text-muted-foreground">Use the tabs above to navigate between different management sections:</p>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li>• <strong>Users:</strong> Manage user accounts and roles</li>
-                      <li>• <strong>Exams:</strong> CRUD operations for exam papers</li>
-                      <li>• <strong>Classes:</strong> Manage educational classes</li>
-                      <li>• <strong>Plans:</strong> Subscription plan management</li>
-                      <li>• <strong>Subscriptions:</strong> View active subscriptions</li>
-                      <li>• <strong>Transactions:</strong> Financial transaction history</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Header */}
+      <div className="bg-card border-b border-border">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Shield className="h-6 w-6 text-primary" />
+                Admin Dashboard
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Platform management and analytics
+              </p>
             </div>
-          </TabsContent>
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Admin Access
+            </Badge>
+          </div>
+        </div>
+      </div>
 
-          <TabsContent value="users">
-            <UserManagement />
-          </TabsContent>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="flex gap-6">
+          {/* Left Sidebar Navigation */}
+          <Card className="w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium">
+            <CardContent className="p-4">
+              <nav className="space-y-1">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === item.id
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="exams">
-            <ExamManagement />
-          </TabsContent>
+          {/* Right Content Area */}
+          <div className="flex-1 space-y-6">
+            {activeTab === 'overview' && (
+              <>
+                <AdminStats />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <CardContent className="pt-6">
+                      <h3 className="text-lg font-semibold mb-4">Platform Overview</h3>
+                      <div className="space-y-4 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total Revenue</span>
+                          <span className="font-medium">Updated in real-time</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Active Users</span>
+                          <span className="font-medium">Last 30 days</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Platform Health</span>
+                          <Badge variant="default">Excellent</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-          <TabsContent value="classes">
-            <ClassManagement />
-          </TabsContent>
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <CardContent className="pt-6">
+                      <h3 className="text-lg font-semibold mb-4">Quick Navigation</h3>
+                      <div className="space-y-3 text-sm">
+                        <p className="text-muted-foreground">Use the navigation menu to manage different sections:</p>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• <strong>Users:</strong> Manage user accounts and roles</li>
+                          <li>• <strong>Exams:</strong> CRUD operations for exam papers</li>
+                          <li>• <strong>Classes:</strong> Manage educational classes</li>
+                          <li>• <strong>Plans:</strong> Subscription plan management</li>
+                          <li>• <strong>Subscriptions:</strong> View active subscriptions</li>
+                          <li>• <strong>Transactions:</strong> Financial transaction history</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
 
-          <TabsContent value="plans">
-            <SubscriptionPlanManagement />
-          </TabsContent>
-
-          <TabsContent value="subscriptions">
-            <ActiveSubscriptions />
-          </TabsContent>
-
-          <TabsContent value="transactions">
-            <TransactionViewer />
-          </TabsContent>
-        </Tabs>
+            {activeTab === 'users' && <UserManagement />}
+            {activeTab === 'exams' && <ExamManagement />}
+            {activeTab === 'classes' && <ClassManagement />}
+            {activeTab === 'plans' && <SubscriptionPlanManagement />}
+            {activeTab === 'subscriptions' && <ActiveSubscriptions />}
+            {activeTab === 'transactions' && <TransactionViewer />}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -7,49 +7,60 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { 
   Bell, 
-  Download, 
   Globe, 
   Lock, 
-  Moon, 
   Shield, 
   Smartphone,
-  Sun,
-  Trash2,
-  User
+  User,
+  Palette
 } from 'lucide-react';
 
 export default function Settings() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{t('settings')}</h1>
-          <p className="text-muted-foreground">
-            Manage your app preferences and account settings
-          </p>
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Header */}
+      <div className="bg-card border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 py-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
+              <Palette className="h-8 w-8 text-primary" />
+              {t('settings')}
+            </h1>
+            <p className="text-muted-foreground">
+              Customize your experience and manage preferences
+            </p>
+          </div>
         </div>
+      </div>
 
+      {/* Content */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Language Settings */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-soft hover:shadow-medium transition-shadow">
             <CardHeader>
               <CardTitle className="text-card-foreground flex items-center gap-2">
-                <Globe className="h-5 w-5" />
+                <Globe className="h-5 w-5 text-primary" />
                 {t('language_settings')}
               </CardTitle>
-              <CardDescription>Choose your preferred language</CardDescription>
+              <CardDescription>Choose your preferred language for the interface</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="language-switcher">Interface Language</Label>
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                <div>
+                  <Label htmlFor="language-switcher" className="font-medium">Interface Language</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Change the app's display language
+                  </p>
+                </div>
                 <LanguageSwitcher />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Content Language</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <Label className="font-medium">Content Language</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Preferred language for exam content
                   </p>
                 </div>
@@ -68,87 +79,38 @@ export default function Settings() {
           </Card>
 
           {/* Notification Settings */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-soft hover:shadow-medium transition-shadow">
             <CardHeader>
               <CardTitle className="text-card-foreground flex items-center gap-2">
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5 text-primary" />
                 {t('notification_settings')}
               </CardTitle>
-              <CardDescription>Control your notification preferences</CardDescription>
+              <CardDescription>Manage how you receive updates and alerts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Push Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <Label className="font-medium">Push Notifications</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Get notified about new exams and updates
                   </p>
                 </div>
                 <Switch defaultChecked />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <Label className="font-medium">Email Notifications</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Receive email updates and newsletters
                   </p>
                 </div>
                 <Switch />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Download Reminders</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Remind when downloads are available
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Download Settings */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-card-foreground flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Download Settings
-              </CardTitle>
-              <CardDescription>Manage your download preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Auto-download</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically download corrections
-                  </p>
-                </div>
-                <Switch />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Download Quality</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Choose download quality for PDFs
-                  </p>
-                </div>
-                <Select defaultValue="high">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>WiFi Only</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Only download over WiFi connection
+                  <Label className="font-medium">Exam Reminders</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get reminded about upcoming exams
                   </p>
                 </div>
                 <Switch defaultChecked />
@@ -157,36 +119,40 @@ export default function Settings() {
           </Card>
 
           {/* Privacy & Security */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-soft hover:shadow-medium transition-shadow">
             <CardHeader>
               <CardTitle className="text-card-foreground flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+                <Shield className="h-5 w-5 text-primary" />
                 Privacy & Security
               </CardTitle>
-              <CardDescription>Manage your privacy and security settings</CardDescription>
+              <CardDescription>Protect your account and control your data</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Add extra security to your account
-                  </p>
+              <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-medium">Two-Factor Authentication</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add extra security to your account
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Enable
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm">
-                  Enable
-                </Button>
               </div>
-              <div className="flex items-center justify-between">
+              
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Data Analytics</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <Label className="font-medium">Data Analytics</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Help improve the app with usage data
                   </p>
                 </div>
                 <Switch defaultChecked />
               </div>
-              <Button variant="outline" className="w-full flex items-center gap-2">
+              
+              <Button variant="outline" className="w-full flex items-center gap-2 justify-center">
                 <Lock className="h-4 w-4" />
                 {t('change_password')}
               </Button>
@@ -194,72 +160,63 @@ export default function Settings() {
           </Card>
 
           {/* App Preferences */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-soft hover:shadow-medium transition-shadow">
             <CardHeader>
               <CardTitle className="text-card-foreground flex items-center gap-2">
-                <Smartphone className="h-5 w-5" />
-                App Preferences
+                <Smartphone className="h-5 w-5 text-primary" />
+                Display Preferences
               </CardTitle>
-              <CardDescription>Customize your app experience</CardDescription>
+              <CardDescription>Customize how the app looks and feels</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Dark Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Switch between light and dark theme
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sun className="h-4 w-4" />
-                  <Switch />
-                  <Moon className="h-4 w-4" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Compact Mode</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <Label className="font-medium">Compact Mode</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Show more content in less space
                   </p>
                 </div>
                 <Switch />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label>Animations</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable app animations and transitions
+                  <Label className="font-medium">Animations</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enable smooth transitions and effects
                   </p>
                 </div>
                 <Switch defaultChecked />
+              </div>
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                <div>
+                  <Label className="font-medium">High Contrast</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Improve text readability
+                  </p>
+                </div>
+                <Switch />
               </div>
             </CardContent>
           </Card>
 
           {/* Account Management */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-soft hover:shadow-medium transition-shadow lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-card-foreground flex items-center gap-2">
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5 text-primary" />
                 {t('account_settings')}
               </CardTitle>
-              <CardDescription>Manage your account and data</CardDescription>
+              <CardDescription>Manage your account data and information</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" className="w-full">
-                Export My Data
-              </Button>
-              <Button variant="outline" className="w-full">
-                Download Account Info
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="w-full flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete Account
-              </Button>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button variant="outline" className="w-full justify-center">
+                  Export My Data
+                </Button>
+                <Button variant="outline" className="w-full justify-center">
+                  Download Account Info
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, Save, Upload } from 'lucide-react';
+import { Camera, Save, Upload, User, Mail, Phone, BookOpen, Globe } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -62,7 +63,6 @@ export default function Profile() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: 'Error',
@@ -72,7 +72,6 @@ export default function Profile() {
       return;
     }
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: 'Error',
@@ -84,11 +83,9 @@ export default function Profile() {
 
     setUploading(true);
     try {
-      // Create unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(fileName, file, {
@@ -98,12 +95,10 @@ export default function Profile() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(fileName);
 
-      // Update profile with new image URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ profile_photo_url: publicUrl })
@@ -111,7 +106,6 @@ export default function Profile() {
 
       if (updateError) throw updateError;
 
-      // Update local state
       setProfile(prev => prev ? { ...prev, profile_photo_url: publicUrl } : null);
 
       toast({
@@ -185,30 +179,19 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{t('profile')}</h1>
-          <p className="text-muted-foreground">
-            Manage your account settings and preferences
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Photo */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-card-foreground">Profile Photo</CardTitle>
-              <CardDescription>Update your profile picture</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center space-y-4">
-              <Avatar className="w-24 h-24">
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Hero Header */}
+      <div className="bg-gradient-hero text-primary-foreground">
+        <div className="max-w-5xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="relative group">
+              <Avatar className="w-32 h-32 border-4 border-primary-foreground/20 shadow-strong">
                 <AvatarImage src={profile.profile_photo_url} />
-                <AvatarFallback className="text-2xl">
+                <AvatarFallback className="text-4xl bg-primary-foreground/10">
                   {profile.first_name?.[0]}{profile.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <div className="relative">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                 <input
                   type="file"
                   accept="image/*"
@@ -216,87 +199,112 @@ export default function Profile() {
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   disabled={uploading}
                 />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-2"
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <>
-                      <Upload className="h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="h-4 w-4" />
-                      Change Photo
-                    </>
-                  )}
-                </Button>
+                <Camera className="h-8 w-8 text-white" />
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                JPG, PNG or GIF. Max 5MB.
+            </div>
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl font-bold mb-2">
+                {profile.first_name} {profile.last_name}
+              </h1>
+              <p className="text-primary-foreground/80 mb-3">{profile.email}</p>
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                {profile.class_level && (
+                  <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">
+                    <BookOpen className="h-3 w-3 mr-1" />
+                    {profile.class_level}
+                  </Badge>
+                )}
+                {profile.preferred_language && (
+                  <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">
+                    <Globe className="h-3 w-3 mr-1" />
+                    {profile.preferred_language === 'fr' ? 'Français' : 'English'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-5xl mx-auto px-6 py-8 -mt-8">
+        <Card className="border-border/50 bg-card shadow-strong">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <User className="h-6 w-6 text-primary" />
+              {t('personal_info')}
+            </CardTitle>
+            <CardDescription>Update your personal details and preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  {t('first_name')}
+                </Label>
+                <Input
+                  id="firstName"
+                  value={profile.first_name || ''}
+                  onChange={(e) => updateProfile('first_name', e.target.value)}
+                  className="border-border/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  {t('last_name')}
+                </Label>
+                <Input
+                  id="lastName"
+                  value={profile.last_name || ''}
+                  onChange={(e) => updateProfile('last_name', e.target.value)}
+                  className="border-border/50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" />
+                {t('email')}
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={profile.email || ''}
+                disabled
+                className="bg-muted border-border/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed. Contact support if needed.
               </p>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Personal Information */}
-          <Card className="lg:col-span-2 border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-card-foreground">{t('personal_info')}</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">{t('first_name')}</Label>
-                  <Input
-                    id="firstName"
-                    value={profile.first_name || ''}
-                    onChange={(e) => updateProfile('first_name', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">{t('last_name')}</Label>
-                  <Input
-                    id="lastName"
-                    value={profile.last_name || ''}
-                    onChange={(e) => updateProfile('last_name', e.target.value)}
-                  />
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-primary" />
+                {t('phone')}
+              </Label>
+              <Input
+                id="phone"
+                value={profile.phone || ''}
+                onChange={(e) => updateProfile('phone', e.target.value)}
+                className="border-border/50"
+              />
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="email">{t('email')}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email || ''}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Email cannot be changed. Contact support if needed.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t('phone')}</Label>
-                <Input
-                  id="phone"
-                  value={profile.phone || ''}
-                  onChange={(e) => updateProfile('phone', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="classLevel">{t('class_level')}</Label>
+                <Label htmlFor="classLevel" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  {t('class_level')}
+                </Label>
                 <Select
                   value={profile.class_level || ''}
                   onValueChange={(value) => updateProfile('class_level', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-border/50">
                     <SelectValue placeholder="Select your class" />
                   </SelectTrigger>
                   <SelectContent>
@@ -319,12 +327,15 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="language">Preferred Language</Label>
+                <Label htmlFor="language" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-primary" />
+                  Preferred Language
+                </Label>
                 <Select
                   value={profile.preferred_language || 'fr'}
                   onValueChange={(value) => updateProfile('preferred_language', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-border/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -333,18 +344,21 @@ export default function Profile() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
+            <div className="pt-4">
               <Button 
                 onClick={handleSave} 
                 disabled={saving}
-                className="flex items-center gap-2"
+                className="w-full md:w-auto gradient-primary text-primary-foreground shadow-medium hover:shadow-strong transition-all"
+                size="lg"
               >
-                <Save className="h-4 w-4" />
+                <Save className="h-5 w-5 mr-2" />
                 {saving ? 'Saving...' : t('save_changes')}
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
