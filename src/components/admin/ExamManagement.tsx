@@ -188,70 +188,51 @@ export function ExamManagement() {
   };
 
   const renderExamCard = (exam: Exam) => (
-    <Card key={exam.id} className="border-border/50 hover:border-primary/50 transition-all h-full flex flex-col">
-      <CardContent className="p-4 flex flex-col h-full">
-        <div className="flex items-start gap-3 mb-3">
-          <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm line-clamp-2 mb-2">{exam.title}</h3>
-            <div className="flex flex-wrap gap-1.5">
-              <Badge variant="outline" className="text-xs">
-                {exam.subject}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {exam.year}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-3 flex-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium">Type:</span>
-            <span>{exam.exam_type}</span>
-          </div>
-          {exam.classes && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium">Class:</span>
-              <span>{exam.classes.display_name}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
+    <Card key={exam.id} className="border-border/50 hover:shadow-lg transition-all h-full flex flex-col group">
+      <CardContent className="p-6 flex flex-col h-full">
+        <div className="space-y-4 flex-1">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2">
+            <BookOpen className="h-5 w-5 text-primary flex-shrink-0" />
             <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-xs">
               {exam.is_published ? 'Published' : 'Draft'}
             </Badge>
           </div>
+
+          {/* Title */}
+          <h3 className="font-semibold text-base line-clamp-2 min-h-[3rem]">{exam.title}</h3>
+
+          {/* Info */}
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{exam.subject}</span>
+              <span>{exam.year}</span>
+            </div>
+            {exam.classes && (
+              <div className="text-xs">{exam.classes.display_name}</div>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mt-auto">
+        {/* Actions */}
+        <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
+          <Link to={`/admin/exam/edit/${exam.id}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full">
+              <Edit className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+          <Link to={`/exam/${exam.id}?mode=preview`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full">
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => togglePublishStatus(exam)}
-            className="text-xs h-8"
-          >
-            {exam.is_published ? 'Unpublish' : 'Publish'}
-          </Button>
-          <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
-            <Button variant="outline" size="sm" className="w-full text-xs h-8">
-              <Eye className="h-3 w-3 mr-1" />
-              Preview
-            </Button>
-          </Link>
-          <Link to={`/admin/exam/edit/${exam.id}`} className="w-full">
-            <Button variant="outline" size="sm" className="w-full text-xs h-8">
-              <Edit className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
-          </Link>
-          <Button
-            variant="destructive"
-            size="sm"
             onClick={() => handleDelete(exam)}
-            className="text-xs h-8"
+            className="flex-1"
           >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </CardContent>
