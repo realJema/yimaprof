@@ -23,6 +23,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (user) {
@@ -93,8 +94,6 @@ export default function Admin() {
       </div>
     );
   }
-
-  const [activeTab, setActiveTab] = useState('overview');
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
