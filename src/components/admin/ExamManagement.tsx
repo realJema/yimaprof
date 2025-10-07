@@ -61,6 +61,8 @@ export function ExamManagement() {
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     fetchExams();
@@ -186,71 +188,71 @@ export function ExamManagement() {
   };
 
   const renderExamCard = (exam: Exam) => (
-    <Card key={exam.id} className="border-border/50 hover:border-primary/50 transition-all">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-start gap-3">
-              <BookOpen className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base line-clamp-2">{exam.title}</h3>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {exam.subject}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {exam.year}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {exam.exam_type}
-                  </Badge>
-                  {exam.classes && (
-                    <Badge variant="outline" className="text-xs">
-                      {exam.classes.display_name}
-                    </Badge>
-                  )}
-                  <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-xs">
-                    {exam.is_published ? 'Published' : 'Draft'}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Created: {new Date(exam.created_at).toLocaleDateString()}
-                </p>
-              </div>
+    <Card key={exam.id} className="border-border/50 hover:border-primary/50 transition-all h-full flex flex-col">
+      <CardContent className="p-4 flex flex-col h-full">
+        <div className="flex items-start gap-3 mb-3">
+          <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm line-clamp-2 mb-2">{exam.title}</h3>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="outline" className="text-xs">
+                {exam.subject}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {exam.year}
+              </Badge>
             </div>
           </div>
-          
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => togglePublishStatus(exam)}
-              className="w-full"
-            >
-              {exam.is_published ? 'Unpublish' : 'Publish'}
-            </Button>
-            <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-            </Link>
-            <Link to={`/admin/exam/edit/${exam.id}`} className="w-full">
-              <Button variant="outline" size="sm" className="w-full">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            </Link>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleDelete(exam)}
-              className="w-full"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
+        </div>
+
+        <div className="space-y-2 mb-3 flex-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-medium">Type:</span>
+            <span>{exam.exam_type}</span>
           </div>
+          {exam.classes && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium">Class:</span>
+              <span>{exam.classes.display_name}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-xs">
+              {exam.is_published ? 'Published' : 'Draft'}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mt-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => togglePublishStatus(exam)}
+            className="text-xs h-8"
+          >
+            {exam.is_published ? 'Unpublish' : 'Publish'}
+          </Button>
+          <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
+            <Button variant="outline" size="sm" className="w-full text-xs h-8">
+              <Eye className="h-3 w-3 mr-1" />
+              Preview
+            </Button>
+          </Link>
+          <Link to={`/admin/exam/edit/${exam.id}`} className="w-full">
+            <Button variant="outline" size="sm" className="w-full text-xs h-8">
+              <Edit className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+          </Link>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => handleDelete(exam)}
+            className="text-xs h-8"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Delete
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -258,19 +260,23 @@ export function ExamManagement() {
 
   const renderExamList = (examsList: Exam[]) => {
     const filteredExams = filterExams(examsList);
+    const totalPages = Math.ceil(filteredExams.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedExams = filteredExams.slice(startIndex, startIndex + itemsPerPage);
     
     if (loading) {
       return (
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map(i => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <Card key={i} className="border-border/50">
               <CardContent className="p-4">
-                <div className="flex gap-4">
-                  <Skeleton className="h-20 w-20 rounded" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-3 w-1/4" />
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-5 rounded" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-16" />
                   </div>
                 </div>
               </CardContent>
@@ -292,8 +298,50 @@ export function ExamManagement() {
     }
 
     return (
-      <div className="space-y-4">
-        {filteredExams.map(renderExamCard)}
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {paginatedExams.map(renderExamCard)}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className="w-8 h-8 p-0"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
+        <p className="text-sm text-muted-foreground text-center">
+          Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredExams.length)} of {filteredExams.length} exams
+        </p>
       </div>
     );
   };
