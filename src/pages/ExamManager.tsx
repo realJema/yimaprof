@@ -661,7 +661,7 @@ export default function ExamManager() {
 
   // Sync JSON data when form questions change
   useEffect(() => {
-    if (activeTab === 'form' && questions.length > 0) {
+    if (questions.length > 0) {
       const formContent = {
         questions: questions.map(q => ({
           id: q.id,
@@ -671,17 +671,25 @@ export default function ExamManager() {
           sub_questions: q.sub_questions
         }))
       };
-      setJsonData(JSON.stringify(formContent, null, 2));
-      setParsedJson(formContent);
+      const newJsonData = JSON.stringify(formContent, null, 2);
+      // Only update if different to avoid infinite loops
+      if (jsonData !== newJsonData) {
+        setJsonData(newJsonData);
+        setParsedJson(formContent);
+      }
     }
-  }, [questions, activeTab]);
+  }, [questions]);
 
   // Sync form questions when JSON changes
   useEffect(() => {
-    if (activeTab === 'json' && parsedJson?.questions && Array.isArray(parsedJson.questions)) {
-      setQuestions(parsedJson.questions);
+    if (parsedJson?.questions && Array.isArray(parsedJson.questions)) {
+      const newQuestions = parsedJson.questions;
+      // Only update if different to avoid infinite loops
+      if (JSON.stringify(questions) !== JSON.stringify(newQuestions)) {
+        setQuestions(newQuestions);
+      }
     }
-  }, [parsedJson, activeTab]);
+  }, [parsedJson]);
 
   // Auto-generate preview when data changes
   useEffect(() => {
