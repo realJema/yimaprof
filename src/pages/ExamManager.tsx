@@ -64,8 +64,6 @@ export default function ExamManager() {
 
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('details');
-  const [contentMode, setContentMode] = useState<'form' | 'json'>('form');
 
   // Form data
   const [formData, setFormData] = useState<ExamData>({
@@ -305,12 +303,8 @@ export default function ExamManager() {
     if (!formData.class_id) errors.push('Class is required');
     if (!formData.exam_type.trim()) errors.push('Exam type is required');
     
-    if (questions.length === 0) {
-      errors.push('At least one question is required');
-    }
-    
     if (!parsedJson) {
-      errors.push('Valid JSON data is required');
+      errors.push('Valid JSON content is required');
     }
     
     return errors;
@@ -327,23 +321,9 @@ export default function ExamManager() {
       return;
     }
 
-    let examContent = null;
-    if (activeTab === 'form') {
-      examContent = {
-        questions: questions.map(q => ({
-          id: q.id,
-          text: q.text,
-          type: q.type,
-          answers: q.answers
-        }))
-      };
-    } else if (activeTab === 'json' && parsedJson) {
-      examContent = parsedJson;
-    }
-
     setPreviewData({
       ...formData,
-      content: examContent,
+      content: parsedJson,
     });
     setShowPreview(true);
   };
@@ -351,7 +331,6 @@ export default function ExamManager() {
   const saveDraft = async () => {
     setLoading(true);
     try {
-      let examContent = null;
       let fileUrl = formData.file_url;
 
       if (selectedFile) {
@@ -360,26 +339,12 @@ export default function ExamManager() {
         setUploading(false);
       }
 
-      if (activeTab === 'form') {
-        examContent = {
-          questions: questions.map(q => ({
-            id: q.id,
-            text: q.text,
-            type: q.type,
-            answers: q.answers,
-            sub_questions: q.sub_questions
-          }))
-        };
-      } else if (activeTab === 'json' && parsedJson) {
-        examContent = parsedJson;
-      }
-
       const examData = {
         ...formData,
-        content: examContent,
+        content: parsedJson,
         file_url: fileUrl,
         created_by: user?.id || '',
-        is_published: false, // Always save as unpublished for drafts
+        is_published: false,
       };
 
       if (isEditing) {
@@ -407,13 +372,11 @@ export default function ExamManager() {
           description: 'Draft saved successfully',
         });
         
-        // Update URL to edit mode if this was a new exam
         if (data?.id) {
           window.history.replaceState({}, '', `/admin/exam/edit/${data.id}`);
         }
       }
       
-      // Navigate to admin page after saving draft
       navigate('/admin');
     } catch (error) {
       console.error('Error saving draft:', error);
@@ -441,7 +404,6 @@ export default function ExamManager() {
 
     setLoading(true);
     try {
-      let examContent = null;
       let fileUrl = formData.file_url;
 
       if (selectedFile) {
@@ -450,23 +412,9 @@ export default function ExamManager() {
         setUploading(false);
       }
 
-      if (activeTab === 'form') {
-        examContent = {
-          questions: questions.map(q => ({
-            id: q.id,
-            text: q.text,
-            type: q.type,
-            answers: q.answers,
-            sub_questions: q.sub_questions
-          }))
-        };
-      } else if (activeTab === 'json' && parsedJson) {
-        examContent = parsedJson;
-      }
-
       const examData = {
         ...formData,
-        content: examContent,
+        content: parsedJson,
         file_url: fileUrl,
         created_by: user?.id || '',
         is_published: shouldPublish,
@@ -660,62 +608,15 @@ export default function ExamManager() {
     }));
   };
 
-  // Sync JSON data when form questions change
-  useEffect(() => {
-    if (questions.length > 0) {
-      const formContent = {
-        questions: questions.map(q => ({
-          id: q.id,
-          text: q.text,
-          type: q.type,
-          answers: q.answers,
-          sub_questions: q.sub_questions
-        }))
-      };
-      const newJsonData = JSON.stringify(formContent, null, 2);
-      // Only update if different to avoid infinite loops
-      if (jsonData !== newJsonData) {
-        setJsonData(newJsonData);
-        setParsedJson(formContent);
-      }
-    }
-  }, [questions]);
-
-  // Sync form questions when JSON changes
-  useEffect(() => {
-    if (parsedJson?.questions && Array.isArray(parsedJson.questions)) {
-      const newQuestions = parsedJson.questions;
-      // Only update if different to avoid infinite loops
-      if (JSON.stringify(questions) !== JSON.stringify(newQuestions)) {
-        setQuestions(newQuestions);
-      }
-    }
-  }, [parsedJson]);
-
   // Auto-generate preview when data changes
   useEffect(() => {
     if (formData.title || formData.subject) {
-      let examContent = null;
-      if (activeTab === 'form') {
-        examContent = {
-          questions: questions.map(q => ({
-            id: q.id,
-            text: q.text,
-            type: q.type,
-            answers: q.answers,
-            sub_questions: q.sub_questions
-          }))
-        };
-      } else if (activeTab === 'json' && parsedJson) {
-        examContent = parsedJson;
-      }
-
       setPreviewData({
         ...formData,
-        content: examContent,
+        content: parsedJson,
       });
     }
-  }, [formData, questions, activeTab, parsedJson]);
+  }, [formData, parsedJson]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -811,360 +712,178 @@ export default function ExamManager() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-120px)]">
           {/* LEFT PANEL - Form Input */}
           <div className="overflow-y-auto pr-2">
-            <Card className="border-border/50 bg-card">
-              <CardHeader className="pb-3 space-y-1">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Exam Configuration
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">Configure exam details and questions</p>
-              </CardHeader>
-              <CardContent>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="details" className="text-xs">
-                      <FileCheck className="h-3.5 w-3.5 mr-1.5" />
-                      Details
-                    </TabsTrigger>
-                    <TabsTrigger value="content" className="text-xs">
-                      <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                      Content
-                    </TabsTrigger>
-                  </TabsList>
+            <div className="space-y-4">
+              {/* Metadata Section */}
+              <Card className="border-border/50 bg-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileCheck className="h-4 w-4 text-primary" />
+                    Exam Metadata
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">Basic exam information</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="title" className="text-xs">Exam Title *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., Mathematics Final Exam"
+                      className="mt-1"
+                    />
+                  </div>
 
-                  {/* DETAILS TAB */}
-                  <TabsContent value="details" className="space-y-4 mt-0">
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
-                        <FileCheck className="h-3.5 w-3.5" />
-                        Basic Information
-                      </h3>
-                        <div>
-                          <Label htmlFor="title" className="text-xs">Exam Title *</Label>
-                          <Input
-                            id="title"
-                            value={formData.title}
-                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g., Mathematics Final Exam"
-                            className="mt-1"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label htmlFor="subject" className="text-xs">Subject *</Label>
-                            <Input
-                              id="subject"
-                              value={formData.subject}
-                              onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                              placeholder="Mathematics"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="exam_type" className="text-xs">Type *</Label>
-                            <Input
-                              id="exam_type"
-                              value={formData.exam_type}
-                              onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
-                              placeholder="Test, Exam"
-                              className="mt-1"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <Label htmlFor="year" className="text-xs">Year *</Label>
-                            <Input
-                              id="year"
-                              type="number"
-                              value={formData.year}
-                              onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="period" className="text-xs">Period</Label>
-                            <Input
-                              id="period"
-                              value={formData.period}
-                              onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
-                              placeholder="1st Semester"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="duration" className="text-xs">Duration (min)</Label>
-                            <Input
-                              id="duration"
-                            type="number"
-                            value={formData.duration_minutes}
-                            onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
-                            className="mt-1.5"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="class_id" className="text-xs">Class *</Label>
-                        <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {classes.map((cls) => (
-                              <SelectItem key={cls.id} value={cls.id}>
-                                {cls.display_name} - {cls.section}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="language" className="text-xs">Language *</Label>
-                        <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fr">Français</SelectItem>
-                            <SelectItem value="en">English</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="description" className="text-xs">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={formData.description}
-                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Brief description of the exam..."
-                          className="mt-1"
-                          rows={3}
-                        />
-                      </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="subject" className="text-xs">Subject *</Label>
+                      <Input
+                        id="subject"
+                        value={formData.subject}
+                        onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                        placeholder="Mathematics"
+                        className="mt-1"
+                      />
                     </div>
-                  </TabsContent>
-
-                  {/* CONTENT TAB */}
-                  <TabsContent value="content" className="space-y-4 mt-0">
-                    {/* Mode Switcher */}
-                    <div className="flex gap-2 p-1 bg-muted rounded-lg">
-                      <Button
-                        type="button"
-                        variant={contentMode === 'form' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setContentMode('form')}
-                        className="flex-1 h-8 text-xs"
-                      >
-                        <FileText className="h-3.5 w-3.5 mr-1.5" />
-                        Form Builder
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={contentMode === 'json' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setContentMode('json')}
-                        className="flex-1 h-8 text-xs"
-                      >
-                        <Code2 className="h-3.5 w-3.5 mr-1.5" />
-                        JSON Editor
-                      </Button>
+                    <div>
+                      <Label htmlFor="exam_type" className="text-xs">Type *</Label>
+                      <Input
+                        id="exam_type"
+                        value={formData.exam_type}
+                        onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
+                        placeholder="Test, Exam"
+                        className="mt-1"
+                      />
                     </div>
+                  </div>
 
-                    {/* Form Builder */}
-                    {contentMode === 'form' && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
-                            <BookOpen className="h-3.5 w-3.5" />
-                            Questions
-                          </h3>
-                          <Button type="button" onClick={addQuestion} size="sm" variant="outline">
-                            <Plus className="h-3.5 w-3.5 mr-1" />
-                            Add Question
-                          </Button>
-                        </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label htmlFor="year" className="text-xs">Year *</Label>
+                      <Input
+                        id="year"
+                        type="number"
+                        value={formData.year}
+                        onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="period" className="text-xs">Period</Label>
+                      <Input
+                        id="period"
+                        value={formData.period}
+                        onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
+                        placeholder="1st Semester"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="duration" className="text-xs">Duration (min)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={formData.duration_minutes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
 
-                        {questions.map((question, qIndex) => (
-                          <Card key={question.id} className="p-3 bg-muted/20">
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-xs font-medium">Question {qIndex + 1}</Label>
-                                <div className="flex gap-1.5">
-                                  <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
-                                    <SelectTrigger className="w-32 h-7 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                                      <SelectItem value="long_form">Long Form</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  {questions.length > 1 && (
-                                    <Button 
-                                      type="button" 
-                                      onClick={() => removeQuestion(question.id)}
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 w-7 p-0"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                              <Textarea
-                                placeholder="Enter your question..."
-                                value={question.text}
-                                onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                                rows={2}
-                                className="text-sm"
-                              />
-                              
-                              {question.type === 'multiple_choice' ? (
-                                <div className="space-y-1.5">
-                                  <Label className="text-xs">Answer Options</Label>
-                                  {question.answers.map((answer, aIndex) => (
-                                    <div key={answer.id} className="flex items-center space-x-2">
-                                      <input
-                                        type="radio"
-                                        name={`correct-${question.id}`}
-                                        checked={answer.is_correct}
-                                        onChange={() => setCorrectAnswer(question.id, answer.id)}
-                                        className="h-3.5 w-3.5"
-                                      />
-                                      <Input
-                                        placeholder={`Option ${aIndex + 1}`}
-                                        value={answer.text}
-                                        onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
-                                        className="text-sm h-8"
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <div className="space-y-1.5">
-                                    <Label className="text-xs">Expected Answer</Label>
-                                    <Textarea
-                                      placeholder="Enter expected answer..."
-                                      value={question.answers[0]?.text || ''}
-                                      onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
-                                      rows={2}
-                                      className="text-sm"
-                                    />
-                                  </div>
-
-                                  {/* Sub-questions */}
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-xs">Sub-questions</Label>
-                                      <Button 
-                                        type="button" 
-                                        onClick={() => addSubQuestion(question.id)}
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 text-xs"
-                                      >
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Add
-                                      </Button>
-                                    </div>
-                                    
-                                    {question.sub_questions?.map((subQuestion, subIndex) => (
-                                      <Card key={subQuestion.id} className="ml-4 p-2 bg-background">
-                                        <div className="space-y-2">
-                                          <div className="flex items-center justify-between">
-                                            <Label className="text-xs">Sub {qIndex + 1}.{String.fromCharCode(97 + subIndex)}</Label>
-                                            <Button 
-                                              type="button" 
-                                              onClick={() => removeSubQuestion(question.id, subQuestion.id)}
-                                              size="sm"
-                                              variant="ghost"
-                                              className="h-5 w-5 p-0"
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                          <Textarea
-                                            placeholder="Enter sub-question..."
-                                            value={subQuestion.text}
-                                            onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'text', e.target.value)}
-                                            rows={1}
-                                            className="text-xs"
-                                          />
-                                          <Textarea
-                                            placeholder="Expected answer..."
-                                            value={subQuestion.answers[0]?.text || ''}
-                                            onChange={(e) => updateSubQuestionAnswer(question.id, subQuestion.id, subQuestion.answers[0]?.id, 'text', e.target.value)}
-                                            rows={1}
-                                            className="text-xs"
-                                          />
-                                        </div>
-                                      </Card>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
+                  <div>
+                    <Label htmlFor="class_id" className="text-xs">Class *</Label>
+                    <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.display_name} - {cls.section}
+                          </SelectItem>
                         ))}
-                      </div>
-                    )}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    {/* JSON Editor */}
-                    {contentMode === 'json' && (
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs">JSON Data</Label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
-                              className="h-7 text-xs"
-                            >
-                              Load Template
-                            </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Enter the exam content in JSON format. Supports headings, instructions, passages, questions, sub-questions, images, and rubrics.
-                          </p>
-                          <Textarea
-                            value={jsonData}
-                            onChange={(e) => handleJsonChange(e.target.value)}
-                            placeholder='Click "Load Template" to see an example with the new format'
-                            rows={15}
-                            className="font-mono text-xs"
-                          />
-                        </div>
-                        {jsonError && (
-                          <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-                            <p className="text-xs text-destructive flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" />
-                              {jsonError}
-                            </p>
-                          </div>
-                        )}
-                        {parsedJson && !jsonError && (
-                          <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
-                            <p className="text-xs text-green-600 flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              Valid JSON - {parsedJson.questions?.length || 0} questions
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+                  <div>
+                    <Label htmlFor="language" className="text-xs">Language *</Label>
+                    <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description" className="text-xs">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of the exam..."
+                      className="mt-1"
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* JSON Content Section */}
+              <Card className="border-border/50 bg-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Code2 className="h-4 w-4 text-primary" />
+                    Exam Content (JSON)
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Define exam questions, passages, and structure in JSON format
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">JSON Data</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
+                      className="h-7 text-xs"
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-1.5" />
+                      Load Template
+                    </Button>
+                  </div>
+                  <Textarea
+                    value={jsonData}
+                    onChange={(e) => handleJsonChange(e.target.value)}
+                    placeholder='Click "Load Template" to see an example format'
+                    rows={20}
+                    className="font-mono text-xs"
+                  />
+                  {jsonError && (
+                    <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {jsonError}
+                      </p>
+                    </div>
+                  )}
+                  {parsedJson && !jsonError && (
+                    <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Valid JSON - {parsedJson.questions?.length || 0} questions
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* RIGHT PANEL - Live Preview */}
