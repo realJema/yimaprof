@@ -64,7 +64,8 @@ export default function ExamManager() {
 
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('form');
+  const [activeTab, setActiveTab] = useState('details');
+  const [contentMode, setContentMode] = useState<'form' | 'json'>('form');
 
   // Form data
   const [formData, setFormData] = useState<ExamData>({
@@ -304,11 +305,11 @@ export default function ExamManager() {
     if (!formData.class_id) errors.push('Class is required');
     if (!formData.exam_type.trim()) errors.push('Exam type is required');
     
-    if (activeTab === 'form' && questions.length === 0) {
+    if (questions.length === 0) {
       errors.push('At least one question is required');
     }
     
-    if (activeTab === 'json' && !parsedJson) {
+    if (!parsedJson) {
       errors.push('Valid JSON data is required');
     }
     
@@ -821,12 +822,18 @@ export default function ExamManager() {
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="form" className="text-xs">Form Builder</TabsTrigger>
-                    <TabsTrigger value="json" className="text-xs">JSON Editor</TabsTrigger>
+                    <TabsTrigger value="details" className="text-xs">
+                      <FileCheck className="h-3.5 w-3.5 mr-1.5" />
+                      Details
+                    </TabsTrigger>
+                    <TabsTrigger value="content" className="text-xs">
+                      <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                      Content
+                    </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="form" className="space-y-4 mt-0">
-                    {/* Basic Info Section */}
+                  {/* DETAILS TAB */}
+                  <TabsContent value="details" className="space-y-4 mt-0">
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
                         <FileCheck className="h-3.5 w-3.5" />
@@ -916,6 +923,19 @@ export default function ExamManager() {
                       </div>
 
                       <div>
+                        <Label htmlFor="language" className="text-xs">Language *</Label>
+                        <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fr">Français</SelectItem>
+                            <SelectItem value="en">English</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
                         <Label htmlFor="description" className="text-xs">Description</Label>
                         <Textarea
                           id="description"
@@ -923,189 +943,222 @@ export default function ExamManager() {
                           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="Brief description of the exam..."
                           className="mt-1"
-                          rows={2}
+                          rows={3}
                         />
                       </div>
                     </div>
-
-                    <Separator className="my-4" />
-
-                    {/* Questions Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
-                          <BookOpen className="h-3.5 w-3.5" />
-                          Questions
-                        </h3>
-                        <Button type="button" onClick={addQuestion} size="sm" variant="outline">
-                          <Plus className="h-3.5 w-3.5 mr-1" />
-                          Add Question
-                        </Button>
-                      </div>
-
-                      {questions.map((question, qIndex) => (
-                        <Card key={question.id} className="p-3 bg-muted/20">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs font-medium">Question {qIndex + 1}</Label>
-                              <div className="flex gap-1.5">
-                                <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
-                                  <SelectTrigger className="w-32 h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                                    <SelectItem value="long_form">Long Form</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                {questions.length > 1 && (
-                                  <Button 
-                                    type="button" 
-                                    onClick={() => removeQuestion(question.id)}
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 w-7 p-0"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <Textarea
-                              placeholder="Enter your question..."
-                              value={question.text}
-                              onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                              rows={2}
-                              className="text-sm"
-                            />
-                            
-                            {question.type === 'multiple_choice' ? (
-                              <div className="space-y-1.5">
-                                <Label className="text-xs">Answer Options</Label>
-                                {question.answers.map((answer, aIndex) => (
-                                  <div key={answer.id} className="flex items-center space-x-2">
-                                    <input
-                                      type="radio"
-                                      name={`correct-${question.id}`}
-                                      checked={answer.is_correct}
-                                      onChange={() => setCorrectAnswer(question.id, answer.id)}
-                                      className="h-3.5 w-3.5"
-                                    />
-                                    <Input
-                                      placeholder={`Option ${aIndex + 1}`}
-                                      value={answer.text}
-                                      onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
-                                      className="text-sm h-8"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <div className="space-y-1.5">
-                                  <Label className="text-xs">Expected Answer</Label>
-                                  <Textarea
-                                    placeholder="Enter expected answer..."
-                                    value={question.answers[0]?.text || ''}
-                                    onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
-                                    rows={2}
-                                    className="text-sm"
-                                  />
-                                </div>
-
-                                {/* Sub-questions */}
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-xs">Sub-questions</Label>
-                                    <Button 
-                                      type="button" 
-                                      onClick={() => addSubQuestion(question.id)}
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-6 text-xs"
-                                    >
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Add
-                                    </Button>
-                                  </div>
-                                  
-                                  {question.sub_questions?.map((subQuestion, subIndex) => (
-                                    <Card key={subQuestion.id} className="ml-4 p-2 bg-background">
-                                      <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                          <Label className="text-xs">Sub {qIndex + 1}.{String.fromCharCode(97 + subIndex)}</Label>
-                                          <Button 
-                                            type="button" 
-                                            onClick={() => removeSubQuestion(question.id, subQuestion.id)}
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-5 w-5 p-0"
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                        <Textarea
-                                          placeholder="Enter sub-question..."
-                                          value={subQuestion.text}
-                                          onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'text', e.target.value)}
-                                          rows={1}
-                                          className="text-xs"
-                                        />
-                                        <Textarea
-                                          placeholder="Expected answer..."
-                                          value={subQuestion.answers[0]?.text || ''}
-                                          onChange={(e) => updateSubQuestionAnswer(question.id, subQuestion.id, subQuestion.answers[0]?.id, 'text', e.target.value)}
-                                          rows={1}
-                                          className="text-xs"
-                                        />
-                                      </div>
-                                    </Card>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
                   </TabsContent>
 
-                  <TabsContent value="json" className="space-y-3 mt-0">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs">JSON Data</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
-                          className="h-7 text-xs"
-                        >
-                          Load Template
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Enter the exam content in JSON format. Supports headings, instructions, passages, questions, sub-questions, images, and rubrics.
-                      </p>
-                      <Textarea
-                        value={jsonData}
-                        onChange={(e) => handleJsonChange(e.target.value)}
-                        placeholder='Click "Load Template" to see an example with the new format'
-                        rows={12}
-                        className="font-mono text-xs"
-                      />
+                  {/* CONTENT TAB */}
+                  <TabsContent value="content" className="space-y-4 mt-0">
+                    {/* Mode Switcher */}
+                    <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                      <Button
+                        type="button"
+                        variant={contentMode === 'form' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setContentMode('form')}
+                        className="flex-1 h-8 text-xs"
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-1.5" />
+                        Form Builder
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={contentMode === 'json' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setContentMode('json')}
+                        className="flex-1 h-8 text-xs"
+                      >
+                        <Code2 className="h-3.5 w-3.5 mr-1.5" />
+                        JSON Editor
+                      </Button>
                     </div>
-                    {jsonError && (
-                      <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-                        <p className="text-xs text-destructive">{jsonError}</p>
+
+                    {/* Form Builder */}
+                    {contentMode === 'form' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
+                            <BookOpen className="h-3.5 w-3.5" />
+                            Questions
+                          </h3>
+                          <Button type="button" onClick={addQuestion} size="sm" variant="outline">
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            Add Question
+                          </Button>
+                        </div>
+
+                        {questions.map((question, qIndex) => (
+                          <Card key={question.id} className="p-3 bg-muted/20">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs font-medium">Question {qIndex + 1}</Label>
+                                <div className="flex gap-1.5">
+                                  <Select value={question.type} onValueChange={(value) => changeQuestionType(question.id, value)}>
+                                    <SelectTrigger className="w-32 h-7 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                                      <SelectItem value="long_form">Long Form</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {questions.length > 1 && (
+                                    <Button 
+                                      type="button" 
+                                      onClick={() => removeQuestion(question.id)}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 w-7 p-0"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                              <Textarea
+                                placeholder="Enter your question..."
+                                value={question.text}
+                                onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                                rows={2}
+                                className="text-sm"
+                              />
+                              
+                              {question.type === 'multiple_choice' ? (
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs">Answer Options</Label>
+                                  {question.answers.map((answer, aIndex) => (
+                                    <div key={answer.id} className="flex items-center space-x-2">
+                                      <input
+                                        type="radio"
+                                        name={`correct-${question.id}`}
+                                        checked={answer.is_correct}
+                                        onChange={() => setCorrectAnswer(question.id, answer.id)}
+                                        className="h-3.5 w-3.5"
+                                      />
+                                      <Input
+                                        placeholder={`Option ${aIndex + 1}`}
+                                        value={answer.text}
+                                        onChange={(e) => updateAnswer(question.id, answer.id, 'text', e.target.value)}
+                                        className="text-sm h-8"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="space-y-1.5">
+                                    <Label className="text-xs">Expected Answer</Label>
+                                    <Textarea
+                                      placeholder="Enter expected answer..."
+                                      value={question.answers[0]?.text || ''}
+                                      onChange={(e) => updateAnswer(question.id, question.answers[0]?.id, 'text', e.target.value)}
+                                      rows={2}
+                                      className="text-sm"
+                                    />
+                                  </div>
+
+                                  {/* Sub-questions */}
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-xs">Sub-questions</Label>
+                                      <Button 
+                                        type="button" 
+                                        onClick={() => addSubQuestion(question.id)}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 text-xs"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Add
+                                      </Button>
+                                    </div>
+                                    
+                                    {question.sub_questions?.map((subQuestion, subIndex) => (
+                                      <Card key={subQuestion.id} className="ml-4 p-2 bg-background">
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <Label className="text-xs">Sub {qIndex + 1}.{String.fromCharCode(97 + subIndex)}</Label>
+                                            <Button 
+                                              type="button" 
+                                              onClick={() => removeSubQuestion(question.id, subQuestion.id)}
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-5 w-5 p-0"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                          <Textarea
+                                            placeholder="Enter sub-question..."
+                                            value={subQuestion.text}
+                                            onChange={(e) => updateSubQuestion(question.id, subQuestion.id, 'text', e.target.value)}
+                                            rows={1}
+                                            className="text-xs"
+                                          />
+                                          <Textarea
+                                            placeholder="Expected answer..."
+                                            value={subQuestion.answers[0]?.text || ''}
+                                            onChange={(e) => updateSubQuestionAnswer(question.id, subQuestion.id, subQuestion.answers[0]?.id, 'text', e.target.value)}
+                                            rows={1}
+                                            className="text-xs"
+                                          />
+                                        </div>
+                                      </Card>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
                       </div>
                     )}
-                    {parsedJson && !jsonError && (
-                      <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
-                        <p className="text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Valid JSON - {parsedJson.questions?.length || 0} questions
-                        </p>
+
+                    {/* JSON Editor */}
+                    {contentMode === 'json' && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs">JSON Data</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
+                              className="h-7 text-xs"
+                            >
+                              Load Template
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Enter the exam content in JSON format. Supports headings, instructions, passages, questions, sub-questions, images, and rubrics.
+                          </p>
+                          <Textarea
+                            value={jsonData}
+                            onChange={(e) => handleJsonChange(e.target.value)}
+                            placeholder='Click "Load Template" to see an example with the new format'
+                            rows={15}
+                            className="font-mono text-xs"
+                          />
+                        </div>
+                        {jsonError && (
+                          <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {jsonError}
+                            </p>
+                          </div>
+                        )}
+                        {parsedJson && !jsonError && (
+                          <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
+                            <p className="text-xs text-green-600 flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              Valid JSON - {parsedJson.questions?.length || 0} questions
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </TabsContent>
