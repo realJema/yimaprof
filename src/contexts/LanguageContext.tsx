@@ -75,6 +75,8 @@ const translations = {
     question_preview: 'Aperçu des questions',
     review_questions_desc: 'Consultez les questions d\'examen sans les réponses.',
     evaluation: 'Évaluation',
+    answer: 'Réponse',
+    marking_rubric: 'Barème de notation',
     
     // Footer
     about_yima: 'La plateforme éducative qui révolutionne l\'apprentissage en Afrique. Accédez à des milliers de sujets d\'examens et corrections détaillées.',
@@ -326,6 +328,8 @@ const translations = {
     question_preview: 'Question Preview',
     review_questions_desc: 'Review the exam questions without answers.',
     evaluation: 'Evaluation Mode',
+    answer: 'Answer',
+    marking_rubric: 'Marking Rubric',
     
     // Footer
     about_yima: 'The educational platform that revolutionizes learning in Africa. Access thousands of exam papers and detailed corrections.',

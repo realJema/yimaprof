@@ -198,6 +198,166 @@ export default function ExamViewer() {
       />
     );
   };
+
+  const renderSplitContent = (content: any, renderType: 'questions' | 'answers') => {
+    if (!content) return null;
+
+    // Handle both legacy and new formats
+    let items: any[] = [];
+    if (content.questions && Array.isArray(content.questions)) {
+      items = content.questions;
+    } else if (Array.isArray(content)) {
+      items = content;
+    } else {
+      return null;
+    }
+
+    const sortedItems = [...items].sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+    let questionNumber = 0;
+
+    return (
+      <div className="space-y-4">
+        {sortedItems.map((item: any, index: number) => {
+          // Only process questions
+          if (item.item_type !== 'question' && item.type !== 'multiple_choice' && item.type !== 'long_form') {
+            return null;
+          }
+
+          questionNumber++;
+          const question = item;
+
+          if (renderType === 'questions') {
+            // Render only the question text and structure
+            return (
+              <div key={item.id || index} className="border border-border rounded-lg p-4 bg-card">
+                <div className="flex items-start gap-3">
+                  <Badge variant="outline" className="text-sm font-semibold shrink-0">
+                    {question.paper_number || questionNumber}
+                  </Badge>
+                  <div className="flex-1">
+                    <p className="text-base font-medium text-foreground whitespace-pre-wrap">
+                      {question.text}
+                    </p>
+                    {question.marks && (
+                      <Badge variant="secondary" className="text-xs mt-2">
+                        {question.marks} marks
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sub-questions without answers */}
+                {question.sub_questions && question.sub_questions.length > 0 && (
+                  <div className="ml-8 mt-3 space-y-2">
+                    {question.sub_questions.map((subQ: any, subIndex: number) => (
+                      <div key={subQ.id} className="flex items-start gap-2">
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {subQ.display_number || `${questionNumber}(${String.fromCharCode(97 + subIndex)})`}
+                        </Badge>
+                        <p className="text-sm">{subQ.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          } else {
+            // Render only the answers
+            return (
+              <div key={item.id || index} className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50/50 dark:bg-green-950/50">
+                <div className="flex items-start gap-3 mb-3">
+                  <Badge variant="outline" className="text-sm font-semibold shrink-0 bg-green-100 dark:bg-green-900">
+                    {question.paper_number || questionNumber}
+                  </Badge>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-green-800 dark:text-green-300 text-sm">
+                      {t('answer') || 'Answer'}
+                    </h4>
+                  </div>
+                </div>
+
+                {/* Multiple Choice Answer */}
+                {(question.question_type === 'multiple_choice' || question.type === 'multiple_choice') && question.answers && (
+                  <div className="space-y-2">
+                    {question.answers.map((answer: any, answerIndex: number) => {
+                      if (!answer.is_correct) return null;
+                      return (
+                        <div key={answer.id || answerIndex} className="flex items-start gap-2 p-3 rounded-lg bg-green-100 dark:bg-green-900">
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <span className="font-medium text-sm mr-2">
+                              {String.fromCharCode(65 + answerIndex)}.
+                            </span>
+                            <span className="text-sm text-green-700 dark:text-green-300">{answer.text}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Long Form Answer */}
+                {(question.question_type === 'long_form' || question.type === 'long_form') && question.answers && question.answers[0] && (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900">
+                      <p className="text-sm text-green-700 dark:text-green-300 whitespace-pre-wrap">
+                        {question.answers[0].text}
+                      </p>
+                    </div>
+
+                    {/* Rubric */}
+                    {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
+                      <div className="mt-2 p-3 rounded-lg bg-green-100/50 dark:bg-green-900/50">
+                        <h5 className="font-semibold text-green-800 dark:text-green-300 mb-2 text-xs">
+                          {t('marking_rubric') || 'Marking Rubric'}:
+                        </h5>
+                        <div className="space-y-1">
+                          {question.answers[0].rubric.map((criterion: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-xs">
+                              <span className="text-green-700 dark:text-green-400">
+                                • {criterion.criteria}
+                              </span>
+                              <Badge variant="outline" className="h-5 text-xs">
+                                {criterion.points} pts
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-question answers */}
+                {question.sub_questions && question.sub_questions.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {question.sub_questions.map((subQ: any, subIndex: number) => {
+                      if (!subQ.answers || !subQ.answers[0]) return null;
+                      return (
+                        <div key={subQ.id} className="p-3 rounded-lg bg-green-100 dark:bg-green-900">
+                          <div className="flex items-start gap-2 mb-1">
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {subQ.display_number || `${questionNumber}(${String.fromCharCode(97 + subIndex)})`}
+                            </Badge>
+                            <p className="text-xs font-medium text-green-800 dark:text-green-300">
+                              {t('answer') || 'Answer'}:
+                            </p>
+                          </div>
+                          <p className="text-xs text-green-700 dark:text-green-300 whitespace-pre-wrap ml-2">
+                            {subQ.answers[0].text}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+        })}
+      </div>
+    );
+  };
   if (loading) {
     return <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
         <p className="text-muted-foreground">{t('loading')}</p>
@@ -380,7 +540,7 @@ export default function ExamViewer() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6">
-                      {renderJsonContent(exam.content, false)}
+                      {renderSplitContent(exam.content, 'questions')}
                     </CardContent>
                   </Card>
 
@@ -396,7 +556,7 @@ export default function ExamViewer() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6">
-                      {renderJsonContent(exam.content, true)}
+                      {renderSplitContent(exam.content, 'answers')}
                     </CardContent>
                   </Card>
                 </div>
