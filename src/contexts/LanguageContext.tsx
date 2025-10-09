@@ -64,6 +64,18 @@ const translations = {
     create_account: 'Créer mon compte gratuit',
     view_subscriptions: 'Voir les abonnements',
     
+    // Exam Viewer
+    questions: 'Questions',
+    solutions: 'Solutions',
+    exam_questions_desc: 'Questions d\'examen',
+    detailed_answers_desc: 'Réponses détaillées et explications',
+    sign_in_subscribe_correction: 'Connectez-vous et abonnez-vous pour accéder aux corrections',
+    subscribe_for_corrections: 'Abonnez-vous pour accéder aux corrections',
+    correction_not_available: 'Correction non disponible pour cet examen pour le moment.',
+    question_preview: 'Aperçu des questions',
+    review_questions_desc: 'Consultez les questions d\'examen sans les réponses.',
+    evaluation: 'Évaluation',
+    
     // Footer
     about_yima: 'La plateforme éducative qui révolutionne l\'apprentissage en Afrique. Accédez à des milliers de sujets d\'examens et corrections détaillées.',
     platform: 'Plateforme',
@@ -302,6 +314,18 @@ const translations = {
     explore_now: 'Explore Now',
     create_account: 'Create Free Account',
     view_subscriptions: 'View Subscriptions',
+    
+    // Exam Viewer
+    questions: 'Questions',
+    solutions: 'Solutions',
+    exam_questions_desc: 'Exam questions',
+    detailed_answers_desc: 'Detailed answers and explanations',
+    sign_in_subscribe_correction: 'Sign in and subscribe to access corrections',
+    subscribe_for_corrections: 'Subscribe to access corrections',
+    correction_not_available: 'Correction not available for this exam yet.',
+    question_preview: 'Question Preview',
+    review_questions_desc: 'Review the exam questions without answers.',
+    evaluation: 'Evaluation Mode',
     
     // Footer
     about_yima: 'The educational platform that revolutionizes learning in Africa. Access thousands of exam papers and detailed corrections.',

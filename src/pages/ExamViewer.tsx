@@ -350,81 +350,65 @@ export default function ExamViewer() {
             {!hasAccess && !user ? <Card className="border-orange-500 bg-orange-50">
                 <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
                   <p className="text-orange-700 mb-4">
-                    Sign in and subscribe to access corrections
+                    {t('sign_in_subscribe_correction') || 'Sign in and subscribe to access corrections'}
                   </p>
                   <Button onClick={() => navigate('/auth')}>
-                    Sign In
+                    {t('sign_in')}
                   </Button>
                 </CardContent>
               </Card> : !hasAccess ? <Card className="border-orange-500 bg-orange-50">
                 <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
                   <p className="text-orange-700 mb-4">
-                    Subscribe to access corrections
+                    {t('subscribe_for_corrections') || 'Subscribe to access corrections'}
                   </p>
                   <Button onClick={() => navigate('/subscriptions')}>
-                    View Subscription Plans
+                    {t('view_subscriptions')}
                   </Button>
                 </CardContent>
-              </Card> : (/* Layout: PDF on left, Content on right */
-        exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-                  {/* PDF Viewer (Collapsible) */}
+              </Card> : hasAnswers ? (
+                /* Two-column layout: Questions on left, Answers on right */
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Questions Column */}
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                    <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <CardTitle className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-5 w-5" />
-                              PDF Document
-                            </div>
-                            {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                          </CardTitle>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent>
-                          <div className="w-full h-[600px] border rounded-lg overflow-hidden">
-                            <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full" title="Exam PDF" />
-                          </div>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </Card>
-
-                  {/* Content */}
-                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        Questions & Solutions
+                    <CardHeader className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 border-b">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <FileText className="h-5 w-5" />
+                        {t('questions') || 'Questions'}
                       </CardTitle>
                       <CardDescription>
-                        Exam questions with detailed answers
+                        {t('exam_questions_desc') || 'Exam questions'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      {hasAnswers ? renderJsonContent(exam.content, true) : <p className="text-muted-foreground">
-                          Correction not available for this exam yet.
-                        </p>}
+                    <CardContent className="space-y-6 pt-6">
+                      {renderJsonContent(exam.content, false)}
                     </CardContent>
                   </Card>
-                </div> : (/* No PDF - Full width content */
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
-                      Questions & Solutions
-                    </CardTitle>
-                    <CardDescription>
-                      Exam questions with detailed answers
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {hasAnswers ? renderJsonContent(exam.content, true) : <p className="text-muted-foreground">
-                        Correction not available for this exam yet.
-                      </p>}
+
+                  {/* Answers Column */}
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <CardHeader className="sticky top-0 bg-card/95 backdrop-blur-sm z-10 border-b">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        {t('solutions') || 'Solutions'}
+                      </CardTitle>
+                      <CardDescription>
+                        {t('detailed_answers_desc') || 'Detailed answers and explanations'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                      {renderJsonContent(exam.content, true)}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
+                    <p className="text-muted-foreground">
+                      {t('correction_not_available') || 'Correction not available for this exam yet.'}
+                    </p>
                   </CardContent>
-                </Card>))}
+                </Card>
+              )}
           </div>}
       </div>
     </div>;
