@@ -470,6 +470,15 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      log_audit: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_target_id?: string
+          p_target_type: string
+        }
+        Returns: string
+      }
       transition_subscription_plan: {
         Args: { p_new_plan_id: string; p_user_id: string }
         Returns: Json
