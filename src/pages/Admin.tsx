@@ -66,7 +66,7 @@ export default function Admin() {
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Please sign in to access admin panel</p>
+            <p className="text-center text-muted-foreground">{t('please_sign_in_admin')}</p>
           </CardContent>
         </Card>
       </div>
@@ -76,7 +76,7 @@ export default function Admin() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
-        <p className="text-muted-foreground">Loading admin panel...</p>
+        <p className="text-muted-foreground">{t('loading_admin_panel')}</p>
       </div>
     );
   }
@@ -87,8 +87,8 @@ export default function Admin() {
         <Card>
           <CardContent className="pt-6 text-center">
             <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">You do not have admin privileges to access this page.</p>
+            <h2 className="text-xl font-semibold mb-2">{t('access_denied')}</h2>
+            <p className="text-muted-foreground">{t('no_admin_privileges')}</p>
           </CardContent>
         </Card>
       </div>
@@ -96,13 +96,13 @@ export default function Admin() {
   }
 
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'users', label: 'Users', icon: Shield },
-    { id: 'exams', label: 'Exams', icon: Shield },
-    { id: 'classes', label: 'Classes', icon: Shield },
-    { id: 'plans', label: 'Plans', icon: Shield },
-    { id: 'subscriptions', label: 'Subscriptions', icon: Shield },
-    { id: 'transactions', label: 'Transactions', icon: Shield },
+    { id: 'overview', label: t('overview'), icon: BarChart3 },
+    { id: 'users', label: t('users'), icon: Shield },
+    { id: 'exams', label: t('exams'), icon: Shield },
+    { id: 'classes', label: t('classes'), icon: Shield },
+    { id: 'plans', label: t('plans'), icon: Shield },
+    { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
+    { id: 'transactions', label: t('transactions'), icon: Shield },
   ];
 
   return (
@@ -114,15 +114,15 @@ export default function Admin() {
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <Shield className="h-6 w-6 text-primary" />
-                Admin Dashboard
+                {t('admin_dashboard')}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Platform management and analytics
+                {t('platform_management')}
               </p>
             </div>
             <Badge variant="secondary" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Admin Access
+              {t('admin_access')}
             </Badge>
           </div>
         </div>
@@ -161,19 +161,19 @@ export default function Admin() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                     <CardContent className="pt-6">
-                      <h3 className="text-lg font-semibold mb-4">Platform Overview</h3>
+                      <h3 className="text-lg font-semibold mb-4">{t('platform_overview')}</h3>
                       <div className="space-y-4 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total Revenue</span>
-                          <span className="font-medium">Updated in real-time</span>
+                          <span className="text-muted-foreground">{t('total_revenue')}</span>
+                          <span className="font-medium">{t('updated_realtime')}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Active Users</span>
-                          <span className="font-medium">Last 30 days</span>
+                          <span className="text-muted-foreground">{t('active_users')}</span>
+                          <span className="font-medium">{t('last_30_days')}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Platform Health</span>
-                          <Badge variant="default">Excellent</Badge>
+                          <span className="text-muted-foreground">{t('platform_health')}</span>
+                          <Badge variant="default">{t('excellent')}</Badge>
                         </div>
                       </div>
                     </CardContent>
@@ -181,16 +181,16 @@ export default function Admin() {
 
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                     <CardContent className="pt-6">
-                      <h3 className="text-lg font-semibold mb-4">Quick Navigation</h3>
+                      <h3 className="text-lg font-semibold mb-4">{t('quick_navigation')}</h3>
                       <div className="space-y-3 text-sm">
-                        <p className="text-muted-foreground">Use the navigation menu to manage different sections:</p>
+                        <p className="text-muted-foreground">{t('quick_nav_desc')}</p>
                         <ul className="space-y-1 text-muted-foreground">
-                          <li>• <strong>Users:</strong> Manage user accounts and roles</li>
-                          <li>• <strong>Exams:</strong> CRUD operations for exam papers</li>
-                          <li>• <strong>Classes:</strong> Manage educational classes</li>
-                          <li>• <strong>Plans:</strong> Subscription plan management</li>
-                          <li>• <strong>Subscriptions:</strong> View active subscriptions</li>
-                          <li>• <strong>Transactions:</strong> Financial transaction history</li>
+                          <li>• <strong>{t('users')}:</strong> {t('users_manage_desc')}</li>
+                          <li>• <strong>{t('exams')}:</strong> {t('exams_manage_desc')}</li>
+                          <li>• <strong>{t('classes')}:</strong> {t('classes_manage_desc')}</li>
+                          <li>• <strong>{t('plans')}:</strong> {t('plans_manage_desc')}</li>
+                          <li>• <strong>{t('subscriptions')}:</strong> {t('subscriptions_manage_desc')}</li>
+                          <li>• <strong>{t('transactions')}:</strong> {t('transactions_manage_desc')}</li>
                         </ul>
                       </div>
                     </CardContent>
