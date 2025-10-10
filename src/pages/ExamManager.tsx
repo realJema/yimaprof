@@ -331,12 +331,16 @@ export default function ExamManager() {
   const saveDraft = async () => {
     setLoading(true);
     try {
+      // Only upload if there's a selected file that hasn't been uploaded yet
       let fileUrl = formData.file_url;
-
-      if (selectedFile) {
-        setUploading(true);
-        fileUrl = await uploadPdfFile(selectedFile);
-        setUploading(false);
+      if (selectedFile && !formData.file_url) {
+        toast({
+          title: 'PDF not uploaded',
+          description: 'Please upload the PDF file before saving',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
       }
 
       const examData = {
@@ -404,12 +408,16 @@ export default function ExamManager() {
 
     setLoading(true);
     try {
+      // Only upload if there's a selected file that hasn't been uploaded yet
       let fileUrl = formData.file_url;
-
-      if (selectedFile) {
-        setUploading(true);
-        fileUrl = await uploadPdfFile(selectedFile);
-        setUploading(false);
+      if (selectedFile && !formData.file_url) {
+        toast({
+          title: 'PDF not uploaded',
+          description: 'Please upload the PDF file before publishing',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
       }
 
       const examData = {
@@ -829,6 +837,131 @@ export default function ExamManager() {
                       className="mt-1"
                       rows={3}
                     />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* PDF Upload Section */}
+              <Card className="border-border/50 bg-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-primary" />
+                    PDF Document
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">Upload the exam paper PDF file</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="pdf-upload" className="text-xs">PDF File</Label>
+                    <div className="mt-1 space-y-2">
+                      <Input
+                        id="pdf-upload"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.type !== 'application/pdf') {
+                              toast({
+                                title: 'Invalid file',
+                                description: 'Please select a PDF file',
+                                variant: 'destructive',
+                              });
+                              return;
+                            }
+                            setSelectedFile(file);
+                            toast({
+                              title: 'File selected',
+                              description: `${file.name} is ready to upload`,
+                            });
+                          }
+                        }}
+                        className="cursor-pointer"
+                      />
+                      {selectedFile && (
+                        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                          <FileText className="h-4 w-4 text-primary" />
+                          <span className="text-xs flex-1">{selectedFile.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              const input = document.getElementById('pdf-upload') as HTMLInputElement;
+                              if (input) input.value = '';
+                            }}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      {formData.file_url && !selectedFile && (
+                        <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
+                          <p className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            PDF already uploaded
+                          </p>
+                          <a 
+                            href={formData.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline"
+                          >
+                            View current PDF
+                          </a>
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          if (!selectedFile) {
+                            toast({
+                              title: 'No file selected',
+                              description: 'Please select a PDF file first',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          
+                          setUploading(true);
+                          try {
+                            const fileUrl = await uploadPdfFile(selectedFile);
+                            setFormData(prev => ({ ...prev, file_url: fileUrl }));
+                            toast({
+                              title: 'Success',
+                              description: 'PDF uploaded successfully',
+                            });
+                            setSelectedFile(null);
+                            const input = document.getElementById('pdf-upload') as HTMLInputElement;
+                            if (input) input.value = '';
+                          } catch (error) {
+                            toast({
+                              title: 'Upload failed',
+                              description: error.message || 'Failed to upload PDF',
+                              variant: 'destructive',
+                            });
+                          } finally {
+                            setUploading(false);
+                          }
+                        }}
+                        disabled={!selectedFile || uploading}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        {uploading ? (
+                          <>
+                            <Upload className="h-4 w-4 mr-2 animate-pulse" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload PDF Now
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
