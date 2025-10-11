@@ -37,6 +37,16 @@ export function UserManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      // Log profile access by admin for audit trail
+      if (data && data.length > 0) {
+        await supabase.rpc('log_audit', {
+          p_action: 'profiles_list_viewed',
+          p_target_type: 'profiles',
+          p_metadata: { count: data.length }
+        });
+      }
+      
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -54,16 +64,22 @@ export function UserManagement() {
     try {
       const newRole = user.role === 'admin' ? 'student' : 'admin';
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', user.id);
+      // Use secure server-side function for role changes with audit logging
+      const { data, error } = await supabase.rpc('change_user_role', {
+        target_user_id: user.id,
+        new_role: newRole
+      });
 
       if (error) throw error;
 
-      setUsers(prev => prev.map(u => 
-        u.id === user.id ? { ...u, role: newRole } : u
-      ));
+      // Check if the function returned an error
+      const result = data as { success: boolean; error?: string; message?: string };
+      if (result && !result.success) {
+        throw new Error(result.error || 'Failed to update role');
+      }
+
+      // Refresh users list after successful role change
+      await fetchUsers();
 
       toast({
         title: 'Success',
@@ -73,7 +89,7 @@ export function UserManagement() {
       console.error('Error updating user role:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update user role',
+        description: error instanceof Error ? error.message : 'Failed to update user role',
         variant: 'destructive',
       });
     }

@@ -457,14 +457,52 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      change_user_role: {
+        Args: {
+          new_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
+        }
+        Returns: Json
+      }
       get_user_role: {
         Args: { user_id: string }
-        Returns: Database["public"]["Enums"]["user_role"]
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       is_admin: {
         Args: { user_id: string }
@@ -485,6 +523,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "teacher" | "student"
       payment_provider: "mtn_momo" | "orange_money" | "mesomb"
       subscription_status: "active" | "expired" | "canceled" | "pending"
       transaction_status:
@@ -621,6 +660,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "teacher", "student"],
       payment_provider: ["mtn_momo", "orange_money", "mesomb"],
       subscription_status: ["active", "expired", "canceled", "pending"],
       transaction_status: [
