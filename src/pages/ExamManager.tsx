@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { EXAM_JSON_TEMPLATE } from '@/components/exam/ExamJsonTemplate';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Question {
   id: string;
@@ -61,6 +62,7 @@ export default function ExamManager() {
   const navigate = useNavigate();
   const { examId } = useParams();
   const isEditing = !!examId;
+  const { t } = useLanguage();
 
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
@@ -709,10 +711,10 @@ export default function ExamManager() {
               <BookOpen className="h-6 w-6 text-primary" />
               <div>
                 <h1 className="text-xl font-bold text-foreground">
-                  {isEditing ? 'Edit Exam' : 'Create Exam'}
+                  {isEditing ? t('edit_exam') : t('create_exam')}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Fill in details and watch live preview
+                  {t('exam_details')}
                 </p>
               </div>
               {isDraft && (
@@ -722,20 +724,20 @@ export default function ExamManager() {
 
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button variant="outline" size="sm" onClick={saveDraft} disabled={loading || uploading}>
                 <Save className="h-4 w-4 mr-1" />
-                Save Draft
+                {t('save_draft')}
               </Button>
               <Button size="sm" onClick={handlePublish} disabled={loading || uploading}>
                 <FileCheck className="h-4 w-4 mr-1" />
-                Publish
+                {t('publish_exam')}
               </Button>
               {!isEditing && (
                 <Button variant="outline" size="sm" onClick={handlePublishAndCreateAnother} disabled={loading || uploading}>
                   <Plus className="h-4 w-4 mr-1" />
-                  Publish & Create Another
+                  {t('publish_and_create_another')}
                 </Button>
               )}
             </div>
@@ -749,7 +751,7 @@ export default function ExamManager() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
-              Full Exam Preview
+              {t('preview')}
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
@@ -806,13 +808,13 @@ export default function ExamManager() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileCheck className="h-4 w-4 text-primary" />
-                    Exam Metadata
+                    {t('exam_details')}
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground">Basic exam information</p>
+                  <p className="text-xs text-muted-foreground">{t('description')}</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <Label htmlFor="title" className="text-xs">Exam Title *</Label>
+                    <Label htmlFor="title" className="text-xs">{t('exam_title')} *</Label>
                     <Input
                       id="title"
                       value={formData.title}
@@ -824,7 +826,7 @@ export default function ExamManager() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label htmlFor="subject" className="text-xs">Subject *</Label>
+                      <Label htmlFor="subject" className="text-xs">{t('subject')} *</Label>
                       <Input
                         id="subject"
                         value={formData.subject}
@@ -834,7 +836,7 @@ export default function ExamManager() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="exam_type" className="text-xs">Type *</Label>
+                      <Label htmlFor="exam_type" className="text-xs">{t('exam_type')} *</Label>
                       <Input
                         id="exam_type"
                         value={formData.exam_type}
@@ -847,7 +849,7 @@ export default function ExamManager() {
 
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <Label htmlFor="year" className="text-xs">Year *</Label>
+                      <Label htmlFor="year" className="text-xs">{t('year')} *</Label>
                       <Input
                         id="year"
                         type="number"
@@ -857,7 +859,7 @@ export default function ExamManager() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="period" className="text-xs">Period</Label>
+                      <Label htmlFor="period" className="text-xs">{t('period')}</Label>
                       <Input
                         id="period"
                         value={formData.period}
@@ -867,7 +869,7 @@ export default function ExamManager() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="duration" className="text-xs">Duration (min)</Label>
+                      <Label htmlFor="duration" className="text-xs">{t('duration')}</Label>
                       <Input
                         id="duration"
                         type="number"
@@ -879,23 +881,34 @@ export default function ExamManager() {
                   </div>
 
                   <div>
-                    <Label htmlFor="class_id" className="text-xs">Class *</Label>
+                    <Label htmlFor="class_id" className="text-xs">{t('class')} *</Label>
                     <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select class" />
+                        <SelectValue placeholder={t('select_class')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {classes.map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.display_name} - {cls.section}
-                          </SelectItem>
-                        ))}
+                        <SelectGroup>
+                          <SelectLabel>{t('francophone')}</SelectLabel>
+                          {classes.filter(cls => cls.section === 'francophone').map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.display_name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>{t('anglophone')}</SelectLabel>
+                          {classes.filter(cls => cls.section === 'anglophone').map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.display_name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="language" className="text-xs">Language *</Label>
+                    <Label htmlFor="language" className="text-xs">{t('language')} *</Label>
                     <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select language" />
@@ -908,14 +921,25 @@ export default function ExamManager() {
                   </div>
 
                   <div>
-                    <Label htmlFor="description" className="text-xs">Description</Label>
+                    <Label htmlFor="description" className="text-xs">{t('description')}</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Brief description of the exam..."
+                      placeholder={t('description')}
                       className="mt-1"
                       rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="tags" className="text-xs">{t('tags')}</Label>
+                    <Input
+                      id="tags"
+                      value={formData.tags?.join(', ') || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
+                      placeholder={t('enter_tags')}
+                      className="mt-1"
                     />
                   </div>
                 </CardContent>
@@ -926,13 +950,13 @@ export default function ExamManager() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Upload className="h-4 w-4 text-primary" />
-                    PDF Document
+                    {t('pdf_upload')}
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground">Upload the exam paper PDF file</p>
+                  <p className="text-xs text-muted-foreground">{t('upload_pdf')}</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <Label htmlFor="pdf-upload" className="text-xs">PDF File</Label>
+                    <Label htmlFor="pdf-upload" className="text-xs">{t('choose_file')}</Label>
                     <div className="mt-1 space-y-2">
                       <Input
                         id="pdf-upload"
@@ -997,8 +1021,8 @@ export default function ExamManager() {
                         onClick={async () => {
                           if (!selectedFile) {
                             toast({
-                              title: 'No file selected',
-                              description: 'Please select a PDF file first',
+                              title: t('error'),
+                              description: t('no_file_chosen'),
                               variant: 'destructive',
                             });
                             return;
@@ -1009,7 +1033,7 @@ export default function ExamManager() {
                             const fileUrl = await uploadPdfFile(selectedFile);
                             setFormData(prev => ({ ...prev, file_url: fileUrl }));
                             toast({
-                              title: 'Success',
+                              title: t('success'),
                               description: 'PDF uploaded successfully',
                             });
                             setSelectedFile(null);
@@ -1017,7 +1041,7 @@ export default function ExamManager() {
                             if (input) input.value = '';
                           } catch (error) {
                             toast({
-                              title: 'Upload failed',
+                              title: t('error'),
                               description: error.message || 'Failed to upload PDF',
                               variant: 'destructive',
                             });
@@ -1032,12 +1056,12 @@ export default function ExamManager() {
                         {uploading ? (
                           <>
                             <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                            Uploading...
+                            {t('loading')}...
                           </>
                         ) : (
                           <>
                             <Upload className="h-4 w-4 mr-2" />
-                            Upload PDF Now
+                            {t('upload')}
                           </>
                         )}
                       </Button>
@@ -1051,15 +1075,15 @@ export default function ExamManager() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Code2 className="h-4 w-4 text-primary" />
-                    Exam Content (JSON)
+                    {t('content_editor')}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    Define exam questions, passages, and structure in JSON format
+                    {t('json_editor')}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">JSON Data</Label>
+                    <Label className="text-xs">JSON</Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -1068,7 +1092,7 @@ export default function ExamManager() {
                       className="h-7 text-xs"
                     >
                       <FileText className="h-3.5 w-3.5 mr-1.5" />
-                      Load Template
+                      {t('copy_template')}
                     </Button>
                   </div>
                   <Textarea
