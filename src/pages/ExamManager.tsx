@@ -471,6 +471,79 @@ export default function ExamManager() {
 
   const handlePublish = async () => {
     await handleSubmit(true);
+    navigate('/admin?tab=exams');
+  };
+
+  const handlePublishAndCreateAnother = async () => {
+    const errors = validateFormData();
+    if (errors.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: errors.join(', '),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let fileUrl = formData.file_url;
+      if (selectedFile && !formData.file_url) {
+        toast({
+          title: 'PDF not uploaded',
+          description: 'Please upload the PDF file before publishing',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
+      const examData = {
+        ...formData,
+        content: parsedJson,
+        file_url: fileUrl,
+        created_by: user?.id || '',
+        is_published: true,
+      };
+
+      const { error } = await supabase
+        .from('exams')
+        .insert(examData);
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: 'Exam published successfully! You can create another exam now.',
+      });
+
+      // Reset form for new exam
+      setFormData({
+        title: '',
+        subject: '',
+        year: new Date().getFullYear(),
+        exam_type: '',
+        class_id: '',
+        description: '',
+        is_published: false,
+        period: '',
+        language: 'fr',
+        duration_minutes: 120,
+        tags: [],
+      });
+      setJsonData('');
+      setSelectedFile(null);
+      setParsedJson(null);
+    } catch (error) {
+      console.error('Error publishing exam:', error);
+      toast({
+        title: 'Error',
+        description: `Failed to publish exam: ${error.message || 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addQuestion = () => {
@@ -656,8 +729,15 @@ export default function ExamManager() {
                 Save Draft
               </Button>
               <Button size="sm" onClick={handlePublish} disabled={loading || uploading}>
+                <FileCheck className="h-4 w-4 mr-1" />
                 Publish
               </Button>
+              {!isEditing && (
+                <Button variant="outline" size="sm" onClick={handlePublishAndCreateAnother} disabled={loading || uploading}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Publish & Create Another
+                </Button>
+              )}
             </div>
           </div>
         </div>

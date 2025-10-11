@@ -11,6 +11,8 @@ import { BookOpen, Plus, Edit, Trash2, Eye, Search, Filter, Globe2, Languages } 
 import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 
 interface Exam {
   id: string;
@@ -63,6 +65,8 @@ export function ExamManagement() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [previewExam, setPreviewExam] = useState<Exam | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     fetchExams();
@@ -221,11 +225,17 @@ export function ExamManagement() {
               <Edit className="h-3.5 w-3.5" />
             </Button>
           </Link>
-          <Link to={`/exam/${exam.id}?mode=preview`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
-              <Eye className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => {
+              setPreviewExam(exam);
+              setShowPreview(true);
+            }}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -329,7 +339,19 @@ export function ExamManagement() {
 
 
   return (
-    <div className="space-y-6">
+    <>
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewExam?.title}</DialogTitle>
+          </DialogHeader>
+          {previewExam?.content && (
+            <ExamContentRenderer content={previewExam.content} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-6">
       {/* Header */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader>
@@ -477,6 +499,7 @@ export function ExamManagement() {
           {renderExamList(anglophones)}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }
