@@ -346,7 +346,7 @@ export function ExamManagement() {
             <DialogTitle>{previewExam?.title}</DialogTitle>
           </DialogHeader>
           {previewExam?.content && (
-            <ExamContentRenderer content={previewExam.content} />
+            <ExamContentRenderer content={previewExam.content} showAnswers={true} />
           )}
         </DialogContent>
       </Dialog>
