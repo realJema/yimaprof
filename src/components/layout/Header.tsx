@@ -45,13 +45,12 @@ export default function Header() {
 
   const checkAdminStatus = async () => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user?.id)
-        .single();
+      const { data, error } = await supabase.rpc('is_admin', {
+        user_id: user?.id
+      });
       
-      setIsAdmin(profile?.role === 'admin');
+      if (error) throw error;
+      setIsAdmin(data === true);
     } catch (error) {
       setIsAdmin(false);
     }

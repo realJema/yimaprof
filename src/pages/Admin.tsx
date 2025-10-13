@@ -33,13 +33,11 @@ export default function Admin() {
 
   const checkAdminAccess = async () => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user?.id)
-        .single();
+      const { data, error } = await supabase.rpc('is_admin', {
+        user_id: user?.id
+      });
 
-      if (error || profile?.role !== 'admin') {
+      if (error || data !== true) {
         setHasAccess(false);
         toast({
           title: 'Access Denied',

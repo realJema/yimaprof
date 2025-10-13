@@ -12,7 +12,7 @@ interface UserProfile {
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
+  role?: string; // Fetched separately from user_roles table
   created_at: string;
   updated_at: string;
   establishment_id: string;
@@ -31,23 +31,36 @@ export function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
+      // Fetch roles for each user from user_roles table
+      const usersWithRoles = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          const { data: roleData } = await supabase.rpc('get_user_role', {
+            user_id: profile.id
+          });
+          return {
+            ...profile,
+            role: roleData || 'student'
+          };
+        })
+      );
+      
       // Log profile access by admin for audit trail
-      if (data && data.length > 0) {
+      if (usersWithRoles.length > 0) {
         await supabase.rpc('log_audit', {
           p_action: 'profiles_list_viewed',
           p_target_type: 'profiles',
-          p_metadata: { count: data.length }
+          p_metadata: { count: usersWithRoles.length }
         });
       }
       
-      setUsers(data || []);
+      setUsers(usersWithRoles);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({

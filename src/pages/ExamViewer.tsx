@@ -97,11 +97,12 @@ export default function ExamViewer() {
       return;
     }
     try {
-      // Check if user is admin
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      if (profile?.role === 'admin') {
+      // Check if user is admin using the secure is_admin function
+      const { data: isAdminUser, error: adminError } = await supabase.rpc('is_admin', {
+        user_id: user.id
+      });
+      
+      if (!adminError && isAdminUser === true) {
         setHasAccess(true);
         return;
       }
