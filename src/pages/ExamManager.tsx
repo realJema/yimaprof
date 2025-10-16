@@ -797,389 +797,350 @@ export default function ExamManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Main Content - Split View */}
-      <div className="container max-w-[2000px] mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-120px)]">
-          {/* LEFT PANEL - Form Input */}
-          <div className="overflow-y-auto pr-2">
-            <div className="space-y-4">
-              {/* Metadata Section */}
-              <Card className="border-border/50 bg-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <FileCheck className="h-4 w-4 text-primary" />
-                    {t('exam_details')}
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">{t('description')}</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
+      {/* Main Content - Full Preview */}
+      <div className="h-[calc(100vh-80px)] overflow-y-auto pb-96">
+        <div className="container max-w-6xl mx-auto p-6">
+          {parsedJson && (
+            <div className="bg-card rounded-lg border p-6">
+              <ExamContentRenderer
+                content={parsedJson}
+                showAnswers={true}
+                mode="preview"
+              />
+            </div>
+          )}
+          {!parsedJson && (
+            <div className="flex items-center justify-center h-96 text-muted-foreground">
+              <div className="text-center">
+                <Code2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Add exam content below to see the preview</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Floating Tabbed Card - Bottom */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl z-40">
+        <Card className="border-2 shadow-2xl bg-card/95 backdrop-blur-lg">
+          <Tabs defaultValue="details" className="w-full">
+            <div className="border-b px-4 pt-3">
+              <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
+                <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  {t('exam_details')}
+                </TabsTrigger>
+                <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Class & Settings
+                </TabsTrigger>
+                <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <Upload className="h-4 w-4 mr-2" />
+                  PDF Upload
+                </TabsTrigger>
+                <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <Code2 className="h-4 w-4 mr-2" />
+                  JSON Content
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <div className="max-h-[50vh] overflow-y-auto">
+              {/* Details Tab */}
+              <TabsContent value="details" className="p-4 mt-0 space-y-3">
+                <div>
+                  <Label htmlFor="title" className="text-xs">{t('exam_title')} *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g., Mathematics Final Exam"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label htmlFor="title" className="text-xs">{t('exam_title')} *</Label>
+                    <Label htmlFor="subject" className="text-xs">{t('subject')} *</Label>
                     <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="e.g., Mathematics Final Exam"
+                      id="subject"
+                      value={formData.subject}
+                      onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Mathematics"
                       className="mt-1"
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label htmlFor="subject" className="text-xs">{t('subject')} *</Label>
-                      <Input
-                        id="subject"
-                        value={formData.subject}
-                        onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                        placeholder="Mathematics"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="exam_type" className="text-xs">{t('exam_type')} *</Label>
-                      <Input
-                        id="exam_type"
-                        value={formData.exam_type}
-                        onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
-                        placeholder="Test, Exam"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <Label htmlFor="year" className="text-xs">{t('year')} *</Label>
-                      <Input
-                        id="year"
-                        type="number"
-                        value={formData.year}
-                        onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="period" className="text-xs">{t('period')}</Label>
-                      <Input
-                        id="period"
-                        value={formData.period}
-                        onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
-                        placeholder="1st Semester"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="duration" className="text-xs">{t('duration')}</Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        value={formData.duration_minutes}
-                        onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-
                   <div>
-                    <Label htmlFor="class_id" className="text-xs">{t('class')} *</Label>
-                    <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder={t('select_class')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>{t('francophone')}</SelectLabel>
-                          {classes.filter(cls => cls.section === 'francophone').map((cls) => (
-                            <SelectItem key={cls.id} value={cls.id}>
-                              {cls.display_name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        <SelectGroup>
-                          <SelectLabel>{t('anglophone')}</SelectLabel>
-                          {classes.filter(cls => cls.section === 'anglophone').map((cls) => (
-                            <SelectItem key={cls.id} value={cls.id}>
-                              {cls.display_name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="language" className="text-xs">{t('language')} *</Label>
-                    <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fr">Français</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description" className="text-xs">{t('description')}</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder={t('description')}
-                      className="mt-1"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="tags" className="text-xs">{t('tags')}</Label>
+                    <Label htmlFor="exam_type" className="text-xs">{t('exam_type')} *</Label>
                     <Input
-                      id="tags"
-                      value={formData.tags?.join(', ') || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
-                      placeholder={t('enter_tags')}
+                      id="exam_type"
+                      value={formData.exam_type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, exam_type: e.target.value }))}
+                      placeholder="Test, Exam"
                       className="mt-1"
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* PDF Upload Section */}
-              <Card className="border-border/50 bg-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Upload className="h-4 w-4 text-primary" />
-                    {t('pdf_upload')}
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">{t('upload_pdf')}</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <Label htmlFor="pdf-upload" className="text-xs">{t('choose_file')}</Label>
-                    <div className="mt-1 space-y-2">
-                      <Input
-                        id="pdf-upload"
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            if (file.type !== 'application/pdf') {
-                              toast({
-                                title: 'Invalid file',
-                                description: 'Please select a PDF file',
-                                variant: 'destructive',
-                              });
-                              return;
-                            }
-                            setSelectedFile(file);
+                    <Label htmlFor="year" className="text-xs">{t('year')} *</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      value={formData.year}
+                      onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="period" className="text-xs">{t('period')}</Label>
+                    <Input
+                      id="period"
+                      value={formData.period}
+                      onChange={(e) => setFormData(prev => ({ ...prev, period: e.target.value }))}
+                      placeholder="1st Semester"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="duration" className="text-xs">{t('duration')}</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={formData.duration_minutes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description" className="text-xs">{t('description')}</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder={t('description')}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="tags" className="text-xs">{t('tags')}</Label>
+                  <Input
+                    id="tags"
+                    value={formData.tags?.join(', ') || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
+                    placeholder={t('enter_tags')}
+                    className="mt-1"
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Class Tab */}
+              <TabsContent value="class" className="p-4 mt-0 space-y-3">
+                <div>
+                  <Label htmlFor="class_id" className="text-xs">{t('class')} *</Label>
+                  <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder={t('select_class')} />
+                    </SelectTrigger>
+                    <SelectContent className="z-[60] bg-popover">
+                      <SelectGroup>
+                        <SelectLabel>{t('francophone')}</SelectLabel>
+                        {classes.filter(cls => cls.section === 'francophone').map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.display_name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel>{t('anglophone')}</SelectLabel>
+                        {classes.filter(cls => cls.section === 'anglophone').map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.display_name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="language" className="text-xs">{t('language')} *</Label>
+                  <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[60] bg-popover">
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+
+              {/* PDF Upload Tab */}
+              <TabsContent value="pdf" className="p-4 mt-0 space-y-3">
+                <div>
+                  <Label htmlFor="pdf-upload" className="text-xs">{t('choose_file')}</Label>
+                  <div className="mt-1 space-y-2">
+                    <Input
+                      id="pdf-upload"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.type !== 'application/pdf') {
                             toast({
-                              title: 'File selected',
-                              description: `${file.name} is ready to upload`,
-                            });
-                          }
-                        }}
-                        className="cursor-pointer"
-                      />
-                      {selectedFile && (
-                        <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                          <FileText className="h-4 w-4 text-primary" />
-                          <span className="text-xs flex-1">{selectedFile.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedFile(null);
-                              const input = document.getElementById('pdf-upload') as HTMLInputElement;
-                              if (input) input.value = '';
-                            }}
-                            className="h-6 w-6 p-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                      {formData.file_url && !selectedFile && (
-                        <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
-                          <p className="text-xs text-green-600 flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            PDF already uploaded
-                          </p>
-                          <a 
-                            href={formData.file_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline"
-                          >
-                            View current PDF
-                          </a>
-                        </div>
-                      )}
-                      <Button
-                        type="button"
-                        onClick={async () => {
-                          if (!selectedFile) {
-                            toast({
-                              title: t('error'),
-                              description: t('no_file_chosen'),
+                              title: 'Invalid file',
+                              description: 'Please select a PDF file',
                               variant: 'destructive',
                             });
                             return;
                           }
-                          
-                          setUploading(true);
-                          try {
-                            const fileUrl = await uploadPdfFile(selectedFile);
-                            setFormData(prev => ({ ...prev, file_url: fileUrl }));
-                            toast({
-                              title: t('success'),
-                              description: 'PDF uploaded successfully',
-                            });
+                          setSelectedFile(file);
+                          toast({
+                            title: 'File selected',
+                            description: `${file.name} is ready to upload`,
+                          });
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                    {selectedFile && (
+                      <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-xs flex-1">{selectedFile.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
                             setSelectedFile(null);
                             const input = document.getElementById('pdf-upload') as HTMLInputElement;
                             if (input) input.value = '';
-                          } catch (error) {
-                            toast({
-                              title: t('error'),
-                              description: error.message || 'Failed to upload PDF',
-                              variant: 'destructive',
-                            });
-                          } finally {
-                            setUploading(false);
-                          }
-                        }}
-                        disabled={!selectedFile || uploading}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        {uploading ? (
-                          <>
-                            <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                            {t('loading')}...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            {t('upload')}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* JSON Content Section */}
-              <Card className="border-border/50 bg-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Code2 className="h-4 w-4 text-primary" />
-                    {t('content_editor')}
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {t('json_editor')}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">JSON</Label>
+                          }}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    {formData.file_url && !selectedFile && (
+                      <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          PDF already uploaded
+                        </p>
+                        <a 
+                          href={formData.file_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline"
+                        >
+                          View current PDF
+                        </a>
+                      </div>
+                    )}
                     <Button
                       type="button"
+                      onClick={async () => {
+                        if (!selectedFile) {
+                          toast({
+                            title: t('error'),
+                            description: t('no_file_chosen'),
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+                        
+                        setUploading(true);
+                        try {
+                          const fileUrl = await uploadPdfFile(selectedFile);
+                          setFormData(prev => ({ ...prev, file_url: fileUrl }));
+                          toast({
+                            title: t('success'),
+                            description: 'PDF uploaded successfully',
+                          });
+                          setSelectedFile(null);
+                          const input = document.getElementById('pdf-upload') as HTMLInputElement;
+                          if (input) input.value = '';
+                        } catch (error) {
+                          toast({
+                            title: t('error'),
+                            description: error.message || 'Failed to upload PDF',
+                            variant: 'destructive',
+                          });
+                        } finally {
+                          setUploading(false);
+                        }
+                      }}
+                      disabled={!selectedFile || uploading}
+                      className="w-full"
                       variant="outline"
-                      size="sm"
-                      onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
-                      className="h-7 text-xs"
                     >
-                      <FileText className="h-3.5 w-3.5 mr-1.5" />
-                      {t('copy_template')}
+                      {uploading ? (
+                        <>
+                          <Upload className="h-4 w-4 mr-2 animate-pulse" />
+                          {t('loading')}...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {t('upload')}
+                        </>
+                      )}
                     </Button>
                   </div>
-                  <Textarea
-                    value={jsonData}
-                    onChange={(e) => handleJsonChange(e.target.value)}
-                    placeholder='Click "Load Template" to see an example format'
-                    rows={20}
-                    className="font-mono text-xs"
-                  />
-                  {jsonError && (
-                    <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {jsonError}
-                      </p>
-                    </div>
-                  )}
-                  {parsedJson && !jsonError && (
-                    <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
-                      <p className="text-xs text-green-600 flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" />
-                        Valid JSON - {parsedJson.questions?.length || 0} questions
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </div>
+              </TabsContent>
 
-          {/* RIGHT PANEL - Live Preview */}
-          <div className="overflow-y-auto">
-            <Card className="border-border/50 bg-card h-full">
-              <CardContent className="p-4 space-y-4">
-                {previewData && previewData.title ? (
-                  <>
-                    <div className="sticky top-0 bg-card z-10 pb-4">
-                      <h3 className="text-xl font-bold">{previewData.title || 'Untitled Exam'}</h3>
-                      <p className="text-sm text-muted-foreground">{previewData.subject || 'No subject'}</p>
-                      <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                        <Badge variant="outline">{previewData.exam_type || 'Type'}</Badge>
-                        <Badge variant="outline">{previewData.year}</Badge>
-                        <Badge variant="outline">{previewData.duration_minutes} min</Badge>
-                      </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    {previewData.description && (
-                      <div>
-                        <h4 className="text-sm font-semibold mb-1">Description</h4>
-                        <p className="text-sm text-muted-foreground">{previewData.description}</p>
-                      </div>
-                    )}
-                    
-                    {previewData.content && (
-                      <div>
-                        <h4 className="text-sm font-semibold mb-3">Live Preview</h4>
-                        <div className="space-y-4">
-                          <ExamContentRenderer
-                            content={previewData.content}
-                            showAnswers={true}
-                            mode="preview"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {!previewData.content && (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <p className="text-sm">No content added yet</p>
-                        <p className="text-xs mt-1">Add questions or paste JSON to see preview</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-16 text-muted-foreground">
-                    <Eye className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm">Start filling the form</p>
-                    <p className="text-xs mt-1">Preview will appear here</p>
+              {/* JSON Content Tab */}
+              <TabsContent value="json" className="p-4 mt-0 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">JSON</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)}
+                    className="h-7 text-xs"
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1.5" />
+                    {t('copy_template')}
+                  </Button>
+                </div>
+                <Textarea
+                  value={jsonData}
+                  onChange={(e) => handleJsonChange(e.target.value)}
+                  placeholder='Click "Load Template" to see an example format'
+                  rows={15}
+                  className="font-mono text-xs"
+                />
+                {jsonError && (
+                  <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {jsonError}
+                    </p>
                   </div>
                 )}
-                </CardContent>
-              </Card>
+                {parsedJson && !jsonError && (
+                  <div className="p-2 bg-green-500/10 border border-green-500/20 rounded-md">
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Valid JSON - {parsedJson.questions?.length || 0} questions
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
             </div>
-          </div>
-        </div>
+          </Tabs>
+        </Card>
       </div>
-    );
-  }
+    </div>
+  );
+}
