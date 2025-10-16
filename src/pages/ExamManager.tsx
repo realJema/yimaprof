@@ -737,8 +737,8 @@ export default function ExamManager() {
 
       {/* Main Content - Full Preview */}
       <div className="h-[calc(100vh-80px)] overflow-y-auto pb-96">
-        <div className="container max-w-6xl mx-auto p-6">
-          {parsedJson && <div className="bg-card rounded-lg border p-6">
+        <div className="container max-w-4xl mx-auto p-6">
+          {parsedJson && <div className="bg-card rounded-lg border p-6 shadow-strong">
               <ExamContentRenderer content={parsedJson} showAnswers={true} mode="preview" />
             </div>}
           {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
@@ -752,11 +752,11 @@ export default function ExamManager() {
 
       {/* Floating Tabbed Card - Bottom */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl z-40">
-        <Card className="border-2 shadow-2xl bg-card/95 backdrop-blur-lg transition-all duration-300">
+        <Card className="border-2 shadow-2xl bg-muted/50 backdrop-blur-lg transition-all duration-300">
           {/* Collapse Button */}
-          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <FileCheck className="h-4 w-4 text-primary" />
+          <div className="flex items-center justify-between px-6 py-3 border-b bg-primary/10">
+            <div className="flex items-center gap-2 text-base font-semibold">
+              <FileCheck className="h-5 w-5 text-primary" />
               Exam Editor
             </div>
             <div className="flex items-center gap-2">
@@ -779,21 +779,21 @@ export default function ExamManager() {
           </div>
 
           {!isCardCollapsed && <Tabs defaultValue="details" className="w-full">
-              <div className="border-b px-4 pt-3">
+              <div className="border-b px-6 pt-4">
                 <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
-                  <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
                     <FileCheck className="h-4 w-4 mr-2" />
                     {t('exam_details')}
                   </TabsTrigger>
-                  <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
                     <BookOpen className="h-4 w-4 mr-2" />
                     Class & Settings
                   </TabsTrigger>
-                  <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
                     <Upload className="h-4 w-4 mr-2" />
                     PDF Upload
                   </TabsTrigger>
-                  <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                  <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
                     <Code2 className="h-4 w-4 mr-2" />
                     JSON Content
                   </TabsTrigger>
@@ -802,7 +802,7 @@ export default function ExamManager() {
 
               <div className="max-h-[50vh] overflow-y-auto">
               {/* Details Tab */}
-              <TabsContent value="details" className="p-4 mt-0 space-y-3">
+              <TabsContent value="details" className="p-6 mt-0 space-y-4">
                 <div>
                   <Label htmlFor="title" className="text-xs">{t('exam_title')} *</Label>
                   <Input id="title" value={formData.title} onChange={e => setFormData(prev => ({
@@ -870,7 +870,7 @@ export default function ExamManager() {
               </TabsContent>
 
               {/* Class Tab */}
-              <TabsContent value="class" className="p-4 mt-0 space-y-4">
+              <TabsContent value="class" className="p-6 mt-0 space-y-4">
                 <div>
                   <Label className="text-sm font-semibold mb-3 block">{t('class')} *</Label>
                   
@@ -936,7 +936,7 @@ export default function ExamManager() {
               </TabsContent>
 
               {/* PDF Upload Tab */}
-              <TabsContent value="pdf" className="p-4 mt-0 space-y-3">
+              <TabsContent value="pdf" className="p-6 mt-0 space-y-4">
                 <div>
                   <Label htmlFor="pdf-upload" className="text-xs">{t('choose_file')}</Label>
                   <div className="mt-1 space-y-2">
@@ -1024,7 +1024,7 @@ export default function ExamManager() {
               </TabsContent>
 
               {/* JSON Content Tab */}
-              <TabsContent value="json" className="p-4 mt-0 space-y-3">
+              <TabsContent value="json" className="p-6 mt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">JSON</Label>
                   <Button type="button" variant="outline" size="sm" onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)} className="h-7 text-xs">
