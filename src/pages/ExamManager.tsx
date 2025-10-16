@@ -737,7 +737,59 @@ export default function ExamManager() {
 
       {/* Main Content - Full Preview */}
       <div className="h-[calc(100vh-80px)] overflow-y-auto pb-96">
-        <div className="container max-w-4xl mx-auto p-6">
+        <div className="container max-w-4xl mx-auto p-6 space-y-6">
+          {/* Exam Details Card */}
+          {(formData.title || formData.subject) && (
+            <div className="bg-card rounded-lg border p-6 shadow-medium">
+              <div className="space-y-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">{formData.title || 'Untitled Exam'}</h1>
+                  <p className="text-lg text-muted-foreground mt-1">{formData.subject || 'No Subject'}</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {formData.exam_type && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">Type:</span>
+                      <Badge variant="secondary">{formData.exam_type}</Badge>
+                    </div>
+                  )}
+                  {formData.year && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">Year:</span>
+                      <Badge variant="outline">{formData.year}</Badge>
+                    </div>
+                  )}
+                  {formData.period && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">Period:</span>
+                      <Badge variant="outline">{formData.period}</Badge>
+                    </div>
+                  )}
+                  {formData.duration_minutes && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">Duration:</span>
+                      <Badge variant="outline">{formData.duration_minutes} minutes</Badge>
+                    </div>
+                  )}
+                  {formData.language && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">Language:</span>
+                      <Badge variant="outline">{formData.language === 'fr' ? 'Français' : 'English'}</Badge>
+                    </div>
+                  )}
+                </div>
+
+                {formData.description && (
+                  <div className="pt-2 border-t">
+                    <p className="text-sm text-muted-foreground">{formData.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Exam Content Preview */}
           {parsedJson && <div className="bg-card rounded-lg border p-6 shadow-strong">
               <ExamContentRenderer content={parsedJson} showAnswers={true} mode="preview" />
             </div>}
