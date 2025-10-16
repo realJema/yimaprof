@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -108,6 +110,7 @@ export default function ExamManager() {
   const [isDraft, setIsDraft] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
+  const [isCardCollapsed, setIsCardCollapsed] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -726,20 +729,6 @@ export default function ExamManager() {
               <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
                 {t('cancel')}
               </Button>
-              <Button variant="outline" size="sm" onClick={saveDraft} disabled={loading || uploading}>
-                <Save className="h-4 w-4 mr-1" />
-                {t('save_draft')}
-              </Button>
-              <Button size="sm" onClick={handlePublish} disabled={loading || uploading}>
-                <FileCheck className="h-4 w-4 mr-1" />
-                {t('publish_exam')}
-              </Button>
-              {!isEditing && (
-                <Button variant="outline" size="sm" onClick={handlePublishAndCreateAnother} disabled={loading || uploading}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t('publish_and_create_another')}
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -822,30 +811,63 @@ export default function ExamManager() {
 
       {/* Floating Tabbed Card - Bottom */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl z-40">
-        <Card className="border-2 shadow-2xl bg-card/95 backdrop-blur-lg">
-          <Tabs defaultValue="details" className="w-full">
-            <div className="border-b px-4 pt-3">
-              <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
-                <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                  <FileCheck className="h-4 w-4 mr-2" />
-                  {t('exam_details')}
-                </TabsTrigger>
-                <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Class & Settings
-                </TabsTrigger>
-                <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                  <Upload className="h-4 w-4 mr-2" />
-                  PDF Upload
-                </TabsTrigger>
-                <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-                  <Code2 className="h-4 w-4 mr-2" />
-                  JSON Content
-                </TabsTrigger>
-              </TabsList>
+        <Card className="border-2 shadow-2xl bg-card/95 backdrop-blur-lg transition-all duration-300">
+          {/* Collapse Button */}
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <FileCheck className="h-4 w-4 text-primary" />
+              Exam Editor
             </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={saveDraft} disabled={loading || uploading}>
+                <Save className="h-4 w-4 mr-1" />
+                {t('save_draft')}
+              </Button>
+              <Button size="sm" onClick={handlePublish} disabled={loading || uploading}>
+                <FileCheck className="h-4 w-4 mr-1" />
+                {t('publish_exam')}
+              </Button>
+              {!isEditing && (
+                <Button variant="outline" size="sm" onClick={handlePublishAndCreateAnother} disabled={loading || uploading}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t('publish_and_create_another')}
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCardCollapsed(!isCardCollapsed)}
+                className="ml-2"
+              >
+                {isCardCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
 
-            <div className="max-h-[50vh] overflow-y-auto">
+          {!isCardCollapsed && (
+            <Tabs defaultValue="details" className="w-full">
+              <div className="border-b px-4 pt-3">
+                <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
+                  <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    {t('exam_details')}
+                  </TabsTrigger>
+                  <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Class & Settings
+                  </TabsTrigger>
+                  <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                    <Upload className="h-4 w-4 mr-2" />
+                    PDF Upload
+                  </TabsTrigger>
+                  <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+                    <Code2 className="h-4 w-4 mr-2" />
+                    JSON Content
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="max-h-[50vh] overflow-y-auto">
               {/* Details Tab */}
               <TabsContent value="details" className="p-4 mt-0 space-y-3">
                 <div>
@@ -940,45 +962,63 @@ export default function ExamManager() {
               </TabsContent>
 
               {/* Class Tab */}
-              <TabsContent value="class" className="p-4 mt-0 space-y-3">
+              <TabsContent value="class" className="p-4 mt-0 space-y-4">
                 <div>
-                  <Label htmlFor="class_id" className="text-xs">{t('class')} *</Label>
-                  <Select value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder={t('select_class')} />
-                    </SelectTrigger>
-                    <SelectContent className="z-[60] bg-popover">
-                      <SelectGroup>
-                        <SelectLabel>{t('francophone')}</SelectLabel>
-                        {classes.filter(cls => cls.section === 'francophone').map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.display_name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                      <SelectGroup>
-                        <SelectLabel>{t('anglophone')}</SelectLabel>
-                        {classes.filter(cls => cls.section === 'anglophone').map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.display_name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-sm font-semibold mb-3 block">{t('class')} *</Label>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{t('francophone')}</p>
+                      <RadioGroup value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
+                        <div className="grid grid-cols-2 gap-2">
+                          {classes.filter(cls => cls.section === 'francophone').map((cls) => (
+                            <div key={cls.id} className="flex items-center space-x-2 border rounded-md p-2 hover:bg-muted/50 transition-colors">
+                              <RadioGroupItem value={cls.id} id={cls.id} />
+                              <Label htmlFor={cls.id} className="text-sm cursor-pointer flex-1">
+                                {cls.display_name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{t('anglophone')}</p>
+                      <RadioGroup value={formData.class_id} onValueChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}>
+                        <div className="grid grid-cols-2 gap-2">
+                          {classes.filter(cls => cls.section === 'anglophone').map((cls) => (
+                            <div key={cls.id} className="flex items-center space-x-2 border rounded-md p-2 hover:bg-muted/50 transition-colors">
+                              <RadioGroupItem value={cls.id} id={cls.id} />
+                              <Label htmlFor={cls.id} className="text-sm cursor-pointer flex-1">
+                                {cls.display_name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="language" className="text-xs">{t('language')} *</Label>
-                  <Select value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[60] bg-popover">
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-sm font-semibold mb-3 block">{t('language')} *</Label>
+                  <RadioGroup value={formData.language} onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}>
+                    <div className="flex gap-4">
+                      <div className="flex items-center space-x-2 border rounded-md p-3 hover:bg-muted/50 transition-colors flex-1">
+                        <RadioGroupItem value="fr" id="lang-fr" />
+                        <Label htmlFor="lang-fr" className="text-sm cursor-pointer flex-1">
+                          Français
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border rounded-md p-3 hover:bg-muted/50 transition-colors flex-1">
+                        <RadioGroupItem value="en" id="lang-en" />
+                        <Label htmlFor="lang-en" className="text-sm cursor-pointer flex-1">
+                          English
+                        </Label>
+                      </div>
+                    </div>
+                  </RadioGroup>
                 </div>
               </TabsContent>
 
@@ -1137,8 +1177,9 @@ export default function ExamManager() {
                   </div>
                 )}
               </TabsContent>
-            </div>
-          </Tabs>
+              </div>
+            </Tabs>
+          )}
         </Card>
       </div>
     </div>
