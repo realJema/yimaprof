@@ -736,18 +736,18 @@ export default function ExamManager() {
       </Dialog>
 
       {/* Main Content - Full Preview */}
-      <div className="h-[calc(100vh-80px)] overflow-y-auto pb-96">
-        <div className="container max-w-4xl mx-auto p-6 space-y-6">
+      <div className="h-[calc(100vh-80px)] overflow-y-auto pb-[500px] md:pb-96">
+        <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
           {/* Exam Details Card */}
           {(formData.title || formData.subject) && (
-            <div className="bg-card rounded-lg border p-6 shadow-medium">
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-medium">
               <div className="space-y-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground">{formData.title || 'Untitled Exam'}</h1>
-                  <p className="text-lg text-muted-foreground mt-1">{formData.subject || 'No Subject'}</p>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">{formData.title || 'Untitled Exam'}</h1>
+                  <p className="text-base md:text-lg text-muted-foreground mt-1">{formData.subject || 'No Subject'}</p>
                 </div>
                 
-                <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
                   {formData.exam_type && (
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-foreground">Type:</span>
@@ -790,7 +790,7 @@ export default function ExamManager() {
           )}
 
           {/* Exam Content Preview */}
-          {parsedJson && <div className="bg-card rounded-lg border p-6 shadow-strong">
+          {parsedJson && <div className="bg-card rounded-lg border p-4 md:p-6 shadow-strong">
               <ExamContentRenderer content={parsedJson} showAnswers={true} mode="preview" />
             </div>}
           {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
@@ -803,58 +803,35 @@ export default function ExamManager() {
       </div>
 
       {/* Floating Tabbed Card - Bottom */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl z-40">
-        <Card className="border-2 shadow-2xl bg-card backdrop-blur-lg transition-all duration-300">
-          {/* Collapse Button */}
-          <div className="flex items-center justify-between px-6 py-3 border-b bg-primary/10">
-            <div className="flex items-center gap-2 text-base font-semibold">
-              <FileCheck className="h-5 w-5 text-primary" />
-              Exam Editor
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={saveDraft} disabled={loading || uploading}>
-                <Save className="h-4 w-4 mr-1" />
-                {t('save_draft')}
-              </Button>
-              <Button size="sm" onClick={handlePublish} disabled={loading || uploading}>
-                <FileCheck className="h-4 w-4 mr-1" />
-                {t('publish_exam')}
-              </Button>
-              {!isEditing && <Button variant="outline" size="sm" onClick={handlePublishAndCreateAnother} disabled={loading || uploading}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t('publish_and_create_another')}
-                </Button>}
-              <Button variant="ghost" size="sm" onClick={() => setIsCardCollapsed(!isCardCollapsed)} className="ml-2">
-                {isCardCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
+      <div className="fixed bottom-0 md:bottom-6 left-0 md:left-1/2 md:-translate-x-1/2 w-full md:w-[90%] max-w-5xl z-40">
+        <Card className="border-t-2 md:border-2 md:rounded-lg rounded-t-lg shadow-2xl bg-card backdrop-blur-lg transition-all duration-300">
           {!isCardCollapsed && <Tabs defaultValue="details" className="w-full">
-              <div className="border-b px-6 pt-4">
-                <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
-                  <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
-                    <FileCheck className="h-4 w-4 mr-2" />
-                    {t('exam_details')}
+              <div className="border-b px-3 md:px-6 pt-3 md:pt-4 overflow-x-auto">
+                <TabsList className="w-full md:w-auto justify-start h-auto p-0 bg-transparent inline-flex">
+                  <TabsTrigger value="details" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-sm md:text-base px-3 md:px-4 py-2 whitespace-nowrap">
+                    <FileCheck className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+                    <span className="hidden sm:inline">{t('exam_details')}</span>
+                    <span className="sm:hidden">Details</span>
                   </TabsTrigger>
-                  <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Class & Settings
+                  <TabsTrigger value="class" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-sm md:text-base px-3 md:px-4 py-2 whitespace-nowrap">
+                    <BookOpen className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+                    <span className="hidden sm:inline">Class & Settings</span>
+                    <span className="sm:hidden">Class</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
-                    <Upload className="h-4 w-4 mr-2" />
-                    PDF Upload
+                  <TabsTrigger value="pdf" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-sm md:text-base px-3 md:px-4 py-2 whitespace-nowrap">
+                    <Upload className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+                    PDF
                   </TabsTrigger>
-                  <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-base px-4 py-2">
-                    <Code2 className="h-4 w-4 mr-2" />
-                    JSON Content
+                  <TabsTrigger value="json" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none text-sm md:text-base px-3 md:px-4 py-2 whitespace-nowrap">
+                    <Code2 className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+                    JSON
                   </TabsTrigger>
                 </TabsList>
               </div>
 
-              <div className="max-h-[50vh] overflow-y-auto">
+              <div className="max-h-[40vh] md:max-h-[50vh] overflow-y-auto">
               {/* Details Tab */}
-              <TabsContent value="details" className="p-6 mt-0 space-y-4">
+              <TabsContent value="details" className="p-4 md:p-6 mt-0 space-y-4">
                 <div>
                   <Label htmlFor="title" className="text-xs">{t('exam_title')} *</Label>
                   <Input id="title" value={formData.title} onChange={e => setFormData(prev => ({
@@ -1076,7 +1053,7 @@ export default function ExamManager() {
               </TabsContent>
 
               {/* JSON Content Tab */}
-              <TabsContent value="json" className="p-6 mt-0 space-y-4">
+              <TabsContent value="json" className="p-4 md:p-6 mt-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">JSON</Label>
                   <Button type="button" variant="outline" size="sm" onClick={() => handleJsonChange(EXAM_JSON_TEMPLATE)} className="h-7 text-xs">
@@ -1100,6 +1077,33 @@ export default function ExamManager() {
               </TabsContent>
               </div>
             </Tabs>}
+            
+          {/* Bottom Action Bar - moved from top */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between px-4 md:px-6 py-3 border-t bg-primary/10 gap-3">
+            <div className="flex items-center gap-2 text-sm md:text-base font-semibold">
+              <FileCheck className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+              <span className="hidden sm:inline">Exam Editor</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={saveDraft} disabled={loading || uploading} className="text-xs md:text-sm flex-1 sm:flex-none">
+                <Save className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">{t('save_draft')}</span>
+                <span className="sm:hidden">Save</span>
+              </Button>
+              <Button size="sm" onClick={handlePublish} disabled={loading || uploading} className="text-xs md:text-sm flex-1 sm:flex-none">
+                <FileCheck className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">{t('publish_exam')}</span>
+                <span className="sm:hidden">Publish</span>
+              </Button>
+              {!isEditing && <Button variant="outline" size="sm" onClick={handlePublishAndCreateAnother} disabled={loading || uploading} className="text-xs md:text-sm hidden lg:flex">
+                  <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+                  {t('publish_and_create_another')}
+                </Button>}
+              <Button variant="ghost" size="sm" onClick={() => setIsCardCollapsed(!isCardCollapsed)} className="ml-auto sm:ml-2">
+                {isCardCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
         </Card>
       </div>
     </div>;
