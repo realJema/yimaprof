@@ -223,21 +223,64 @@ export default function ExamViewer() {
     (Array.isArray(exam.content) && exam.content.some((item: any) => 
       item.item_type === 'question' && item.answers && item.answers.length > 0
     ));
-  return <div className="bg-gradient-subtle min-h-screen p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+  return <div className="bg-gradient-subtle min-h-screen p-3 md:p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/exams')} className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             {t('back')}
           </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">{exam.title}</h1>
-            <p className="text-muted-foreground">
-              {exam.subject} • {exam.classes?.display_name} • {exam.year}
-            </p>
-          </div>
         </div>
+
+        {/* Exam Details Card */}
+        <Card className="shadow-medium">
+          <CardContent className="pt-6 space-y-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">{exam.title}</h1>
+              <p className="text-base md:text-lg text-muted-foreground mt-1">{exam.subject}</p>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
+              {exam.classes?.display_name && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Class:</span>
+                  <Badge variant="secondary">{exam.classes.display_name}</Badge>
+                </div>
+              )}
+              {exam.exam_type && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Type:</span>
+                  <Badge variant="secondary">{exam.exam_type}</Badge>
+                </div>
+              )}
+              {exam.year && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Year:</span>
+                  <Badge variant="outline">{exam.year}</Badge>
+                </div>
+              )}
+              {exam.period && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Period:</span>
+                  <Badge variant="outline">{exam.period}</Badge>
+                </div>
+              )}
+              {exam.language && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">Language:</span>
+                  <Badge variant="outline">{exam.language === 'fr' ? 'Français' : 'English'}</Badge>
+                </div>
+              )}
+            </div>
+
+            {exam.description && (
+              <div className="pt-2 border-t">
+                <p className="text-sm text-muted-foreground">{exam.description}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Timer for evaluation */}
         {mode === 'evaluation' && isTimerActive && <Card className="border-orange-500 bg-orange-50">
@@ -259,7 +302,7 @@ export default function ExamViewer() {
             {/* Layout: PDF on left, Content on right */}
             {exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                 {/* PDF Viewer (Collapsible) */}
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-medium">
                   <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
                     <CollapsibleTrigger asChild>
                       <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
@@ -283,7 +326,7 @@ export default function ExamViewer() {
                 </Card>
 
                 {/* Content */}
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Eye className="h-5 w-5" />
@@ -298,7 +341,7 @@ export default function ExamViewer() {
                   </CardContent>
                 </Card>
               </div> : (/* No PDF - Full width content */
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="h-5 w-5" />
@@ -314,7 +357,7 @@ export default function ExamViewer() {
               </Card>)}
           </div>}
 
-        {mode === 'evaluation' && <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        {mode === 'evaluation' && <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PenTool className="h-5 w-5" />
@@ -369,7 +412,7 @@ export default function ExamViewer() {
               </Card> : (/* Layout: PDF on left, Content on right */
         exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                   {/* PDF Viewer (Collapsible) */}
-                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-medium">
                     <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
                       <CollapsibleTrigger asChild>
                         <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
@@ -393,7 +436,7 @@ export default function ExamViewer() {
                   </Card>
 
                   {/* Content */}
-                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <CheckCircle className="h-5 w-5" />
@@ -410,7 +453,7 @@ export default function ExamViewer() {
                     </CardContent>
                   </Card>
                 </div> : (/* No PDF - Full width content */
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CheckCircle className="h-5 w-5" />
