@@ -752,7 +752,7 @@ export default function ExamManager() {
 
       {/* Floating Tabbed Card - Bottom */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl z-40">
-        <Card className="border-2 shadow-2xl bg-muted/50 backdrop-blur-lg transition-all duration-300">
+        <Card className="border-2 shadow-2xl bg-card backdrop-blur-lg transition-all duration-300">
           {/* Collapse Button */}
           <div className="flex items-center justify-between px-6 py-3 border-b bg-primary/10">
             <div className="flex items-center gap-2 text-base font-semibold">

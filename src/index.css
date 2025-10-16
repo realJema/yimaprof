@@ -39,6 +39,7 @@ All colors MUST be HSL. Mobile-first responsive design.
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
+    --input-text: 215 16% 50%;
     --ring: 214 84% 56%;
 
     --radius: 0.75rem;
@@ -99,6 +100,7 @@ All colors MUST be HSL. Mobile-first responsive design.
 
     --border: 225 15% 20%;
     --input: 225 15% 20%;
+    --input-text: 215 20% 70%;
     --ring: 214 84% 65%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
