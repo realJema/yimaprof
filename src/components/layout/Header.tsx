@@ -125,19 +125,34 @@ export default function Header() {
               <span className="text-xl font-bold text-foreground">YIMA</span>
             </Link>
             
-            {user && (
-              <Button
-                variant={isActive('/exams') ? "default" : "ghost"}
-                size="sm"
-                asChild
-                className="hidden md:flex"
-              >
-                <Link to="/exams" className="flex items-center space-x-2">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{t('exams')}</span>
-                </Link>
+            {/* Prominent Exams link - always visible */}
+            <Button
+              variant={isActive('/exams') ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/exams" className="flex items-center space-x-2">
+                <BookOpen className="h-4 w-4" />
+                <span>{t('exams')}</span>
+              </Link>
+            </Button>
+            
+            {/* Subtle navigation links */}
+            <nav className="hidden lg:flex items-center space-x-1">
+              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                <Link to="/about">{t('about')}</Link>
               </Button>
-            )}
+              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                <Link to="/contact">{t('contact_us')}</Link>
+              </Button>
+              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                <Link to="/privacy">{t('privacy_policy')}</Link>
+              </Button>
+              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
+                <Link to="/terms">{t('terms_of_service')}</Link>
+              </Button>
+            </nav>
           </div>
 
           {user ? (
@@ -200,16 +215,6 @@ export default function Header() {
             </div>
           ) : (
             <div className="flex items-center space-x-4">
-              {/* Public navigation for non-authenticated users */}
-              <nav className="hidden md:flex items-center space-x-1">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/exams" className="flex items-center space-x-2">
-                    <BookOpen className="h-4 w-4" />
-                    <span>{t('exams')}</span>
-                  </Link>
-                </Button>
-              </nav>
-              
               {/* Dark Mode Toggle */}
               <Button
                 variant="ghost"
