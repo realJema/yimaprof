@@ -138,21 +138,39 @@ export default function Header() {
               </Link>
             </Button>
             
-            {/* Subtle navigation links */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                <Link to="/about">{t('about')}</Link>
-              </Button>
-              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                <Link to="/contact">{t('contact_us')}</Link>
-              </Button>
-              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                <Link to="/privacy">{t('privacy_policy')}</Link>
-              </Button>
-              <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                <Link to="/terms">{t('terms_of_service')}</Link>
-              </Button>
-            </nav>
+            {/* Others dropdown - subtle navigation links */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="hidden lg:flex items-center space-x-1">
+                  <Menu className="h-4 w-4" />
+                  <span className="text-muted-foreground">Others</span>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-card border-border z-50">
+                <DropdownMenuItem asChild>
+                  <Link to="/about" className="cursor-pointer">
+                    {t('about')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/contact" className="cursor-pointer">
+                    {t('contact_us')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/privacy" className="cursor-pointer text-muted-foreground">
+                    {t('privacy_policy')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/terms" className="cursor-pointer text-muted-foreground">
+                    {t('terms_of_service')}
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {user ? (
