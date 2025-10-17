@@ -138,12 +138,12 @@ export default function Header() {
               </Link>
             </Button>
             
-            {/* Others dropdown - subtle navigation links */}
+            {/* More dropdown - subtle navigation links */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="hidden lg:flex items-center space-x-1">
                   <Menu className="h-4 w-4" />
-                  <span className="text-muted-foreground">Others</span>
+                  <span className="text-muted-foreground">{t('more')}</span>
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
