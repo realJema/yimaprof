@@ -20,6 +20,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { EXAM_JSON_TEMPLATE } from '@/components/exam/ExamJsonTemplate';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Skeleton } from '@/components/ui/skeleton';
 interface Question {
   id: string;
   text: string;
@@ -123,9 +124,12 @@ export default function ExamManager() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [isCardCollapsed, setIsCardCollapsed] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEditing);
+  
   useEffect(() => {
     fetchClasses();
     if (isEditing) {
+      setInitialLoading(true);
       fetchExamData();
     }
   }, [examId]);
@@ -145,12 +149,14 @@ export default function ExamManager() {
     if (!examId) return;
     try {
       setLoading(true);
+      setInitialLoading(true);
       const {
         data,
         error
       } = await supabase.from('exams').select('*').eq('id', examId).single();
       if (error) throw error;
-      setFormData({
+      
+      const examFormData = {
         title: data.title,
         subject: data.subject,
         year: data.year,
@@ -163,12 +169,26 @@ export default function ExamManager() {
         duration_minutes: data.duration_minutes || 120,
         tags: data.tags || [],
         file_url: data.file_url || ''
-      });
+      };
+      
+      setFormData(examFormData);
 
-      // Load questions if available
-      if (data.content && typeof data.content === 'object' && 'questions' in data.content && Array.isArray(data.content.questions)) {
-        setQuestions(data.content.questions as unknown as Question[]);
-        setJsonData(JSON.stringify(data.content, null, 2));
+      // Load JSON content and questions
+      if (data.content) {
+        const contentString = JSON.stringify(data.content, null, 2);
+        setJsonData(contentString);
+        validateJson(contentString);
+        
+        // Load questions if available for form-based editing
+        if (typeof data.content === 'object' && 'questions' in data.content && Array.isArray(data.content.questions)) {
+          setQuestions(data.content.questions as unknown as Question[]);
+        }
+        
+        // Set preview data immediately
+        setPreviewData({
+          ...examFormData,
+          content: data.content
+        });
       }
     } catch (error) {
       console.error('Error fetching exam:', error);
@@ -179,6 +199,7 @@ export default function ExamManager() {
       });
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
   const validateJson = (jsonString: string) => {
@@ -261,7 +282,14 @@ export default function ExamManager() {
   const handleJsonChange = (value: string) => {
     setJsonData(value);
     if (value.trim()) {
-      validateJson(value);
+      const isValid = validateJson(value);
+      if (isValid) {
+        // Update preview when JSON changes
+        setPreviewData({
+          ...formData,
+          content: parsedJson
+        });
+      }
     } else {
       setJsonError('');
       setParsedJson(null);
@@ -680,13 +708,13 @@ export default function ExamManager() {
 
   // Auto-generate preview when data changes
   useEffect(() => {
-    if (formData.title || formData.subject) {
+    if (!initialLoading && (formData.title || formData.subject || parsedJson)) {
       setPreviewData({
         ...formData,
         content: parsedJson
       });
     }
-  }, [formData, parsedJson]);
+  }, [formData, parsedJson, initialLoading]);
   return <div className="min-h-screen bg-background">
       {/* Sticky Header */}
       <div className="border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
@@ -738,14 +766,21 @@ export default function ExamManager() {
       {/* Main Content - Full Preview */}
       <div className="h-[calc(100vh-80px)] overflow-y-auto pb-[500px] md:pb-96">
         <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
-          {/* Exam Details Card */}
-          {(formData.title || formData.subject) && (
-            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-medium">
-              <div className="space-y-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">{formData.title || 'Untitled Exam'}</h1>
-                  <p className="text-base md:text-lg text-muted-foreground mt-1">{formData.subject || 'No Subject'}</p>
-                </div>
+          {initialLoading ? (
+            <>
+              <Skeleton className="h-48 w-full rounded-lg" />
+              <Skeleton className="h-96 w-full rounded-lg" />
+            </>
+          ) : (
+            <>
+              {/* Exam Details Card */}
+              {(formData.title || formData.subject) && (
+                <div className="bg-card rounded-lg border p-4 md:p-6 shadow-medium">
+                  <div className="space-y-4">
+                    <div>
+                      <h1 className="text-2xl md:text-3xl font-bold text-foreground">{formData.title || 'Untitled Exam'}</h1>
+                      <p className="text-base md:text-lg text-muted-foreground mt-1">{formData.subject || 'No Subject'}</p>
+                    </div>
                 
                 <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
                   {formData.exam_type && (
@@ -789,16 +824,18 @@ export default function ExamManager() {
             </div>
           )}
 
-          {/* Exam Content Preview */}
-          {parsedJson && <div className="bg-card rounded-lg border p-4 md:p-6 shadow-strong">
-              <ExamContentRenderer content={parsedJson} showAnswers={true} mode="preview" />
-            </div>}
-          {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
-              <div className="text-center">
-                <Code2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Add exam content below to see the preview</p>
-              </div>
-            </div>}
+              {/* Exam Content Preview */}
+              {parsedJson && <div className="bg-card rounded-lg border p-4 md:p-6 shadow-strong">
+                  <ExamContentRenderer content={parsedJson} showAnswers={true} mode="preview" />
+                </div>}
+              {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
+                  <div className="text-center">
+                    <Code2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Add exam content below to see the preview</p>
+                  </div>
+                </div>}
+            </>
+          )}
         </div>
       </div>
 
