@@ -14,10 +14,11 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X, CheckCircle } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Upload, FileText, Code2, FileCheck, Save, Eye, AlertCircle, X, CheckCircle, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { EditableExamContentRenderer } from '@/components/exam/EditableExamContentRenderer';
 import { EXAM_JSON_TEMPLATE } from '@/components/exam/ExamJsonTemplate';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -294,6 +295,21 @@ export default function ExamManager() {
       setJsonError('');
       setParsedJson(null);
     }
+  };
+
+  const handleContentChange = (newContent: any) => {
+    // Update the parsed JSON
+    setParsedJson(newContent);
+    
+    // Update the JSON string
+    const newJsonString = JSON.stringify(newContent, null, 2);
+    setJsonData(newJsonString);
+    
+    // Update preview
+    setPreviewData({
+      ...formData,
+      content: newContent
+    });
   };
   const uploadPdfFile = async (file: File): Promise<string> => {
     try {
@@ -824,9 +840,18 @@ export default function ExamManager() {
             </div>
           )}
 
-              {/* Exam Content Preview */}
+              {/* Exam Content Preview - Editable */}
               {parsedJson && <div className="bg-card rounded-lg border p-4 md:p-6 shadow-strong">
-                  <ExamContentRenderer content={parsedJson} showAnswers={true} mode="preview" />
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Edit2 className="h-4 w-4" />
+                      Click on any text to edit
+                    </h3>
+                  </div>
+                  <EditableExamContentRenderer 
+                    content={parsedJson} 
+                    onContentChange={handleContentChange}
+                  />
                 </div>}
               {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
                   <div className="text-center">
