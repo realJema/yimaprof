@@ -25,6 +25,7 @@ interface Exam {
   tags?: string[];
   created_at: string;
   classes?: {
+    id: string;
     display_name: string;
     level: string;
     section: string;
@@ -38,16 +39,19 @@ export default function Exams() {
   const { hasActiveSubscription, subscriptionTier, subscription } = useSubscription();
   
   const [exams, setExams] = useState<Exam[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedClass, setSelectedClass] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
     fetchExams();
+    fetchClasses();
   }, [hasActiveSubscription, subscription?.plan_id]);
 
   const fetchExams = async () => {
@@ -57,6 +61,7 @@ export default function Exams() {
         .select(`
           *,
           classes (
+            id,
             display_name,
             level,
             section
@@ -94,6 +99,30 @@ export default function Exams() {
     }
   };
 
+  const fetchClasses = async () => {
+    try {
+      let query = supabase.from('classes').select('*');
+
+      if (hasActiveSubscription && subscription?.plan_id) {
+        const { data: allowedClasses } = await supabase
+          .from('subscription_plan_classes')
+          .select('class_id')
+          .eq('subscription_plan_id', subscription.plan_id);
+          
+        if (allowedClasses && allowedClasses.length > 0) {
+          const classIds = allowedClasses.map(ac => ac.class_id);
+          query = query.in('id', classIds);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+
   const subjects = [...new Set(exams.map(exam => exam.subject))];
   const years = [...new Set(exams.map(exam => exam.year).filter(Boolean))].sort((a, b) => b - a);
   const levels = [...new Set(exams.map(exam => exam.classes?.level).filter(Boolean))];
@@ -105,8 +134,9 @@ export default function Exams() {
     const matchesSubject = selectedSubject === 'all' || exam.subject === selectedSubject;
     const matchesYear = selectedYear === 'all' || exam.year?.toString() === selectedYear;
     const matchesLevel = selectedLevel === 'all' || exam.classes?.level === selectedLevel;
+    const matchesClass = selectedClass === 'all' || exam.classes?.id === selectedClass;
     
-    return matchesSearch && matchesSubject && matchesYear && matchesLevel;
+    return matchesSearch && matchesSubject && matchesYear && matchesLevel && matchesClass;
   });
 
   // Apply sorting
@@ -259,6 +289,21 @@ export default function Exams() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-sm font-medium">{language === 'fr' ? 'Classe' : 'Class'}</label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
+                    {classes.map(cls => (
+                      <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <ArrowUpDown className="h-4 w-4" />
                   {language === 'fr' ? 'Trier par' : 'Sort by'}
@@ -283,6 +328,7 @@ export default function Exams() {
                   setSelectedSubject('all');
                   setSelectedYear('all');
                   setSelectedLevel('all');
+                  setSelectedClass('all');
                   setSearchTerm('');
                 }}
               >
@@ -315,103 +361,83 @@ export default function Exams() {
             </div>
           </div>
 
-          {/* Exams Grid */}
+           {/* Exams Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {displayedExams.map(exam => (
-              <Card key={exam.id} className="hover:shadow-lg transition-all animate-fade-in flex flex-col h-full border-border/50">
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-xs font-medium">{exam.subject}</Badge>
-                      {exam.classes?.section && (
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {exam.classes.section}
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-sm text-muted-foreground font-medium bg-muted/50 px-2 py-1 rounded">
-                      {exam.year || new Date(exam.created_at).getFullYear()}
-                    </span>
-                  </div>
-                  <CardTitle className="line-clamp-2 text-xl leading-tight">{exam.title}</CardTitle>
-                  {exam.description && (
-                    <CardDescription className="line-clamp-2 text-base">
-                      {exam.description}
-                    </CardDescription>
-                  )}
+              <Card key={exam.id} className="group relative overflow-hidden hover:shadow-lg transition-all animate-fade-in flex flex-col h-full border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="line-clamp-2 text-lg leading-tight mb-2">{exam.title}</CardTitle>
                 </CardHeader>
                 
-                <CardContent className="flex-1 flex flex-col justify-between">
-                  <div className="space-y-3 mb-6">
+                <CardContent className="flex-1 flex flex-col justify-between pt-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                      <span className="font-medium">{exam.subject}</span>
+                    </div>
+                    
                     {exam.classes && (
-                      <div className="flex items-center text-base text-muted-foreground bg-muted/30 p-2 rounded">
-                        <Users className="h-4 w-4 mr-2 text-primary" />
-                        <span className="font-medium">{exam.classes.display_name}</span>
-                        <span className="ml-auto text-sm">({exam.classes.level} - {exam.classes.section})</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span>{exam.classes.display_name}</span>
                       </div>
                     )}
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span>{exam.year || new Date(exam.created_at).getFullYear()}</span>
+                      </div>
                       
-                    <div className="grid grid-cols-2 gap-2 text-base">
                       {exam.duration_minutes && (
-                        <div className="flex items-center text-muted-foreground">
-                          <Clock className="h-4 w-4 mr-1 text-primary" />
-                          <span className="text-sm">{exam.duration_minutes} min</span>
-                        </div>
-                      )}
-                      {exam.year && (
-                        <div className="flex items-center text-muted-foreground">
-                          <Calendar className="h-4 w-4 mr-1 text-primary" />
-                          <span className="text-sm">{exam.year}</span>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-primary" />
+                          <span>{exam.duration_minutes} min</span>
                         </div>
                       )}
                     </div>
-                    
-                    {exam.tags && exam.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {exam.tags.slice(0, 3).map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs px-2 py-0">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {exam.tags.length > 3 && (
-                          <Badge variant="outline" className="text-xs px-2 py-0">
-                            +{exam.tags.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
                   </div>
-                  
-                  {/* Buttons at bottom */}
-                  <div className="space-y-2 mt-auto">
+
+                  {/* Hover Buttons Overlay */}
+                  <div className="absolute inset-0 bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 p-6">
                     <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
-                      <Button variant="outline" className="w-full hover-scale text-base">
+                      <Button variant="outline" className="w-full">
                         <BookOpen className="h-4 w-4 mr-2" />
                         {language === 'fr' ? 'Aperçu' : 'Preview'}
                       </Button>
                     </Link>
                     
-                    <div className="grid grid-cols-2 gap-2">
-                      <Link to={`/exam/${exam.id}?mode=correction`} className="flex-1">
-                        <Button
-                          variant={hasActiveSubscription ? "default" : "secondary"}
-                          className={`w-full hover-scale text-base ${hasActiveSubscription ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-                          disabled={!hasActiveSubscription}
-                        >
-                          <Check className="h-4 w-4 mr-2" />
-                          {hasActiveSubscription ? (language === 'fr' ? 'Solution' : 'Solution') : (language === 'fr' ? 'Premium' : 'Premium')}
+                    {user ? (
+                      <>
+                        <Link to={`/exam/${exam.id}?mode=correction`} className="w-full">
+                          <Button
+                            variant={hasActiveSubscription ? "default" : "secondary"}
+                            className="w-full"
+                            disabled={!hasActiveSubscription}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            {language === 'fr' ? 'Voir Solution' : 'See Solution'}
+                          </Button>
+                        </Link>
+                        
+                        <Link to={`/exam/${exam.id}?mode=evaluation`} className="w-full">
+                          <Button
+                            variant={hasActiveSubscription ? "default" : "secondary"}
+                            className="w-full"
+                            disabled={!hasActiveSubscription}
+                          >
+                            {language === 'fr' ? 'Prendre Évaluation' : 'Take Evaluation'}
+                          </Button>
+                        </Link>
+                      </>
+                    ) : (
+                      <Link to="/subscriptions" className="w-full">
+                        <Button className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                          <Crown className="h-4 w-4 mr-2" />
+                          {language === 'fr' ? 'Acheter Abonnement' : 'Purchase Subscription'}
                         </Button>
                       </Link>
-                      
-                      <Link to={`/exam/${exam.id}?mode=evaluation`} className="flex-1">
-                        <Button
-                          className={`w-full hover-scale text-base ${hasActiveSubscription ? 'bg-blue-500 hover:bg-blue-600' : 'bg-muted'}`}
-                          disabled={!hasActiveSubscription}
-                        >
-                          {hasActiveSubscription ? (language === 'fr' ? 'Passer' : 'Take') : (language === 'fr' ? 'Premium' : 'Premium')}
-                        </Button>
-                      </Link>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
