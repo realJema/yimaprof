@@ -1,4 +1,6 @@
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { CheckCircle } from 'lucide-react';
 
 interface Answer {
@@ -194,62 +196,56 @@ export function ExamContentRenderer({
                   {/* Multiple Choice Answers */}
                   {question.question_type === 'multiple_choice' && question.answers && (
                     <div className="space-y-2 ml-8">
-                      {question.answers.map((answer, answerIndex) => {
-                        const isSelected = currentAnswer?.answer === answer.text;
-                        const shouldHighlight = showAnswers && answer.is_correct;
-                        const actualQuestionIndex = questionNumber - 1;
-                        
-                        return (
-                          <div
-                            key={answer.id}
-                            className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                              shouldHighlight
-                                ? 'bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-800'
-                                : isSelected
-                                ? 'bg-primary/10 border-primary'
-                                : 'bg-muted/30 border-border hover:bg-muted/50'
-                            }`}
-                          >
-                            {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
-                              <>
-                                <input
-                                  type="radio"
-                                  name={`question-${actualQuestionIndex}`}
-                                  value={answer.text}
-                                  checked={isSelected}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    onAnswerChange(actualQuestionIndex, e.target.value);
-                                  }}
-                                  className="mt-1 cursor-pointer"
-                                />
-                                <label 
-                                  className="flex-1 cursor-pointer text-sm"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    onAnswerChange(actualQuestionIndex, answer.text);
-                                  }}
-                                >
-                                  <span className="font-medium mr-2">
-                                    {String.fromCharCode(65 + answerIndex)}.
-                                  </span>
-                                  {answer.text}
-                                </label>
-                              </>
-                            ) : (
-                              <>
-                                <span className="font-medium text-sm">
+                      {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
+                        <RadioGroup
+                          value={currentAnswer?.answer || ''}
+                          onValueChange={(value) => onAnswerChange(questionNumber - 1, value)}
+                        >
+                          {question.answers.map((answer, answerIndex) => (
+                            <div
+                              key={answer.id}
+                              className="flex items-start gap-3 p-3 rounded-lg border transition-colors bg-muted/30 border-border hover:bg-muted/50"
+                            >
+                              <RadioGroupItem value={answer.text} id={`q${questionNumber}-${answer.id}`} />
+                              <Label
+                                htmlFor={`q${questionNumber}-${answer.id}`}
+                                className="flex-1 cursor-pointer text-sm font-normal"
+                              >
+                                <span className="font-medium mr-2">
                                   {String.fromCharCode(65 + answerIndex)}.
                                 </span>
-                                <span className="flex-1 text-sm">{answer.text}</span>
-                                {shouldHighlight && (
-                                  <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
-                                )}
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
+                                {answer.text}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      ) : (
+                        question.answers.map((answer, answerIndex) => {
+                          const isSelected = currentAnswer?.answer === answer.text;
+                          const shouldHighlight = showAnswers && answer.is_correct;
+                          
+                          return (
+                            <div
+                              key={answer.id}
+                              className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                                shouldHighlight
+                                  ? 'bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-800'
+                                  : isSelected
+                                  ? 'bg-primary/10 border-primary'
+                                  : 'bg-muted/30 border-border'
+                              }`}
+                            >
+                              <span className="font-medium text-sm">
+                                {String.fromCharCode(65 + answerIndex)}.
+                              </span>
+                              <span className="flex-1 text-sm">{answer.text}</span>
+                              {shouldHighlight && (
+                                <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   )}
 
@@ -262,11 +258,8 @@ export function ExamContentRenderer({
                           <textarea
                             placeholder="Enter your detailed answer here..."
                             value={currentAnswer?.answer || ''}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              onAnswerChange(questionNumber - 1, e.target.value);
-                            }}
-                            className="w-full min-h-[120px] p-3 border border-border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+                            onChange={(e) => onAnswerChange(questionNumber - 1, e.target.value)}
+                            className="w-full min-h-[120px] p-3 border border-input rounded-lg bg-background text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             rows={6}
                           />
                         </div>
@@ -384,52 +377,56 @@ export function ExamContentRenderer({
 
                 {question.type === 'multiple_choice' && question.answers && (
                   <div className="space-y-2 ml-8">
-                    {question.answers.map((answer: any, answerIndex: number) => {
-                      const isSelected = currentAnswer?.answer === answer.text;
-                      const shouldHighlight = showAnswers && answer.is_correct;
-                      
-                      return (
-                        <div
-                          key={answer.id || answerIndex}
-                          className={`flex items-start gap-3 p-3 rounded-lg border ${
-                            shouldHighlight
-                              ? 'bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-800'
-                              : isSelected
-                              ? 'bg-primary/10 border-primary'
-                              : 'bg-muted/30 border-border'
-                          }`}
-                        >
-                          {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
-                            <>
-                              <input
-                                type="radio"
-                                name={`question-${index}`}
-                                value={answer.text}
-                                checked={isSelected}
-                                onChange={(e) => onAnswerChange(index, e.target.value)}
-                                className="mt-1 cursor-pointer"
-                              />
-                              <label className="flex-1 cursor-pointer text-sm">
-                                <span className="font-medium mr-2">
-                                  {String.fromCharCode(65 + answerIndex)}.
-                                </span>
-                                {answer.text}
-                              </label>
-                            </>
-                          ) : (
-                            <>
-                              <span className="font-medium text-sm">
+                    {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
+                      <RadioGroup
+                        value={currentAnswer?.answer || ''}
+                        onValueChange={(value) => onAnswerChange(index, value)}
+                      >
+                        {question.answers.map((answer: any, answerIndex: number) => (
+                          <div
+                            key={answer.id || answerIndex}
+                            className="flex items-start gap-3 p-3 rounded-lg border transition-colors bg-muted/30 border-border hover:bg-muted/50"
+                          >
+                            <RadioGroupItem value={answer.text} id={`legacy-q${index}-${answerIndex}`} />
+                            <Label
+                              htmlFor={`legacy-q${index}-${answerIndex}`}
+                              className="flex-1 cursor-pointer text-sm font-normal"
+                            >
+                              <span className="font-medium mr-2">
                                 {String.fromCharCode(65 + answerIndex)}.
                               </span>
-                              <span className="flex-1 text-sm">{answer.text}</span>
-                              {shouldHighlight && (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              )}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })}
+                              {answer.text}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    ) : (
+                      question.answers.map((answer: any, answerIndex: number) => {
+                        const isSelected = currentAnswer?.answer === answer.text;
+                        const shouldHighlight = showAnswers && answer.is_correct;
+                        
+                        return (
+                          <div
+                            key={answer.id || answerIndex}
+                            className={`flex items-start gap-3 p-3 rounded-lg border ${
+                              shouldHighlight
+                                ? 'bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-800'
+                                : isSelected
+                                ? 'bg-primary/10 border-primary'
+                                : 'bg-muted/30 border-border'
+                            }`}
+                          >
+                            <span className="font-medium text-sm">
+                              {String.fromCharCode(65 + answerIndex)}.
+                            </span>
+                            <span className="flex-1 text-sm">{answer.text}</span>
+                            {shouldHighlight && (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 )}
 
@@ -442,7 +439,7 @@ export function ExamContentRenderer({
                           placeholder="Enter your detailed answer here..."
                           value={currentAnswer?.answer || ''}
                           onChange={(e) => onAnswerChange(index, e.target.value)}
-                          className="w-full min-h-[120px] p-3 border border-border rounded-lg bg-background resize-y"
+                          className="w-full min-h-[120px] p-3 border border-input rounded-lg bg-background text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           rows={6}
                         />
                       </div>
