@@ -173,19 +173,24 @@ export default function ExamViewer() {
     setShowResults(false);
   };
   const handleAnswerChange = (questionIndex: number, answer: string) => {
+    console.log('Answer change:', { questionIndex, answer, length: answer.length });
+    
     setUserAnswers(prev => {
       const existing = prev.find(a => a.questionIndex === questionIndex);
+      let newAnswers;
       if (existing) {
-        return prev.map(a => a.questionIndex === questionIndex ? {
+        newAnswers = prev.map(a => a.questionIndex === questionIndex ? {
           ...a,
           answer
         } : a);
       } else {
-        return [...prev, {
+        newAnswers = [...prev, {
           questionIndex,
           answer
         }];
       }
+      console.log('Updated answers:', newAnswers);
+      return newAnswers;
     });
   };
   const handleSubmitEvaluation = () => {

@@ -155,7 +155,16 @@ export function ExamContentRenderer({
           if (item.item_type === 'question') {
             questionNumber++;
             const question = item as Question;
-            const currentAnswer = userAnswers?.find(a => a.questionIndex === questionNumber - 1);
+            const actualQuestionIndex = questionNumber - 1;
+            const currentAnswer = userAnswers?.find(a => a.questionIndex === actualQuestionIndex);
+            
+            console.log('Question render:', { 
+              questionNumber, 
+              actualQuestionIndex, 
+              questionId: question.id,
+              currentAnswer,
+              allUserAnswers: userAnswers 
+            });
 
             return (
               <div key={item.id} className="border border-border rounded-lg p-4 bg-card">
@@ -199,7 +208,7 @@ export function ExamContentRenderer({
                       {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
                         <RadioGroup
                           value={currentAnswer?.answer || ''}
-                          onValueChange={(value) => onAnswerChange(questionNumber - 1, value)}
+                          onValueChange={(value) => onAnswerChange(actualQuestionIndex, value)}
                         >
                           {question.answers.map((answer, answerIndex) => (
                             <div
@@ -258,7 +267,7 @@ export function ExamContentRenderer({
                           <textarea
                             placeholder="Enter your detailed answer here..."
                             value={currentAnswer?.answer || ''}
-                            onChange={(e) => onAnswerChange(questionNumber - 1, e.target.value)}
+                            onChange={(e) => onAnswerChange(actualQuestionIndex, e.target.value)}
                             className="w-full min-h-[120px] p-3 border border-input rounded-lg bg-background text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             rows={6}
                           />
