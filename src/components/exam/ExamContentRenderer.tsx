@@ -197,6 +197,7 @@ export function ExamContentRenderer({
                       {question.answers.map((answer, answerIndex) => {
                         const isSelected = currentAnswer?.answer === answer.text;
                         const shouldHighlight = showAnswers && answer.is_correct;
+                        const actualQuestionIndex = questionNumber - 1;
                         
                         return (
                           <div
@@ -213,13 +214,22 @@ export function ExamContentRenderer({
                               <>
                                 <input
                                   type="radio"
-                                  name={`question-${questionNumber - 1}`}
+                                  name={`question-${actualQuestionIndex}`}
                                   value={answer.text}
                                   checked={isSelected}
-                                  onChange={(e) => onAnswerChange(questionNumber - 1, e.target.value)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    onAnswerChange(actualQuestionIndex, e.target.value);
+                                  }}
                                   className="mt-1 cursor-pointer"
                                 />
-                                <label className="flex-1 cursor-pointer text-sm">
+                                <label 
+                                  className="flex-1 cursor-pointer text-sm"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    onAnswerChange(actualQuestionIndex, answer.text);
+                                  }}
+                                >
                                   <span className="font-medium mr-2">
                                     {String.fromCharCode(65 + answerIndex)}.
                                   </span>
@@ -252,8 +262,11 @@ export function ExamContentRenderer({
                           <textarea
                             placeholder="Enter your detailed answer here..."
                             value={currentAnswer?.answer || ''}
-                            onChange={(e) => onAnswerChange(questionNumber - 1, e.target.value)}
-                            className="w-full min-h-[120px] p-3 border border-border rounded-lg bg-background resize-y"
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              onAnswerChange(questionNumber - 1, e.target.value);
+                            }}
+                            className="w-full min-h-[120px] p-3 border border-border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary"
                             rows={6}
                           />
                         </div>

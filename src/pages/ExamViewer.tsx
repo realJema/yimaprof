@@ -39,7 +39,7 @@ interface UserAnswer {
   answer: string;
   isCorrect?: boolean;
 }
-const EXAM_DURATION = 3600; // 1 hour in seconds
+const DEFAULT_DURATION = 3600; // 1 hour in seconds as default
 
 export default function ExamViewer() {
   const {
@@ -60,7 +60,8 @@ export default function ExamViewer() {
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(mode);
-  const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_DURATION);
+  const [examDuration, setExamDuration] = useState(DEFAULT_DURATION);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -141,6 +142,13 @@ export default function ExamViewer() {
         `).eq('id', examId).single();
       if (examError) throw examError;
       setExam(examData);
+      
+      // Set exam duration from exam data or use default
+      const duration = examData.duration_minutes 
+        ? examData.duration_minutes * 60 
+        : DEFAULT_DURATION;
+      setExamDuration(duration);
+      setTimeLeft(duration);
     } catch (error) {
       toast({
         title: t('error'),
@@ -160,7 +168,7 @@ export default function ExamViewer() {
   const handleStartEvaluation = () => {
     setActiveTab('evaluation');
     setIsTimerActive(true);
-    setTimeLeft(EXAM_DURATION);
+    setTimeLeft(examDuration);
     setUserAnswers([]);
     setShowResults(false);
   };
@@ -338,6 +346,27 @@ export default function ExamViewer() {
                   </CardHeader>
                   <CardContent className="space-y-6 min-h-[60vh]">
                     {exam.content ? renderJsonContent(exam.content, false) : <p className="text-muted-foreground">No content available for preview.</p>}
+                    
+                    {/* Navigation Buttons */}
+                    <div className="pt-6 border-t flex flex-wrap gap-4">
+                      <Button 
+                        onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}
+                        className="flex items-center gap-2"
+                      >
+                        <PenTool className="h-4 w-4" />
+                        Take Evaluation
+                      </Button>
+                      {hasAnswers && (
+                        <Button 
+                          onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          View Solution
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </div> : (/* No PDF - Full width content */
@@ -353,6 +382,27 @@ export default function ExamViewer() {
                 </CardHeader>
                 <CardContent className="space-y-6 min-h-[60vh]">
                   {exam.content ? renderJsonContent(exam.content, false) : <p className="text-muted-foreground">No content available for preview.</p>}
+                  
+                  {/* Navigation Buttons */}
+                  <div className="pt-6 border-t flex flex-wrap gap-4">
+                    <Button 
+                      onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}
+                      className="flex items-center gap-2"
+                    >
+                      <PenTool className="h-4 w-4" />
+                      Take Evaluation
+                    </Button>
+                    {hasAnswers && (
+                      <Button 
+                        onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        View Solution
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>)}
           </div>}
@@ -370,7 +420,7 @@ export default function ExamViewer() {
             <CardContent className="space-y-6 min-h-[60vh]">
               {!isTimerActive && !showResults ? <div className="text-center py-8">
                   <Button onClick={handleStartEvaluation} size="lg">
-                    Start Evaluation ({formatTime(EXAM_DURATION)})
+                    Start Evaluation ({formatTime(examDuration)})
                   </Button>
                 </div> : showResults ? <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-green-600">Evaluation Complete!</h3>
