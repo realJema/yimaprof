@@ -785,7 +785,7 @@ export default function ExamManager() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             <ResizablePanel defaultSize={50} minSize={30}>
               <div className="h-full overflow-y-auto">
-                <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+                <div className="w-full p-3 md:p-6 space-y-4 md:space-y-6">
           {initialLoading ? (
             <>
               <Skeleton className="h-48 w-full rounded-lg" />
@@ -891,7 +891,7 @@ export default function ExamManager() {
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (
-          <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+          <div className="w-full p-3 md:p-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
             {initialLoading ? (
               <>
                 <Skeleton className="h-48 w-full rounded-lg" />

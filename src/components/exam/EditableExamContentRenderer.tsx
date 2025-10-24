@@ -366,6 +366,32 @@ export function EditableExamContentRenderer({
                     </div>
                   )}
 
+                  {/* Long-form answer display */}
+                  {question.question_type === 'long_form' && showAnswers && question.answers && question.answers[0] && (
+                    <div className="ml-6 mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-semibold text-primary">Expected Answer:</span>
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{question.answers[0].text}</p>
+                      
+                      {/* Rubric display */}
+                      {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-primary/20">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">Marking Rubric:</p>
+                          <div className="space-y-1">
+                            {question.answers[0].rubric.map((item: any, idx: number) => (
+                              <div key={idx} className="flex items-start gap-2 text-xs">
+                                <Badge variant="outline" className="shrink-0">{item.points}pts</Badge>
+                                <span className="text-muted-foreground">{item.criteria}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Sub-questions for long form */}
                   {question.question_type === 'long_form' && question.sub_questions && question.sub_questions.length > 0 && (
                     <div className="ml-6 space-y-3 border-l-2 border-primary/20 pl-4">
@@ -384,6 +410,17 @@ export function EditableExamContentRenderer({
                               {subQ.text}
                             </div>
                           </div>
+                          
+                          {/* Sub-question answer display */}
+                          {showAnswers && subQ.answers && subQ.answers[0] && (
+                            <div className="ml-8 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle className="h-3 w-3 text-primary" />
+                                <span className="text-xs font-semibold text-primary">Expected Answer:</span>
+                              </div>
+                              <p className="text-xs text-foreground whitespace-pre-wrap">{subQ.answers[0].text}</p>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -457,6 +494,32 @@ export function EditableExamContentRenderer({
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Long-form answer display for legacy format */}
+              {question.type === 'long_form' && showAnswers && question.answers && question.answers[0] && (
+                <div className="ml-6 mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-primary">Expected Answer:</span>
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{question.answers[0].text}</p>
+                  
+                  {/* Rubric display */}
+                  {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-primary/20">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Marking Rubric:</p>
+                      <div className="space-y-1">
+                        {question.answers[0].rubric.map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2 text-xs">
+                            <Badge variant="outline" className="shrink-0">{item.points}pts</Badge>
+                            <span className="text-muted-foreground">{item.criteria}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
