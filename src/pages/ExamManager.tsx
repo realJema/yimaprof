@@ -852,7 +852,7 @@ export default function ExamManager() {
       </Dialog>
 
       {/* Main Content - Full Preview */}
-      <div className="h-screen overflow-y-auto md:pb-96">
+      <div className="h-screen overflow-y-auto pb-0">
         {formData.file_url ? (
           <ResizablePanelGroup direction="horizontal" className="h-full">
             <ResizablePanel defaultSize={50} minSize={30}>
