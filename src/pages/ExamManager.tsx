@@ -781,7 +781,11 @@ export default function ExamManager() {
 
       {/* Main Content - Full Preview */}
       <div className="h-[calc(100vh-80px)] overflow-y-auto pb-[500px] md:pb-96">
-        <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+        {formData.file_url ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={50} minSize={30}>
+              <div className="h-full overflow-y-auto">
+                <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
           {initialLoading ? (
             <>
               <Skeleton className="h-48 w-full rounded-lg" />
@@ -851,6 +855,7 @@ export default function ExamManager() {
                   <EditableExamContentRenderer 
                     content={parsedJson} 
                     onContentChange={handleContentChange}
+                    showAnswers={true}
                   />
                 </div>}
               {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
@@ -861,7 +866,114 @@ export default function ExamManager() {
                 </div>}
             </>
           )}
-        </div>
+                </div>
+              </div>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle />
+            
+            <ResizablePanel defaultSize={50} minSize={30}>
+              <div className="h-full bg-muted/30 flex flex-col">
+                <div className="border-b bg-card px-4 py-3">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    {t('pdf_preview')}
+                  </h3>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <iframe
+                    src={formData.file_url}
+                    className="w-full h-full border-0"
+                    title="PDF Preview"
+                  />
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div className="container max-w-4xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+            {initialLoading ? (
+              <>
+                <Skeleton className="h-48 w-full rounded-lg" />
+                <Skeleton className="h-96 w-full rounded-lg" />
+              </>
+            ) : (
+              <>
+                {/* Exam Details Card */}
+                {(formData.title || formData.subject) && (
+                  <div className="bg-card rounded-lg border p-4 md:p-6 shadow-medium">
+                    <div className="space-y-4">
+                      <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">{formData.title || 'Untitled Exam'}</h1>
+                        <p className="text-base md:text-lg text-muted-foreground mt-1">{formData.subject || 'No Subject'}</p>
+                      </div>
+                  
+                  <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
+                    {formData.exam_type && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">Type:</span>
+                        <Badge variant="secondary">{formData.exam_type}</Badge>
+                      </div>
+                    )}
+                    {formData.year && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">Year:</span>
+                        <Badge variant="outline">{formData.year}</Badge>
+                      </div>
+                    )}
+                    {formData.period && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">Period:</span>
+                        <Badge variant="outline">{formData.period}</Badge>
+                      </div>
+                    )}
+                    {formData.duration_minutes && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">Duration:</span>
+                        <Badge variant="outline">{formData.duration_minutes} minutes</Badge>
+                      </div>
+                    )}
+                    {formData.language && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">Language:</span>
+                        <Badge variant="outline">{formData.language === 'fr' ? 'Français' : 'English'}</Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.description && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground">{formData.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+                {/* Exam Content Preview - Editable */}
+                {parsedJson && <div className="bg-card rounded-lg border p-4 md:p-6 shadow-strong">
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                      <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <Edit2 className="h-4 w-4" />
+                        {t('click_to_edit')}
+                      </h3>
+                    </div>
+                    <EditableExamContentRenderer 
+                      content={parsedJson} 
+                      onContentChange={handleContentChange}
+                      showAnswers={true}
+                    />
+                  </div>}
+                {!parsedJson && <div className="flex items-center justify-center h-96 text-muted-foreground">
+                    <div className="text-center">
+                      <Code2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>{t('add_content_below')}</p>
+                    </div>
+                  </div>}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Floating Tabbed Card - Bottom */}

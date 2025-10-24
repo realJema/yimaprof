@@ -52,11 +52,13 @@ type ExamContentItem = ContentItem | Question;
 interface EditableExamContentRendererProps {
   content: any;
   onContentChange: (newContent: any) => void;
+  showAnswers?: boolean;
 }
 
 export function EditableExamContentRenderer({
   content,
-  onContentChange
+  onContentChange,
+  showAnswers = false
 }: EditableExamContentRendererProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -330,12 +332,14 @@ export function EditableExamContentRenderer({
                     <div className="space-y-2 ml-8">
                       {question.answers.map((answer, answerIndex) => {
                         const optionLabel = String.fromCharCode(65 + answerIndex);
+                        const isCorrect = answer.is_correct;
+                        const shouldShowCorrect = showAnswers && isCorrect;
                         
                         return (
                           <div
                             key={answer.id}
                             className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                              answer.is_correct
+                              shouldShowCorrect
                                 ? 'bg-primary/5 border-primary/20'
                                 : 'bg-background border-border hover:bg-muted/30'
                             }`}
@@ -344,7 +348,7 @@ export function EditableExamContentRenderer({
                               <span className="font-semibold text-sm min-w-[1.5rem]">
                                 {optionLabel}.
                               </span>
-                              {answer.is_correct && (
+                              {shouldShowCorrect && (
                                 <CheckCircle className="h-4 w-4 text-primary" />
                               )}
                             </div>
@@ -422,12 +426,14 @@ export function EditableExamContentRenderer({
                 <div className="space-y-2 ml-8">
                   {question.answers.map((answer: any, answerIndex: number) => {
                     const optionLabel = String.fromCharCode(65 + answerIndex);
+                    const isCorrect = answer.is_correct;
+                    const shouldShowCorrect = showAnswers && isCorrect;
                     
                     return (
                       <div
                         key={answer.id}
                         className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                          answer.is_correct
+                          shouldShowCorrect
                             ? 'bg-primary/5 border-primary/20'
                             : 'bg-background border-border hover:bg-muted/30'
                         }`}
@@ -436,7 +442,7 @@ export function EditableExamContentRenderer({
                           <span className="font-semibold text-sm min-w-[1.5rem]">
                             {optionLabel}.
                           </span>
-                          {answer.is_correct && (
+                          {shouldShowCorrect && (
                             <CheckCircle className="h-4 w-4 text-primary" />
                           )}
                         </div>

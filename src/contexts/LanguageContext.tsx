@@ -400,6 +400,9 @@ const translations = {
     save_draft: 'Enregistrer le brouillon',
     publish_exam: 'Publier l\'examen',
     publish_and_create_another: 'Publier et créer un autre',
+    click_to_edit: 'Cliquez sur n\'importe quel texte pour modifier',
+    pdf_preview: 'Aperçu PDF',
+    add_content_below: 'Ajoutez du contenu ci-dessous pour voir l\'aperçu',
 
     // About Page
     about: 'À propos',
@@ -892,6 +895,9 @@ const translations = {
     save_draft: 'Save Draft',
     publish_exam: 'Publish Exam',
     publish_and_create_another: 'Publish & Create Another',
+    click_to_edit: 'Click on any text to edit',
+    pdf_preview: 'PDF Preview',
+    add_content_below: 'Add exam content below to see the preview',
 
     // About Page
     about: 'About',
