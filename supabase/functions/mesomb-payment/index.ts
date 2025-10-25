@@ -26,7 +26,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     console.log('Request body:', requestBody);
     
-    const { planId, phoneNumber, amount } = requestBody;
+    const { planId, phoneNumber, amount, referredBy } = requestBody;
     
     if (!planId || !phoneNumber || !amount) {
       console.error('Missing required fields:', { planId, phoneNumber, amount });
@@ -100,11 +100,27 @@ serve(async (req) => {
           });
         }
 
+        // If there's a referral, update the subscription
+        if (referredBy && rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult) {
+          const newSubId = rpcResult.new_subscription_id;
+          if (newSubId) {
+            await supabase
+              .from('subscriptions')
+              .update({ referred_by: referredBy })
+              .eq('id', newSubId);
+          }
+        }
+
         // Create a completed transaction record
+        const subscriptionId = rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult 
+          ? rpcResult.new_subscription_id 
+          : null;
+          
         const { data: transactionData, error: transactionError } = await supabase
           .from('transactions')
           .insert({
             user_id: user.id,
+            subscription_id: subscriptionId,
             amount: amount,
             currency: 'XOF',
             provider: 'mesomb',

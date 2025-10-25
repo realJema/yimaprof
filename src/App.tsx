@@ -19,6 +19,7 @@ import Payment from "./pages/Payment";
 import PaymentProcessing from "./pages/PaymentProcessing";
 import Admin from "./pages/Admin";
 import ExamManager from "./pages/ExamManager";
+import Affiliate from "./pages/Affiliate";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -46,6 +47,7 @@ const App = () => (
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
+                  <Route path="/affiliate" element={<Affiliate />} />
                   <Route path="/payment" element={<Payment />} />
                   <Route path="/payment-processing" element={<PaymentProcessing />} />
                   <Route path="/admin" element={<Admin />} />

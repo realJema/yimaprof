@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookOpen, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, signIn, signUp, resetPassword, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const referralCode = searchParams.get("ref");
 
   const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "signin";
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -69,6 +71,25 @@ export default function Auth() {
       role: formData.role,
       preferred_language: formData.preferredLanguage,
     });
+    
+    // If signup successful and there's a referral code, store it for later use
+    if (!error && referralCode) {
+      try {
+        // Find the affiliate by username
+        const { data: affiliateProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', referralCode.toLowerCase())
+          .maybeSingle();
+        
+        // Store referral in localStorage to be used when subscription is created
+        if (affiliateProfile) {
+          localStorage.setItem('referral_affiliate_id', affiliateProfile.id);
+        }
+      } catch (err) {
+        console.error('Error processing referral:', err);
+      }
+    }
     
     setIsLoading(false);
   };

@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_earnings: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          paid_at: string | null
+          referred_user_id: string
+          status: string | null
+          subscription_id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          paid_at?: string | null
+          referred_user_id: string
+          status?: string | null
+          subscription_id: string
+          transaction_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          paid_at?: string | null
+          referred_user_id?: string
+          status?: string | null
+          subscription_id?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_earnings_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_earnings_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_earnings_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: true
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_earnings_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -245,6 +313,7 @@ export type Database = {
           preferred_language: string | null
           profile_photo_url: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           class_level?: string | null
@@ -258,6 +327,7 @@ export type Database = {
           preferred_language?: string | null
           profile_photo_url?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           class_level?: string | null
@@ -271,6 +341,7 @@ export type Database = {
           preferred_language?: string | null
           profile_photo_url?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: [
           {
@@ -367,6 +438,7 @@ export type Database = {
           expires_at: string | null
           id: string
           plan_id: string
+          referred_by: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["subscription_status"] | null
           updated_at: string
@@ -378,6 +450,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           plan_id: string
+          referred_by?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           updated_at?: string
@@ -389,6 +462,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           plan_id?: string
+          referred_by?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           updated_at?: string
@@ -400,6 +474,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -501,10 +582,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
       log_audit: {
         Args: {
           p_action: string

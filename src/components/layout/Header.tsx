@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 // Header component for YIMA platform
 export default function Header() {
   const { user, signOut } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -91,6 +91,7 @@ export default function Header() {
   const navItems = [
     { to: '/dashboard', icon: BarChart3, label: t('dashboard') },
     { to: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
+    { to: '/affiliate', icon: Share2, label: language === 'fr' ? 'Affiliation' : 'Affiliate' },
     { to: '/profile', icon: User, label: t('profile') },
     { to: '/settings', icon: Settings, label: t('settings') },
   ];

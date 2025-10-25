@@ -113,6 +113,9 @@ export default function Payment() {
       console.log('Test number detected, processing directly');
       
       try {
+        // Get referral affiliate ID from localStorage
+        const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
+        
         // Directly call the database function to activate subscription
         const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
           p_user_id: user.id,
@@ -130,6 +133,20 @@ export default function Payment() {
           });
           setLoading(false);
           return;
+        }
+
+        // If there's a referral, update the subscription with referred_by
+        if (referralAffiliateId && rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult) {
+          const newSubId = (rpcResult as any).new_subscription_id;
+          if (newSubId) {
+            await supabase
+              .from('subscriptions')
+              .update({ referred_by: referralAffiliateId })
+              .eq('id', newSubId);
+            
+            // Clear the referral from localStorage
+            localStorage.removeItem('referral_affiliate_id');
+          }
         }
 
         // Show success toast and redirect
@@ -155,17 +172,22 @@ export default function Payment() {
 
     // For real payments, call the edge function
     try {
+      // Get referral affiliate ID from localStorage
+      const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
+      
       console.log('Calling mesomb-payment function with:', {
         planId: plan.id,
         phoneNumber: phoneNumber.replace(/\s/g, ''),
-        amount: plan.price
+        amount: plan.price,
+        referredBy: referralAffiliateId
       });
 
       const { data, error } = await supabase.functions.invoke('mesomb-payment', {
         body: {
           planId: plan.id,
           phoneNumber: phoneNumber.replace(/\s/g, ''),
-          amount: plan.price
+          amount: plan.price,
+          referredBy: referralAffiliateId
         }
       });
 
@@ -177,6 +199,11 @@ export default function Payment() {
       }
 
       if (data && data.success) {
+        // Clear referral from localStorage (will be used by edge function)
+        if (referralAffiliateId) {
+          localStorage.removeItem('referral_affiliate_id');
+        }
+        
         // Navigate to payment processing page
         navigate(`/payment-processing?transactionId=${data.transactionId}`);
       } else {
