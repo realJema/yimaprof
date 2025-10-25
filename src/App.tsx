@@ -25,11 +25,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
-
 const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <AuthProvider>
         <SubscriptionProvider>
@@ -47,7 +44,7 @@ const App = () => (
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
-                  <Route path="/affiliate" element={<Affiliate />} />
+                  <Route path="/affiliate" element={<Affiliate />} className="w-9/12 " />
                   <Route path="/payment" element={<Payment />} />
                   <Route path="/payment-processing" element={<PaymentProcessing />} />
                   <Route path="/admin" element={<Admin />} />
@@ -66,7 +63,5 @@ const App = () => (
         </SubscriptionProvider>
       </AuthProvider>
     </LanguageProvider>
-  </QueryClientProvider>
-);
-
+  </QueryClientProvider>;
 export default App;
