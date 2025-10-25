@@ -127,10 +127,28 @@ export default function Admin() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="flex gap-6">
-          {/* Left Sidebar Navigation */}
-          <Card className="w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium">
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Mobile Navigation Tabs */}
+          <div className="lg:hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto gap-2 bg-transparent p-0">
+                {navItems.map((item) => (
+                  <TabsTrigger
+                    key={item.id}
+                    value={item.id}
+                    className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-2 text-xs sm:text-sm"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{item.label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Desktop Left Sidebar Navigation */}
+          <Card className="hidden lg:block w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium">
             <CardContent className="p-4">
               <nav className="space-y-1">
                 {navItems.map((item) => (
@@ -152,11 +170,11 @@ export default function Admin() {
           </Card>
 
           {/* Right Content Area */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-6 min-w-0">
             {activeTab === 'overview' && (
               <>
                 <AdminStats />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                     <CardContent className="pt-6">
                       <h3 className="text-lg font-semibold mb-4">{t('platform_overview')}</h3>

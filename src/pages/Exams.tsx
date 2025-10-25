@@ -232,10 +232,10 @@ export default function Exams() {
       </div>
 
       {/* Main Layout */}
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Sidebar - Filters */}
         {showFilters && (
-          <Card className="w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium animate-fade-in">
+          <Card className="w-full lg:w-64 h-fit lg:sticky lg:top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium animate-fade-in">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Filter className="h-5 w-5" />
@@ -346,9 +346,9 @@ export default function Exams() {
               variant="outline"
               size="icon"
               onClick={() => setShowFilters(!showFilters)}
-              className="shrink-0"
+              className="shrink-0 lg:hidden"
             >
-              {showFilters ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <Filter className="h-4 w-4" />
             </Button>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -362,7 +362,7 @@ export default function Exams() {
           </div>
 
            {/* Exams Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
             {displayedExams.map(exam => (
               <Card key={exam.id} className="group relative overflow-hidden hover:shadow-lg transition-all animate-fade-in flex flex-col h-full border-border/50">
                 <CardHeader className="pb-3">
