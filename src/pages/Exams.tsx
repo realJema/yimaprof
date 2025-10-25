@@ -12,6 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Exam {
   id: string;
@@ -37,6 +38,7 @@ export default function Exams() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { hasActiveSubscription, subscriptionTier, subscription } = useSubscription();
+  const isMobile = useIsMobile();
   
   const [exams, setExams] = useState<Exam[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -47,7 +49,7 @@ export default function Exams() {
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [selectedClass, setSelectedClass] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(!isMobile);
 
   useEffect(() => {
     fetchExams();

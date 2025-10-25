@@ -257,7 +257,7 @@ export function ExamManagement() {
     
     if (loading) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <Card key={i} className="border-border/50">
               <CardContent className="p-4">
@@ -290,7 +290,7 @@ export function ExamManagement() {
 
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {paginatedExams.map(renderExamCard)}
         </div>
 
@@ -373,10 +373,10 @@ export function ExamManagement() {
       {/* Filters */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            <h3 className="font-semibold">Filters</h3>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Filter className="h-5 w-5" />
+            Filters
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -441,64 +441,78 @@ export function ExamManagement() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{exams.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">Total Exams</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{francophones.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">Francophone</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">{anglophones.length}</p>
-              <p className="text-sm text-muted-foreground mt-1">Anglophone</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">
-                {exams.filter(e => e.is_published).length}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Published</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg">Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-border/50 bg-muted/50">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-2xl lg:text-3xl font-bold text-primary">{exams.length}</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Total Exams</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-muted/50">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-2xl lg:text-3xl font-bold text-primary">{francophones.length}</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Francophone</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-muted/50">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-2xl lg:text-3xl font-bold text-primary">{anglophones.length}</p>
+                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Anglophone</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 bg-muted/50">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <p className="text-2xl lg:text-3xl font-bold text-primary">
+                    {exams.filter(e => e.is_published).length}
+                  </p>
+                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Published</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Exam Lists by Language */}
-      <Tabs defaultValue="francophone" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="francophone" className="flex items-center gap-2">
-            <Globe2 className="h-4 w-4" />
-            Francophone ({francophones.length})
-          </TabsTrigger>
-          <TabsTrigger value="anglophone" className="flex items-center gap-2">
-            <Languages className="h-4 w-4" />
-            Anglophone ({anglophones.length})
-          </TabsTrigger>
-        </TabsList>
+      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-lg">Exam Library</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="francophone" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="francophone" className="flex items-center gap-2">
+                <Globe2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Francophone</span> ({francophones.length})
+              </TabsTrigger>
+              <TabsTrigger value="anglophone" className="flex items-center gap-2">
+                <Languages className="h-4 w-4" />
+                <span className="hidden sm:inline">Anglophone</span> ({anglophones.length})
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="francophone" className="space-y-4">
-          {renderExamList(francophones)}
-        </TabsContent>
+            <TabsContent value="francophone" className="space-y-4">
+              {renderExamList(francophones)}
+            </TabsContent>
 
-        <TabsContent value="anglophone" className="space-y-4">
-          {renderExamList(anglophones)}
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="anglophone" className="space-y-4">
+              {renderExamList(anglophones)}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
       </div>
     </>
   );
