@@ -155,7 +155,7 @@ export default function Subscriptions() {
   if (loading || subscriptionLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t('loading')}...</p>
       </div>
     );
   }
@@ -165,10 +165,10 @@ export default function Subscriptions() {
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Choose Your Plan
+            {t('choose_your_plan')}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select the perfect plan for your educational needs. Access thousands of exam papers and corrections.
+            {t('subscription_page_desc')}
           </p>
         </div>
 
@@ -177,30 +177,30 @@ export default function Subscriptions() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5" />
-                Referred by someone?
+                {t('referred_by_someone')}
               </CardTitle>
               <CardDescription>
-                Enter the username of the person who referred you to support them
+                {t('support_them')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label htmlFor="referral">Referral Username (Optional)</Label>
+                <Label htmlFor="referral">{t('referral_username')}</Label>
                 <Input
                   id="referral"
-                  placeholder="Enter username"
+                  placeholder={t('enter_username')}
                   value={referralUsername}
                   onChange={(e) => handleReferralChange(e.target.value)}
                 />
                 {referredByProfile && (
                   <p className="text-sm text-green-600 flex items-center gap-2">
                     <Check className="h-4 w-4" />
-                    Valid referral: @{referredByProfile.username}
+                    {t('valid_referral')}: @{referredByProfile.username}
                   </p>
                 )}
                 {referralUsername && !referredByProfile && (
                   <p className="text-sm text-muted-foreground">
-                    Username not found
+                    {t('username_not_found')}
                   </p>
                 )}
               </div>
@@ -213,7 +213,7 @@ export default function Subscriptions() {
             <CardHeader>
               <CardTitle className="text-primary flex items-center gap-2">
                 <Crown className="h-5 w-5" />
-                Current Subscription
+                {t('current_subscription')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -221,13 +221,13 @@ export default function Subscriptions() {
                 <div>
                   <h3 className="font-semibold">{userSubscription.subscription_plans.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Expires: {new Date(userSubscription.expires_at).toLocaleDateString('fr-FR')}
+                    {t('expires')}: {new Date(userSubscription.expires_at).toLocaleDateString('fr-FR')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Started: {new Date(userSubscription.started_at).toLocaleDateString('fr-FR')}
+                    {t('started')}: {new Date(userSubscription.started_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
-                <Badge variant="secondary">Active</Badge>
+                <Badge variant="secondary">{t('active')}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -246,10 +246,10 @@ export default function Subscriptions() {
                   isEverything ? 'border-primary shadow-lg scale-105' : ''
                 } ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
               >
-                {isEverything && (
+              {isEverything && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                      Most Popular
+                      {t('most_popular')}
                     </Badge>
                   </div>
                 )}
@@ -266,7 +266,7 @@ export default function Subscriptions() {
                     <span className="text-3xl font-bold text-foreground">
                       {formatPrice(plan.price, plan.currency)}
                     </span>
-                    <span className="text-muted-foreground">/month</span>
+                    <span className="text-muted-foreground">{t('per_month')}</span>
                   </div>
                 </CardHeader>
 
@@ -287,14 +287,14 @@ export default function Subscriptions() {
                     variant={isEverything ? 'default' : 'outline'}
                   >
                     {subscribing === plan.id ? (
-                      'Processing...'
+                      t('processing')
                     ) : isCurrentPlan ? (
-                      'Current Plan'
+                      t('current_plan')
                     ) : userSubscription ? (
-                      userSubscription.subscription_plans.price < plan.price ? 'Upgrade' : 
-                      userSubscription.subscription_plans.price > plan.price ? 'Downgrade' : 'Switch Plan'
+                      userSubscription.subscription_plans.price < plan.price ? t('upgrade') : 
+                      userSubscription.subscription_plans.price > plan.price ? t('downgrade') : t('switch_plan')
                     ) : (
-                      'Subscribe Now'
+                      t('subscribe_to_plan')
                     )}
                   </Button>
                 </CardContent>
@@ -305,7 +305,7 @@ export default function Subscriptions() {
 
         <div className="text-center pt-8">
           <p className="text-sm text-muted-foreground">
-            All plans include access to exam papers, corrections, and regular content updates. No payment required - instant activation!
+            {t('all_plans_include')}
           </p>
         </div>
       </div>
