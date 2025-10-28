@@ -44,7 +44,7 @@ const App = () => <QueryClientProvider client={queryClient}>
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
-                  <Route path="/affiliate" element={<Affiliate />} className="w-9/12 " />
+                  <Route path="/affiliate" element={<Affiliate />} />
                   <Route path="/payment" element={<Payment />} />
                   <Route path="/payment-processing" element={<PaymentProcessing />} />
                   <Route path="/admin" element={<Admin />} />

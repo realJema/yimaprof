@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Crown, Globe, BookOpen, Zap } from 'lucide-react';
+import { Check, Crown, Globe, BookOpen, Zap, UserPlus } from 'lucide-react';
 
 interface SubscriptionPlan {
   id: string;
@@ -35,15 +37,49 @@ export default function Subscriptions() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { subscription: userSubscription, loading: subscriptionLoading, refreshSubscription } = useSubscription();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [referralUsername, setReferralUsername] = useState('');
+  const [referredByProfile, setReferredByProfile] = useState<{ id: string; username: string } | null>(null);
 
   useEffect(() => {
     fetchPlans();
+    
+    // Check for referral code in URL
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setReferralUsername(refCode);
+      validateReferral(refCode);
+    }
   }, []);
+
+  const validateReferral = async (username: string) => {
+    if (!username) {
+      setReferredByProfile(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error || !data) {
+        setReferredByProfile(null);
+        return;
+      }
+
+      setReferredByProfile(data);
+    } catch (error) {
+      setReferredByProfile(null);
+    }
+  };
 
   const fetchPlans = async () => {
     try {
@@ -84,9 +120,19 @@ export default function Subscriptions() {
       return;
     }
 
+    // Store referral info if valid
+    if (referredByProfile?.id) {
+      localStorage.setItem('referral_affiliate_id', referredByProfile.id);
+    }
+
     console.log('Navigating to payment page with planId:', planId);
     // Navigate to payment page with plan ID using React Router
     navigate(`/payment?planId=${planId}`);
+  };
+
+  const handleReferralChange = (value: string) => {
+    setReferralUsername(value);
+    validateReferral(value);
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -125,6 +171,42 @@ export default function Subscriptions() {
             Select the perfect plan for your educational needs. Access thousands of exam papers and corrections.
           </p>
         </div>
+
+        {!userSubscription && (
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Referred by someone?
+              </CardTitle>
+              <CardDescription>
+                Enter the username of the person who referred you to support them
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="referral">Referral Username (Optional)</Label>
+                <Input
+                  id="referral"
+                  placeholder="Enter username"
+                  value={referralUsername}
+                  onChange={(e) => handleReferralChange(e.target.value)}
+                />
+                {referredByProfile && (
+                  <p className="text-sm text-green-600 flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    Valid referral: @{referredByProfile.username}
+                  </p>
+                )}
+                {referralUsername && !referredByProfile && (
+                  <p className="text-sm text-muted-foreground">
+                    Username not found
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {userSubscription && (
           <Card className="border-primary bg-primary/5">

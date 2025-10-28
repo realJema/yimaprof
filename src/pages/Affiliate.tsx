@@ -154,7 +154,7 @@ export default function Affiliate() {
   };
 
   const getAffiliateLink = () => {
-    return `${window.location.origin}/auth?ref=${currentUsername}`;
+    return `${window.location.origin}/subscriptions?ref=${currentUsername}`;
   };
 
   const copyAffiliateLink = () => {

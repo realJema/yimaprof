@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Phone, CreditCard } from 'lucide-react';
+import { ArrowLeft, Phone, CreditCard, UserCheck } from 'lucide-react';
 
 interface SubscriptionPlan {
   id: string;
@@ -25,6 +26,7 @@ export default function Payment() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [referrerUsername, setReferrerUsername] = useState<string | null>(null);
 
   const planId = searchParams.get('planId');
 
@@ -44,7 +46,27 @@ export default function Payment() {
     }
 
     fetchPlan();
+    fetchReferrer();
   }, [user, planId, navigate]);
+
+  const fetchReferrer = async () => {
+    const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
+    if (!referralAffiliateId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', referralAffiliateId)
+        .maybeSingle();
+
+      if (data?.username) {
+        setReferrerUsername(data.username);
+      }
+    } catch (error) {
+      console.error('Error fetching referrer:', error);
+    }
+  };
 
   const fetchPlan = async () => {
     if (!planId) return;
@@ -258,6 +280,23 @@ export default function Payment() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {referrerUsername && (
+              <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg">
+                <div className="flex items-center gap-2 text-primary mb-2">
+                  <UserCheck className="h-5 w-5" />
+                  <span className="font-semibold">Referred by</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-sm">
+                    @{referrerUsername}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    will earn a commission from your subscription
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="bg-muted/50 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">{plan.name}</span>
