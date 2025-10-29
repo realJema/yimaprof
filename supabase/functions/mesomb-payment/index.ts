@@ -84,10 +84,11 @@ serve(async (req) => {
       console.log('Test number detected, auto-activating plan');
       
       try {
-        // Activate subscription directly
+        // Activate subscription directly with referral info
         const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
           p_user_id: user.id,
-          p_new_plan_id: planId
+          p_new_plan_id: planId,
+          p_referred_by: referredBy || null
         });
         
         console.log('Subscription transition result:', rpcResult);
@@ -100,16 +101,6 @@ serve(async (req) => {
           });
         }
 
-        // If there's a referral, update the subscription
-        if (referredBy && rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult) {
-          const newSubId = rpcResult.new_subscription_id;
-          if (newSubId) {
-            await supabase
-              .from('subscriptions')
-              .update({ referred_by: referredBy })
-              .eq('id', newSubId);
-          }
-        }
 
         // Create a completed transaction record
         const subscriptionId = rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult 

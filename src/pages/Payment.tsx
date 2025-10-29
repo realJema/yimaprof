@@ -138,10 +138,11 @@ export default function Payment() {
         // Get referral affiliate ID from localStorage
         const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
         
-        // Directly call the database function to activate subscription
+        // Directly call the database function to activate subscription with referral
         const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
           p_user_id: user.id,
-          p_new_plan_id: plan.id
+          p_new_plan_id: plan.id,
+          p_referred_by: referralAffiliateId || null
         });
         
         console.log('Subscription transition result:', rpcResult);
@@ -157,18 +158,9 @@ export default function Payment() {
           return;
         }
 
-        // If there's a referral, update the subscription with referred_by
-        if (referralAffiliateId && rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult) {
-          const newSubId = (rpcResult as any).new_subscription_id;
-          if (newSubId) {
-            await supabase
-              .from('subscriptions')
-              .update({ referred_by: referralAffiliateId })
-              .eq('id', newSubId);
-            
-            // Clear the referral from localStorage
-            localStorage.removeItem('referral_affiliate_id');
-          }
+        // Clear the referral from localStorage
+        if (referralAffiliateId) {
+          localStorage.removeItem('referral_affiliate_id');
         }
 
         // Show success toast and redirect

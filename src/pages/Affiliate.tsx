@@ -36,11 +36,13 @@ export default function Affiliate() {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [referredByUsername, setReferredByUsername] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchProfile();
       fetchEarnings();
+      fetchReferredBy();
     }
   }, [user]);
 
@@ -96,6 +98,28 @@ export default function Affiliate() {
       setTotalEarnings(total);
     } catch (error) {
       console.error('Error fetching earnings:', error);
+    }
+  };
+
+  const fetchReferredBy = async () => {
+    try {
+      const { data: subscription, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          referred_by,
+          referrer:profiles!subscriptions_referred_by_fkey(username)
+        `)
+        .eq('user_id', user?.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (subscription?.referrer?.username) {
+        setReferredByUsername(subscription.referrer.username);
+      }
+    } catch (error) {
+      console.error('Error fetching referrer:', error);
     }
   };
 
@@ -250,6 +274,30 @@ export default function Affiliate() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Referred By Section */}
+      {referredByUsername && (
+        <Card className="mb-8 border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Check className="h-5 w-5" />
+              {language === 'fr' ? 'Vous avez été parrainé par' : 'You were referred by'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-base px-4 py-2">
+                @{referredByUsername}
+              </Badge>
+              <p className="text-muted-foreground">
+                {language === 'fr' 
+                  ? 'Merci de soutenir cet affilié!' 
+                  : 'Thank you for supporting this affiliate!'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Affiliate Link Section */}
       <Card className="mb-8 border-border/50">
