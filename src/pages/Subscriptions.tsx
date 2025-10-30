@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Crown, Globe, BookOpen, Zap, UserPlus } from 'lucide-react';
+import { Check, Crown, Globe, BookOpen, Zap, UserPlus, Loader2, Search } from 'lucide-react';
 
 interface SubscriptionPlan {
   id: string;
@@ -45,6 +45,11 @@ export default function Subscriptions() {
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [referralUsername, setReferralUsername] = useState('');
   const [referredByProfile, setReferredByProfile] = useState<{ id: string; username: string } | null>(null);
+  const [searchResults, setSearchResults] = useState<{ id: string; username: string }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchPlans();
@@ -55,7 +60,54 @@ export default function Subscriptions() {
       setReferralUsername(refCode);
       validateReferral(refCode);
     }
+
+    // Click outside handler for dropdown
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
+
+  const searchUsernames = async (searchTerm: string) => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .ilike('username', `%${searchTerm}%`)
+        .not('username', 'is', null)
+        .limit(10);
+
+      if (!error && data) {
+        setSearchResults(data);
+        setShowDropdown(data.length > 0);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    } catch (error) {
+      console.error('Error searching usernames:', error);
+      setSearchResults([]);
+      setShowDropdown(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const validateReferral = async (username: string) => {
     if (!username) {
@@ -67,7 +119,7 @@ export default function Subscriptions() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username')
-        .eq('username', username)
+        .eq('username', username.toLowerCase())
         .maybeSingle();
 
       if (error || !data) {
@@ -132,7 +184,24 @@ export default function Subscriptions() {
 
   const handleReferralChange = (value: string) => {
     setReferralUsername(value);
-    validateReferral(value);
+    setReferredByProfile(null);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(() => {
+      searchUsernames(value);
+    }, 300);
+  };
+
+  const selectUsername = (profile: { id: string; username: string }) => {
+    setReferralUsername(profile.username);
+    setReferredByProfile(profile);
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -186,20 +255,50 @@ export default function Subscriptions() {
             <CardContent>
               <div className="space-y-2">
                 <Label htmlFor="referral">{t('referral_username')}</Label>
-                <Input
-                  id="referral"
-                  placeholder={t('enter_username')}
-                  value={referralUsername}
-                  onChange={(e) => handleReferralChange(e.target.value)}
-                />
+                <div className="relative" ref={dropdownRef}>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="referral"
+                      placeholder={t('enter_username')}
+                      value={referralUsername}
+                      onChange={(e) => handleReferralChange(e.target.value)}
+                      className="pl-10"
+                      autoComplete="off"
+                    />
+                    {isSearching && (
+                      <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  
+                  {/* Dropdown with search results */}
+                  {showDropdown && searchResults.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults.map((profile) => (
+                        <button
+                          key={profile.id}
+                          onClick={() => selectUsername(profile)}
+                          className="w-full px-4 py-3 text-left hover:bg-accent transition-colors flex items-center gap-2 border-b border-border last:border-b-0"
+                        >
+                          <UserPlus className="h-4 w-4 text-primary" />
+                          <span className="font-medium">@{profile.username}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 {referredByProfile && (
-                  <p className="text-sm text-green-600 flex items-center gap-2">
-                    <Check className="h-4 w-4" />
-                    {t('valid_referral')}: @{referredByProfile.username}
-                  </p>
+                  <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                      <Check className="h-4 w-4" />
+                      {t('valid_referral')}: <span className="font-semibold">@{referredByProfile.username}</span>
+                    </p>
+                  </div>
                 )}
-                {referralUsername && !referredByProfile && (
-                  <p className="text-sm text-muted-foreground">
+                
+                {referralUsername && !referredByProfile && !isSearching && searchResults.length === 0 && referralUsername.length >= 2 && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
                     {t('username_not_found')}
                   </p>
                 )}
