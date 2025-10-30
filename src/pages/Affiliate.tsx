@@ -228,6 +228,15 @@ export default function Affiliate() {
             ? 'Gagnez 10% de commission sur chaque premier abonnement de vos filleuls' 
             : 'Earn 10% commission on each first subscription from your referrals'}
         </p>
+        {referralCount > 0 && (
+          <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-sm text-primary">
+              {language === 'fr' 
+                ? `💰 Vos filleuls ont généré ${totalEarnings.toLocaleString()} XOF de commissions au total` 
+                : `💰 Your referrals generated ${totalEarnings.toLocaleString()} XOF in total commissions`}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -394,8 +403,13 @@ export default function Affiliate() {
                           ? `${earning.referred_user.first_name || ''} ${earning.referred_user.last_name || ''}`.trim()
                           : earning.referred_user?.email || 'Unknown'}
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {earning.amount.toLocaleString()} {earning.currency}
+                       <TableCell>
+                        <div>
+                          <p className="font-medium">{earning.amount.toLocaleString()} {earning.currency}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {language === 'fr' ? '(10% commission)' : '(10% commission)'}
+                          </p>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={

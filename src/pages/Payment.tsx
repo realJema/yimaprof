@@ -130,61 +130,7 @@ export default function Payment() {
 
     setLoading(true);
 
-    // Handle test number directly without edge function
-    if (phoneNumber.trim() === '670000000') {
-      console.log('Test number detected, processing directly');
-      
-      try {
-        // Get referral affiliate ID from localStorage
-        const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
-        
-        // Directly call the database function to activate subscription with referral
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
-          p_user_id: user.id,
-          p_new_plan_id: plan.id,
-          p_referred_by: referralAffiliateId || null
-        });
-        
-        console.log('Subscription transition result:', rpcResult);
-        
-        if (rpcError) {
-          console.error('RPC error:', rpcError);
-          toast({
-            title: 'Error',
-            description: 'Failed to activate subscription',
-            variant: 'destructive',
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Clear the referral from localStorage
-        if (referralAffiliateId) {
-          localStorage.removeItem('referral_affiliate_id');
-        }
-
-        // Show success toast and redirect
-        toast({
-          title: 'Test Payment Successful!',
-          description: 'Your subscription has been activated.',
-        });
-        
-        // Redirect to subscriptions page
-        navigate('/subscriptions');
-        return;
-      } catch (error) {
-        console.error('Error in test payment:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to process test payment',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-    }
-
-    // For real payments, call the edge function
+    // All payments go through the edge function for consistency
     try {
       // Get referral affiliate ID from localStorage
       const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
@@ -218,8 +164,17 @@ export default function Payment() {
           localStorage.removeItem('referral_affiliate_id');
         }
         
-        // Navigate to payment processing page
-        navigate(`/payment-processing?transactionId=${data.transactionId}`);
+        // For test payments, redirect directly to subscriptions
+        if (data.testPayment) {
+          toast({
+            title: 'Test Payment Successful!',
+            description: 'Your subscription has been activated.',
+          });
+          navigate('/subscriptions');
+        } else {
+          // For real payments, navigate to payment processing page
+          navigate(`/payment-processing?transactionId=${data.transactionId}`);
+        }
       } else {
         console.error('Payment failed with data:', data);
         toast({
