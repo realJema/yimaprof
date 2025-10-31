@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Clock, Calendar, Eye, Download, ArrowLeft, Search, Lock, Crown } from 'lucide-react';
+import { BookOpen, Clock, Calendar, Eye, ArrowLeft, Search, Lock, Crown } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,10 +26,10 @@ interface Exam {
   created_at: string;
 }
 
-export default function ExamListing() {
+export default function ExamList() {
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const { system, section, classId } = useParams();
+  const { classId } = useParams();
   const [searchParams] = useSearchParams();
   const subject = searchParams.get('subject');
   const { toast } = useToast();
@@ -42,19 +42,7 @@ export default function ExamListing() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
-  const [selectedSession, setSelectedSession] = useState('all');
-  const [selectedLanguage, setSelectedLanguage] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-
-  const systemName = system === 'francophone' 
-    ? (language === 'fr' ? 'Système Francophone' : 'Francophone System')
-    : (language === 'fr' ? 'Système Anglophone' : 'Anglophone System');
-
-  const sectionName = section === 'nursery' 
-    ? (language === 'fr' ? 'Maternelle' : 'Nursery')
-    : section === 'primary' 
-    ? (language === 'fr' ? 'Primaire' : 'Primary')
-    : (language === 'fr' ? 'Secondaire' : 'Secondary');
 
   useEffect(() => {
     fetchClassAndExams();
@@ -98,15 +86,13 @@ export default function ExamListing() {
 
   const years = [...new Set(exams.map(e => e.year).filter(Boolean))].sort((a, b) => b! - a!);
   const examTypes = [...new Set(exams.map(e => e.exam_type).filter(Boolean))];
-  const sessions = [...new Set(exams.map(e => e.period).filter(Boolean))];
 
   const filteredExams = exams.filter(exam => {
     const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesYear = selectedYear === 'all' || exam.year?.toString() === selectedYear;
     const matchesType = selectedType === 'all' || exam.exam_type === selectedType;
-    const matchesSession = selectedSession === 'all' || exam.period === selectedSession;
     
-    return matchesSearch && matchesYear && matchesType && matchesSession;
+    return matchesSearch && matchesYear && matchesType;
   });
 
   const sortedExams = [...filteredExams].sort((a, b) => {
@@ -147,25 +133,13 @@ export default function ExamListing() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/exams">{language === 'fr' ? 'Accueil' : 'Home'}</Link>
+                <Link to="/exams">{language === 'fr' ? 'Classes' : 'Classes'}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={`/exams/${system}/sections`}>{systemName}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`/exams/${system}/${section}/classes`}>{sectionName}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`/exams/${system}/${section}/${classId}/subjects`}>{className}</Link>
+                <Link to={`/exams/${classId}/subjects`}>{className}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -187,7 +161,7 @@ export default function ExamListing() {
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate(`/exams/${system}/${section}/${classId}/subjects`)}
+            onClick={() => navigate(`/exams/${classId}/subjects`)}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -195,9 +169,30 @@ export default function ExamListing() {
           </Button>
         </div>
 
+        {/* Subscription Notice */}
+        {!hasActiveSubscription && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="h-5 w-5 text-amber-600" />
+              <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                {language === 'fr' ? 'Accès Limité' : 'Limited Access'}
+              </h3>
+            </div>
+            <p className="text-amber-700 dark:text-amber-300 text-sm mb-3">
+              {language === 'fr' ? `Abonnez-vous pour un accès illimité à toutes les corrections.` : `Subscribe for unlimited access to all corrections.`}
+            </p>
+            <Link to="/subscriptions">
+              <Button size="sm" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                <Crown className="h-4 w-4 mr-2" />
+                {language === 'fr' ? 'Voir les Abonnements' : 'View Subscriptions'}
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* Filters */}
-        <div className="grid gap-4 md:grid-cols-5 mb-6">
-          <div className="relative md:col-span-2">
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}

@@ -10,25 +10,15 @@ import { ArrowLeft, Search, BookOpen, Calculator, Beaker, Globe, History, Dna, L
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export default function ExamSubjectSelection() {
+export default function ExamSubjects() {
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const { system, section, classId } = useParams<{ system: string; section: string; classId: string }>();
+  const { classId } = useParams<{ classId: string }>();
   const { toast } = useToast();
   const [subjects, setSubjects] = useState<{ name: string; count: number }[]>([]);
   const [className, setClassName] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const systemName = system === 'francophone' 
-    ? (language === 'fr' ? 'Système Francophone' : 'Francophone System')
-    : (language === 'fr' ? 'Système Anglophone' : 'Anglophone System');
-
-  const sectionName = section === 'nursery' 
-    ? (language === 'fr' ? 'Maternelle' : 'Nursery')
-    : section === 'primary' 
-    ? (language === 'fr' ? 'Primaire' : 'Primary')
-    : (language === 'fr' ? 'Secondaire' : 'Secondary');
 
   useEffect(() => {
     fetchClassAndSubjects();
@@ -122,19 +112,7 @@ export default function ExamSubjectSelection() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/exams">{language === 'fr' ? 'Accueil' : 'Home'}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`/exams/${system}/sections`}>{systemName}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`/exams/${system}/${section}/classes`}>{sectionName}</Link>
+                <Link to="/exams">{language === 'fr' ? 'Classes' : 'Classes'}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -156,7 +134,7 @@ export default function ExamSubjectSelection() {
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate(`/exams/${system}/${section}/classes`)}
+            onClick={() => navigate('/exams')}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -190,7 +168,7 @@ export default function ExamSubjectSelection() {
                 <Card 
                   key={subject.name}
                   className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-border/50"
-                  onClick={() => navigate(`/exams/${system}/${section}/${classId}/list?subject=${encodeURIComponent(subject.name)}`)}
+                  onClick={() => navigate(`/exams/${classId}/list?subject=${encodeURIComponent(subject.name)}`)}
                 >
                   <CardHeader className="text-center">
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 mx-auto mb-3">
