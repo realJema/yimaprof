@@ -36,24 +36,29 @@ interface Exam {
     level: string;
   };
 }
-
 interface SidebarQuestion {
   id: string;
   number: string;
   text: string;
   type: 'heading' | 'question';
 }
-
 const DEFAULT_DURATION = 3600; // 1 hour in seconds as default
 
 export default function ExamViewer() {
-  const { examId } = useParams();
+  const {
+    examId
+  } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { language } = useLanguage();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
+  const {
+    language
+  } = useLanguage();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const mode = searchParams.get('mode') || 'preview';
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +67,6 @@ export default function ExamViewer() {
   const [activeQuestion, setActiveQuestion] = useState<string>('');
   const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
   const contentRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (examId) {
       fetchExam();
@@ -76,10 +80,12 @@ export default function ExamViewer() {
     }
     try {
       // Check if user is admin using the secure is_admin function
-      const { data: isAdminUser, error: adminError } = await supabase.rpc('is_admin', {
+      const {
+        data: isAdminUser,
+        error: adminError
+      } = await supabase.rpc('is_admin', {
         user_id: user.id
       });
-      
       if (!adminError && isAdminUser === true) {
         setHasAccess(true);
         return;
@@ -102,12 +108,12 @@ export default function ExamViewer() {
       setHasAccess(false);
     }
   };
-
   const fetchExam = async () => {
     try {
-      const { data: examData, error: examError } = await supabase
-        .from('exams')
-        .select(`
+      const {
+        data: examData,
+        error: examError
+      } = await supabase.from('exams').select(`
           *,
           classes (
             id,
@@ -116,13 +122,10 @@ export default function ExamViewer() {
             section,
             level
           )
-        `)
-        .eq('id', examId)
-        .single();
-
+        `).eq('id', examId).single();
       if (examError) throw examError;
       setExam(examData);
-      
+
       // Extract questions for sidebar
       if (examData.content) {
         const questions = extractQuestions(examData.content);
@@ -141,13 +144,10 @@ export default function ExamViewer() {
       setLoading(false);
     }
   };
-
   const extractQuestions = (content: any): SidebarQuestion[] => {
     const questions: SidebarQuestion[] = [];
     let questionNumber = 0;
-
     const items = Array.isArray(content) ? content : content.questions || [];
-    
     items.forEach((item: any) => {
       if (item.item_type === 'heading') {
         questions.push({
@@ -166,33 +166,28 @@ export default function ExamViewer() {
         });
       }
     });
-
     return questions;
   };
-
   const handleQuestionClick = (questionId: string) => {
     setActiveQuestion(questionId);
     const element = document.getElementById(`question-${questionId}`);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
     }
   };
-
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleZoomReset = () => setZoom(1);
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+    return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <p className="text-muted-foreground">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
-      </div>
-    );
+      </div>;
   }
-
   if (!exam) {
-    return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+    return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">
@@ -203,14 +198,10 @@ export default function ExamViewer() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   const showAnswers = mode === 'correction';
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Exam Details Banner */}
       <div className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-3">
@@ -218,30 +209,21 @@ export default function ExamViewer() {
             <div className="flex items-center gap-4 flex-wrap">
               <h2 className="font-semibold text-lg">{exam.title}</h2>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                {exam.year && (
-                  <div className="flex items-center gap-1">
+                {exam.year && <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span>{exam.year}</span>
-                  </div>
-                )}
-                {exam.period && (
-                  <Badge variant="outline" className="text-xs">{exam.period}</Badge>
-                )}
-                {exam.exam_type && (
-                  <Badge variant="outline" className="text-xs">{exam.exam_type}</Badge>
-                )}
-                {exam.duration_minutes && (
-                  <div className="flex items-center gap-1">
+                  </div>}
+                {exam.period && <Badge variant="outline" className="text-xs">{exam.period}</Badge>}
+                {exam.exam_type && <Badge variant="outline" className="text-xs">{exam.exam_type}</Badge>}
+                {exam.duration_minutes && <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
                     <span>{exam.duration_minutes} min</span>
-                  </div>
-                )}
+                  </div>}
               </div>
             </div>
             
             {/* View PDF Button */}
-            {exam.file_url && (
-              <Dialog>
+            {exam.file_url && <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
                     <FileText className="h-4 w-4" />
@@ -249,19 +231,12 @@ export default function ExamViewer() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-5xl h-[90vh]">
-                  <DialogHeader>
-                    <DialogTitle>{exam.title}</DialogTitle>
-                  </DialogHeader>
+                  
                   <div className="flex-1 h-full">
-                    <iframe
-                      src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                      className="w-full h-full border rounded-lg"
-                      title="Exam PDF"
-                    />
+                    <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full border rounded-lg" title="Exam PDF" />
                   </div>
                 </DialogContent>
-              </Dialog>
-            )}
+              </Dialog>}
           </div>
         </div>
       </div>
@@ -277,16 +252,14 @@ export default function ExamViewer() {
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-              {exam.classes && (
-                <>
+              {exam.classes && <>
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
                       <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
-                </>
-              )}
+                </>}
               <BreadcrumbItem>
                 <BreadcrumbPage>{exam.subject}</BreadcrumbPage>
               </BreadcrumbItem>
@@ -299,11 +272,7 @@ export default function ExamViewer() {
       <div className="flex h-[calc(100vh-64px)]">
         {/* Sidebar */}
         <aside className="w-80 hidden lg:block border-r border-border bg-card">
-          <ExamSidebar
-            questions={sidebarQuestions}
-            activeQuestion={activeQuestion}
-            onQuestionClick={handleQuestionClick}
-          />
+          <ExamSidebar questions={sidebarQuestions} activeQuestion={activeQuestion} onQuestionClick={handleQuestionClick} />
         </aside>
 
         {/* Content Area */}
@@ -314,65 +283,37 @@ export default function ExamViewer() {
               <CardHeader>
                 <CardTitle className="text-2xl">{exam.title}</CardTitle>
                 <CardDescription>
-                  {mode === 'correction' 
-                    ? (language === 'fr' ? 'Correction officielle' : 'Official Corrections')
-                    : mode === 'evaluation'
-                    ? (language === 'fr' ? 'Mode évaluation' : 'Evaluation Mode')
-                    : (language === 'fr' ? 'Aperçu des questions' : 'Question Preview')}
+                  {mode === 'correction' ? language === 'fr' ? 'Correction officielle' : 'Official Corrections' : mode === 'evaluation' ? language === 'fr' ? 'Mode évaluation' : 'Evaluation Mode' : language === 'fr' ? 'Aperçu des questions' : 'Question Preview'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {exam.classes && (
-                    <Badge variant="secondary">{exam.classes.display_name}</Badge>
-                  )}
-                  {exam.subject && (
-                    <Badge variant="outline">{exam.subject}</Badge>
-                  )}
-                  {exam.year && (
-                    <Badge variant="outline">{exam.year}</Badge>
-                  )}
-                  {exam.exam_type && (
-                    <Badge variant="outline">{exam.exam_type}</Badge>
-                  )}
+                  {exam.classes && <Badge variant="secondary">{exam.classes.display_name}</Badge>}
+                  {exam.subject && <Badge variant="outline">{exam.subject}</Badge>}
+                  {exam.year && <Badge variant="outline">{exam.year}</Badge>}
+                  {exam.exam_type && <Badge variant="outline">{exam.exam_type}</Badge>}
                 </div>
               </CardContent>
             </Card>
 
             {/* Exam Content */}
-            <div
-              ref={contentRef}
-              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
-              className="transition-transform duration-200"
-            >
-              {exam.content ? (
-                <ExamContentRenderer
-                  content={exam.content}
-                  showAnswers={showAnswers}
-                  mode={mode as 'preview' | 'evaluation' | 'solution'}
-                  questionIdPrefix="question-"
-                />
-              ) : (
-                <Card>
+            <div ref={contentRef} style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left'
+          }} className="transition-transform duration-200">
+              {exam.content ? <ExamContentRenderer content={exam.content} showAnswers={showAnswers} mode={mode as 'preview' | 'evaluation' | 'solution'} questionIdPrefix="question-" /> : <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
                       {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
                     </p>
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
             </div>
           </div>
         </main>
       </div>
 
       {/* Zoom Controls */}
-      <ZoomControls
-        zoom={zoom}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onReset={handleZoomReset}
-      />
-    </div>
-  );
+      <ZoomControls zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onReset={handleZoomReset} />
+    </div>;
 }
