@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Clock, Calendar, Eye, ArrowLeft, Search, Lock, Crown } from 'lucide-react';
+import { BookOpen, Clock, Calendar, Eye, ArrowLeft, Search, Lock, Crown, FileText, Play } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,13 +62,18 @@ export default function ExamList() {
         setClassName(classData.display_name);
       }
 
-      const { data: examsData, error } = await supabase
+      let query = supabase
         .from('exams')
         .select('*')
         .eq('class_id', classId || '')
-        .eq('subject', subject || '')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
+        .eq('is_published', true);
+      
+      // Only filter by subject if not 'all'
+      if (subject && subject !== 'all') {
+        query = query.eq('subject', subject);
+      }
+      
+      const { data: examsData, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setExams(examsData || []);
@@ -153,7 +158,13 @@ export default function ExamList() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              {language === 'fr' ? `Épreuves d'examen pour ${className} - ${subject}` : `Exam Papers for ${className} - ${subject}`}
+              {language === 'fr' 
+                ? subject === 'all' 
+                  ? `Toutes les épreuves pour ${className}` 
+                  : `Épreuves d'examen pour ${className} - ${subject}`
+                : subject === 'all'
+                  ? `All Papers for ${className}`
+                  : `Exam Papers for ${className} - ${subject}`}
             </h1>
             <p className="text-muted-foreground">
               {language === 'fr' ? 'Trouvez des épreuves d\'examen officielles et fictives avec corrections.' : 'Find official and mock exam papers with corrections.'}
@@ -277,11 +288,25 @@ export default function ExamList() {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <Link to={`/exam/${exam.id}?mode=preview`} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Eye className="h-4 w-4 mr-2" />
+                  <div className="flex flex-col gap-2">
+                    <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
+                      <Button variant="default" size="sm" className="w-full gap-2">
+                        <Eye className="h-4 w-4" />
+                        {language === 'fr' ? 'Aperçu' : 'Preview'}
+                      </Button>
+                    </Link>
+                    
+                    <Link to={`/exam/${exam.id}?mode=correction`} className="w-full">
+                      <Button variant="outline" size="sm" className="w-full gap-2">
+                        <FileText className="h-4 w-4" />
                         {language === 'fr' ? 'Voir Correction' : 'View Correction'}
+                      </Button>
+                    </Link>
+                    
+                    <Link to={`/exam/${exam.id}?mode=evaluation`} className="w-full">
+                      <Button variant="secondary" size="sm" className="w-full gap-2">
+                        <Play className="h-4 w-4" />
+                        {language === 'fr' ? 'Évaluation' : 'Take Evaluation'}
                       </Button>
                     </Link>
                   </div>

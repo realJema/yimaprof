@@ -162,6 +162,24 @@ export default function ExamSubjects() {
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {/* All Papers Option */}
+            <Card 
+              className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-primary/5 to-primary/10"
+              onClick={() => navigate(`/exams/${classId}/list?subject=all`)}
+            >
+              <CardHeader className="text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/20 mx-auto mb-3">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle className="text-base group-hover:text-primary transition-colors">
+                  {language === 'fr' ? 'Toutes les matières' : 'All Subjects'}
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  {subjects.reduce((sum, s) => sum + s.count, 0)} {language === 'fr' ? 'épreuves au total' : 'papers total'}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
             {filteredSubjects.map((subject) => {
               const Icon = getSubjectIcon(subject.name);
               return (

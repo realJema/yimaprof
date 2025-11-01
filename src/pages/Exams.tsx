@@ -16,6 +16,7 @@ interface Class {
   level: string;
   section: string;
   description?: string;
+  paperCount?: number;
 }
 
 export default function Exams() {
@@ -41,7 +42,21 @@ export default function Exams() {
         .order('level');
 
       if (error) throw error;
-      setClasses(data || []);
+      
+      // Fetch paper counts for each class
+      const classesWithCounts = await Promise.all(
+        (data || []).map(async (cls) => {
+          const { count } = await supabase
+            .from('exams')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', cls.id)
+            .eq('is_published', true);
+          
+          return { ...cls, paperCount: count || 0 };
+        })
+      );
+      
+      setClasses(classesWithCounts);
     } catch (error) {
       console.error('Error fetching classes:', error);
       toast({
@@ -193,11 +208,9 @@ export default function Exams() {
                             <CardTitle className="text-lg group-hover:text-primary transition-colors">
                               {cls.display_name}
                             </CardTitle>
-                            {cls.description && (
-                              <CardDescription className="text-sm">
-                                {cls.description}
-                              </CardDescription>
-                            )}
+                            <CardDescription className="text-sm">
+                              {cls.paperCount || 0} {language === 'fr' ? 'épreuves' : 'papers'}
+                            </CardDescription>
                           </CardHeader>
                         </Card>
                       ))}
