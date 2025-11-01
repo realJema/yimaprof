@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Eye, PenTool, CheckCircle, Clock, FileText, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Download, Printer, Share2, FileText } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { ExamSidebar } from '@/components/exam/ExamSidebar';
+import { ZoomControls } from '@/components/exam/ZoomControls';
+import { Link } from 'react-router-dom';
 interface Exam {
   id: string;
   title: string;
@@ -34,64 +34,39 @@ interface Exam {
     level: string;
   };
 }
-interface UserAnswer {
-  questionIndex: number;
-  answer: string;
-  isCorrect?: boolean;
+
+interface SidebarQuestion {
+  id: string;
+  number: string;
+  text: string;
+  type: 'heading' | 'question';
 }
+
 const DEFAULT_DURATION = 3600; // 1 hour in seconds as default
 
 export default function ExamViewer() {
-  const {
-    examId
-  } = useParams();
+  const { examId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const {
-    t
-  } = useLanguage();
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { language } = useLanguage();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
   const mode = searchParams.get('mode') || 'preview';
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(mode);
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_DURATION);
-  const [examDuration, setExamDuration] = useState(DEFAULT_DURATION);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
-  const [showResults, setShowResults] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
-  const [isPdfOpen, setIsPdfOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [activeQuestion, setActiveQuestion] = useState<string>('');
+  const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (examId) {
       fetchExam();
       checkAccess();
     }
   }, [examId, user]);
-  useEffect(() => {
-    setActiveTab(mode);
-  }, [mode]);
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(time => {
-          if (time <= 1) {
-            setIsTimerActive(false);
-            handleSubmitEvaluation();
-            return 0;
-          }
-          return time - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerActive, timeLeft]);
   const checkAccess = async () => {
     if (!user) {
       setHasAccess(true); // Allow public access for preview
@@ -125,12 +100,12 @@ export default function ExamViewer() {
       setHasAccess(false);
     }
   };
+
   const fetchExam = async () => {
     try {
-      const {
-        data: examData,
-        error: examError
-      } = await supabase.from('exams').select(`
+      const { data: examData, error: examError } = await supabase
+        .from('exams')
+        .select(`
           *,
           classes (
             id,
@@ -139,19 +114,24 @@ export default function ExamViewer() {
             section,
             level
           )
-        `).eq('id', examId).single();
+        `)
+        .eq('id', examId)
+        .single();
+
       if (examError) throw examError;
       setExam(examData);
       
-      // Set exam duration from exam data or use default
-      const duration = examData.duration_minutes 
-        ? examData.duration_minutes * 60 
-        : DEFAULT_DURATION;
-      setExamDuration(duration);
-      setTimeLeft(duration);
+      // Extract questions for sidebar
+      if (examData.content) {
+        const questions = extractQuestions(examData.content);
+        setSidebarQuestions(questions);
+        if (questions.length > 0 && questions[0].type === 'question') {
+          setActiveQuestion(questions[0].id);
+        }
+      }
     } catch (error) {
       toast({
-        title: t('error'),
+        title: language === 'fr' ? 'Erreur' : 'Error',
         description: 'Failed to fetch exam details',
         variant: 'destructive'
       });
@@ -159,372 +139,242 @@ export default function ExamViewer() {
       setLoading(false);
     }
   };
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor(seconds % 3600 / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-  const handleStartEvaluation = () => {
-    setActiveTab('evaluation');
-    setIsTimerActive(true);
-    setTimeLeft(examDuration);
-    setUserAnswers([]);
-    setShowResults(false);
-  };
-  const handleAnswerChange = (questionIndex: number, answer: string) => {
-    console.log('Answer change:', { questionIndex, answer, length: answer.length });
+
+  const extractQuestions = (content: any): SidebarQuestion[] => {
+    const questions: SidebarQuestion[] = [];
+    let questionNumber = 0;
+
+    const items = Array.isArray(content) ? content : content.questions || [];
     
-    setUserAnswers(prev => {
-      const existing = prev.find(a => a.questionIndex === questionIndex);
-      let newAnswers;
-      if (existing) {
-        newAnswers = prev.map(a => a.questionIndex === questionIndex ? {
-          ...a,
-          answer
-        } : a);
-      } else {
-        newAnswers = [...prev, {
-          questionIndex,
-          answer
-        }];
+    items.forEach((item: any) => {
+      if (item.item_type === 'heading') {
+        questions.push({
+          id: item.id,
+          number: '',
+          text: item.text || '',
+          type: 'heading'
+        });
+      } else if (item.item_type === 'question') {
+        questionNumber++;
+        questions.push({
+          id: item.id,
+          number: item.paper_number || `Q${questionNumber}`,
+          text: item.text || '',
+          type: 'question'
+        });
       }
-      console.log('Updated answers:', newAnswers);
-      return newAnswers;
     });
+
+    return questions;
   };
-  const handleSubmitEvaluation = () => {
-    setIsTimerActive(false);
-    setShowResults(true);
+
+  const handleQuestionClick = (questionId: string) => {
+    setActiveQuestion(questionId);
+    const element = document.getElementById(questionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
+  const handleZoomReset = () => setZoom(1);
+
+  const handleDownload = () => {
+    if (exam?.file_url) {
+      window.open(exam.file_url, '_blank');
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
     toast({
-      title: 'Evaluation Complete',
-      description: 'Your answers have been submitted'
+      title: language === 'fr' ? 'Lien copié' : 'Link copied',
+      description: language === 'fr' ? 'Le lien a été copié dans le presse-papiers' : 'Link copied to clipboard'
     });
   };
-  const renderJsonContent = (content: any, showAnswers = false) => {
-    return (
-      <ExamContentRenderer
-        content={content}
-        showAnswers={showAnswers}
-        mode={mode as 'preview' | 'evaluation' | 'solution'}
-        userAnswers={userAnswers}
-        onAnswerChange={handleAnswerChange}
-      />
-    );
-  };
+
   if (loading) {
-    return <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
-        <p className="text-muted-foreground">{t('loading')}</p>
-      </div>;
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <p className="text-muted-foreground">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
+      </div>
+    );
   }
+
   if (!exam) {
-    return <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">Exam not found</p>
+            <p className="text-muted-foreground">
+              {language === 'fr' ? 'Épreuve non trouvée' : 'Exam not found'}
+            </p>
             <Button onClick={() => navigate('/exams')} className="mt-4">
-              Back to Exams
+              {language === 'fr' ? 'Retour aux épreuves' : 'Back to Exams'}
             </Button>
           </CardContent>
         </Card>
-      </div>;
-  }
-  const hasAnswers = 
-    exam.content?.questions && 
-    Array.isArray(exam.content.questions) && 
-    exam.content.questions.some((q: any) => q.answers && q.answers.length > 0) ||
-    (Array.isArray(exam.content) && exam.content.some((item: any) => 
-      item.item_type === 'question' && item.answers && item.answers.length > 0
-    ));
-  return <div className="bg-gradient-subtle min-h-screen p-3 md:p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/exams')} className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            {t('back')}
-          </Button>
-        </div>
-
-        {/* Exam Details Card */}
-        <Card className="shadow-medium">
-          <CardContent className="pt-6 space-y-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">{exam.title}</h1>
-              <p className="text-base md:text-lg text-muted-foreground mt-1">{exam.subject}</p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
-              {exam.classes?.display_name && (
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Class:</span>
-                  <Badge variant="secondary">{exam.classes.display_name}</Badge>
-                </div>
-              )}
-              {exam.exam_type && (
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Type:</span>
-                  <Badge variant="secondary">{exam.exam_type}</Badge>
-                </div>
-              )}
-              {exam.year && (
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Year:</span>
-                  <Badge variant="outline">{exam.year}</Badge>
-                </div>
-              )}
-              {exam.period && (
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Period:</span>
-                  <Badge variant="outline">{exam.period}</Badge>
-                </div>
-              )}
-              {exam.language && (
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">Language:</span>
-                  <Badge variant="outline">{exam.language === 'fr' ? 'Français' : 'English'}</Badge>
-                </div>
-              )}
-            </div>
-
-            {exam.description && (
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">{exam.description}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Timer for evaluation */}
-        {mode === 'evaluation' && isTimerActive && <Card className="border-orange-500 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-orange-600" />
-                  <span className="font-medium">Time Remaining:</span>
-                </div>
-                <div className="text-2xl font-bold text-orange-600">
-                  {formatTime(timeLeft)}
-                </div>
-              </div>
-            </CardContent>
-          </Card>}
-
-        {/* Content based on mode */}
-        {mode === 'preview' && <div className="space-y-6">
-            {/* Layout: PDF on left, Content on right */}
-            {exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-                {/* PDF Viewer (Collapsible) */}
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-medium">
-                  <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-5 w-5" />
-                            PDF Document
-                          </div>
-                          {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </CardTitle>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent>
-                        <div className="w-full h-[600px] border rounded-lg overflow-hidden">
-                          <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full" title="Exam PDF" />
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-
-                {/* Content */}
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Eye className="h-5 w-5" />
-                      {t('question_preview') || 'Question Preview'}
-                    </CardTitle>
-                    <CardDescription>
-                      {t('review_questions_desc') || 'Review the exam questions without answers.'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6 min-h-[60vh]">
-                    {exam.content ? renderJsonContent(exam.content, false) : <p className="text-muted-foreground">No content available for preview.</p>}
-                    
-                    {/* Navigation Buttons */}
-                    <div className="pt-6 border-t flex flex-wrap gap-4">
-                      <Button 
-                        onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}
-                        className="flex items-center gap-2"
-                      >
-                        <PenTool className="h-4 w-4" />
-                        Take Evaluation
-                      </Button>
-                      {hasAnswers && (
-                        <Button 
-                          onClick={() => navigate(`/exam/${examId}?mode=correction`)}
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          View Solution
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div> : (/* No PDF - Full width content */
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Eye className="h-5 w-5" />
-                    {t('question_preview') || 'Question Preview'}
-                  </CardTitle>
-                  <CardDescription>
-                    {t('review_questions_desc') || 'Review the exam questions without answers.'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 min-h-[60vh]">
-                  {exam.content ? renderJsonContent(exam.content, false) : <p className="text-muted-foreground">No content available for preview.</p>}
-                  
-                  {/* Navigation Buttons */}
-                  <div className="pt-6 border-t flex flex-wrap gap-4">
-                    <Button 
-                      onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}
-                      className="flex items-center gap-2"
-                    >
-                      <PenTool className="h-4 w-4" />
-                      Take Evaluation
-                    </Button>
-                    {hasAnswers && (
-                      <Button 
-                        onClick={() => navigate(`/exam/${examId}?mode=correction`)}
-                        variant="outline"
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        View Solution
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>)}
-          </div>}
-
-        {mode === 'evaluation' && <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PenTool className="h-5 w-5" />
-                {t('evaluation') || 'Evaluation Mode'}
-              </CardTitle>
-              <CardDescription>
-                Answer the questions within the time limit
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 min-h-[60vh]">
-              {!isTimerActive && !showResults ? <div className="text-center py-8">
-                  <Button onClick={handleStartEvaluation} size="lg">
-                    Start Evaluation ({formatTime(examDuration)})
-                  </Button>
-                </div> : showResults ? <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-green-600">Evaluation Complete!</h3>
-                  <p>Your answers have been recorded. You can now view the correction to see the correct answers.</p>
-                  {hasAnswers ? <Button onClick={() => navigate(`/exam/${examId}?mode=correction`)} className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4" />
-                      View Correction
-                    </Button> : <p className="text-muted-foreground">Correction not available for this exam yet.</p>}
-                </div> : <div className="space-y-4">
-                  {exam.content ? renderJsonContent(exam.content, false) : <p className="text-muted-foreground">No questions available.</p>}
-                  <div className="pt-4 border-t flex gap-4">
-                    <Button onClick={handleSubmitEvaluation} className="flex items-center gap-2">
-                      Submit Answers
-                    </Button>
-                  </div>
-                </div>}
-            </CardContent>
-          </Card>}
-
-        {mode === 'correction' && <div className="space-y-6">
-            {!hasAccess && !user ? <Card className="border-orange-500 bg-orange-50">
-                <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
-                  <p className="text-orange-700 mb-4">
-                    Sign in and subscribe to access corrections
-                  </p>
-                  <Button onClick={() => navigate('/auth')}>
-                    Sign In
-                  </Button>
-                </CardContent>
-              </Card> : !hasAccess ? <Card className="border-orange-500 bg-orange-50">
-                <CardContent className="pt-6 text-center min-h-[60vh] flex flex-col justify-center">
-                  <p className="text-orange-700 mb-4">
-                    Subscribe to access corrections
-                  </p>
-                  <Button onClick={() => navigate('/subscriptions')}>
-                    View Subscription Plans
-                  </Button>
-                </CardContent>
-              </Card> : (/* Layout: PDF on left, Content on right */
-        exam.file_url ? <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-                  {/* PDF Viewer (Collapsible) */}
-                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-medium">
-                    <Collapsible open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <CardTitle className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-5 w-5" />
-                              PDF Document
-                            </div>
-                            {isPdfOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                          </CardTitle>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent>
-                          <div className="w-full h-[600px] border rounded-lg overflow-hidden">
-                            <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full" title="Exam PDF" />
-                          </div>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </Card>
-
-                  {/* Content */}
-                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        Questions & Solutions
-                      </CardTitle>
-                      <CardDescription>
-                        Exam questions with detailed answers
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {hasAnswers ? renderJsonContent(exam.content, true) : <p className="text-muted-foreground">
-                          Correction not available for this exam yet.
-                        </p>}
-                    </CardContent>
-                  </Card>
-                </div> : (/* No PDF - Full width content */
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm shadow-strong">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
-                      Questions & Solutions
-                    </CardTitle>
-                    <CardDescription>
-                      Exam questions with detailed answers
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {hasAnswers ? renderJsonContent(exam.content, true) : <p className="text-muted-foreground">
-                        Correction not available for this exam yet.
-                      </p>}
-                  </CardContent>
-                </Card>))}
-          </div>}
       </div>
-    </div>;
+    );
+  }
+
+  const showAnswers = mode === 'correction';
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Breadcrumb */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/exams">{language === 'fr' ? 'Épreuves' : 'Exams'}</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                {exam.classes && (
+                  <>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </>
+                )}
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{exam.title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {exam.file_url && (
+                <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+                <Printer className="h-4 w-4" />
+                <span className="hidden sm:inline">{language === 'fr' ? 'Imprimer' : 'Print'}</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">{language === 'fr' ? 'Partager' : 'Share'}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* Sidebar */}
+        <aside className="w-80 hidden lg:block border-r border-border bg-card">
+          <ExamSidebar
+            questions={sidebarQuestions}
+            activeQuestion={activeQuestion}
+            onQuestionClick={handleQuestionClick}
+          />
+        </aside>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-6 max-w-4xl">
+            {/* Title Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-2xl">{exam.title}</CardTitle>
+                <CardDescription>
+                  {mode === 'correction' 
+                    ? (language === 'fr' ? 'Correction officielle' : 'Official Corrections')
+                    : mode === 'evaluation'
+                    ? (language === 'fr' ? 'Mode évaluation' : 'Evaluation Mode')
+                    : (language === 'fr' ? 'Aperçu des questions' : 'Question Preview')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {exam.classes && (
+                    <Badge variant="secondary">{exam.classes.display_name}</Badge>
+                  )}
+                  {exam.subject && (
+                    <Badge variant="outline">{exam.subject}</Badge>
+                  )}
+                  {exam.year && (
+                    <Badge variant="outline">{exam.year}</Badge>
+                  )}
+                  {exam.exam_type && (
+                    <Badge variant="outline">{exam.exam_type}</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* PDF Preview (if mode is preview and PDF exists) */}
+            {mode === 'preview' && exam.file_url && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5" />
+                    {language === 'fr' ? 'Document PDF' : 'PDF Document'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="w-full h-[600px] border rounded-lg overflow-hidden bg-muted">
+                    <iframe
+                      src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      className="w-full h-full"
+                      title="Exam PDF"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Exam Content */}
+            <div
+              ref={contentRef}
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+              className="transition-transform duration-200"
+            >
+              {exam.content ? (
+                <ExamContentRenderer
+                  content={exam.content}
+                  showAnswers={showAnswers}
+                  mode={mode as 'preview' | 'evaluation' | 'solution'}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">
+                      {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Zoom Controls */}
+      <ZoomControls
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onReset={handleZoomReset}
+      />
+    </div>
+  );
 }
