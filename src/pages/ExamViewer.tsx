@@ -3,12 +3,13 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Download, Printer, Share2, FileText } from 'lucide-react';
+import { FileText, Calendar, Clock } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
@@ -23,8 +24,9 @@ interface Exam {
   exam_type?: string;
   description?: string;
   language?: string;
-  content?: any; // JSON content with questions and potentially answers
-  file_url?: string; // PDF file URL
+  duration_minutes?: number;
+  content?: any;
+  file_url?: string;
   created_at: string;
   classes?: {
     id: string;
@@ -170,33 +172,15 @@ export default function ExamViewer() {
 
   const handleQuestionClick = (questionId: string) => {
     setActiveQuestion(questionId);
-    const element = document.getElementById(questionId);
+    const element = document.getElementById(`question-${questionId}`);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleZoomReset = () => setZoom(1);
-
-  const handleDownload = () => {
-    if (exam?.file_url) {
-      window.open(exam.file_url, '_blank');
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast({
-      title: language === 'fr' ? 'Lien copié' : 'Link copied',
-      description: language === 'fr' ? 'Le lien a été copié dans le presse-papiers' : 'Link copied to clipboard'
-    });
-  };
 
   if (loading) {
     return (
@@ -227,53 +211,87 @@ export default function ExamViewer() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Exam Details Banner */}
+      <div className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            {/* Breadcrumb */}
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to="/exams">{language === 'fr' ? 'Épreuves' : 'Exams'}</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                {exam.classes && (
-                  <>
-                    <BreadcrumbItem>
-                      <BreadcrumbLink asChild>
-                        <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                  </>
+            <div className="flex items-center gap-4 flex-wrap">
+              <h2 className="font-semibold text-lg">{exam.title}</h2>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                {exam.year && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>{exam.year}</span>
+                  </div>
                 )}
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{exam.title}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              {exam.file_url && (
-                <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">PDF</span>
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                <Printer className="h-4 w-4" />
-                <span className="hidden sm:inline">{language === 'fr' ? 'Imprimer' : 'Print'}</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
-                <Share2 className="h-4 w-4" />
-                <span className="hidden sm:inline">{language === 'fr' ? 'Partager' : 'Share'}</span>
-              </Button>
+                {exam.period && (
+                  <Badge variant="outline" className="text-xs">{exam.period}</Badge>
+                )}
+                {exam.exam_type && (
+                  <Badge variant="outline" className="text-xs">{exam.exam_type}</Badge>
+                )}
+                {exam.duration_minutes && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{exam.duration_minutes} min</span>
+                  </div>
+                )}
+              </div>
             </div>
+            
+            {/* View PDF Button */}
+            {exam.file_url && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    {language === 'fr' ? 'Voir PDF' : 'View PDF'}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-5xl h-[90vh]">
+                  <DialogHeader>
+                    <DialogTitle>{exam.title}</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex-1 h-full">
+                    <iframe
+                      src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      className="w-full h-full border rounded-lg"
+                      title="Exam PDF"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
+        </div>
+      </div>
+      
+      {/* Header with Breadcrumb */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/exams">{language === 'fr' ? 'Épreuves' : 'Exams'}</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              {exam.classes && (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </>
+              )}
+              <BreadcrumbItem>
+                <BreadcrumbPage>{exam.subject}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
       </header>
 
@@ -321,27 +339,6 @@ export default function ExamViewer() {
               </CardContent>
             </Card>
 
-            {/* PDF Preview (if mode is preview and PDF exists) */}
-            {mode === 'preview' && exam.file_url && (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <FileText className="h-5 w-5" />
-                    {language === 'fr' ? 'Document PDF' : 'PDF Document'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="w-full h-[600px] border rounded-lg overflow-hidden bg-muted">
-                    <iframe
-                      src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                      className="w-full h-full"
-                      title="Exam PDF"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Exam Content */}
             <div
               ref={contentRef}
@@ -353,6 +350,7 @@ export default function ExamViewer() {
                   content={exam.content}
                   showAnswers={showAnswers}
                   mode={mode as 'preview' | 'evaluation' | 'solution'}
+                  questionIdPrefix="question-"
                 />
               ) : (
                 <Card>

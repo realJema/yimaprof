@@ -56,6 +56,7 @@ interface ExamContentRendererProps {
   mode?: 'preview' | 'evaluation' | 'solution';
   userAnswers?: Array<{ questionIndex: number; answer: string }>;
   onAnswerChange?: (questionIndex: number, answer: string) => void;
+  questionIdPrefix?: string;
 }
 
 export function ExamContentRenderer({
@@ -63,7 +64,8 @@ export function ExamContentRenderer({
   showAnswers = false,
   mode = 'preview',
   userAnswers = [],
-  onAnswerChange
+  onAnswerChange,
+  questionIdPrefix = ''
 }: ExamContentRendererProps) {
   if (!content) {
     return <p className="text-muted-foreground">No content available.</p>;
@@ -167,7 +169,7 @@ export function ExamContentRenderer({
             });
 
             return (
-              <div key={item.id} className="border border-border rounded-lg p-4 bg-card">
+              <div key={item.id} id={`${questionIdPrefix}${item.id}`} className="border border-border rounded-lg p-4 bg-card scroll-mt-24">
                 <div className="space-y-4">
                   {/* Question Header */}
                   <div className="flex items-start justify-between gap-4">
@@ -368,7 +370,7 @@ export function ExamContentRenderer({
           const currentAnswer = userAnswers?.find(a => a.questionIndex === index);
           
           return (
-            <div key={question.id || index} className="border border-border rounded-lg p-4 bg-card">
+            <div key={question.id || index} id={`${questionIdPrefix}${question.id || index}`} className="border border-border rounded-lg p-4 bg-card scroll-mt-24">
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
