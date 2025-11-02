@@ -3,17 +3,17 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Calendar, Clock } from 'lucide-react';
+import { FileText, Calendar, Clock, ArrowLeft, X } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 interface Exam {
   id: string;
   title: string;
@@ -66,6 +66,8 @@ export default function ExamViewer() {
   const [zoom, setZoom] = useState(1);
   const [activeQuestion, setActiveQuestion] = useState<string>('');
   const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showPdfSplit, setShowPdfSplit] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (examId) {
@@ -223,60 +225,81 @@ export default function ExamViewer() {
             </div>
             
             {/* View PDF Button */}
-            {exam.file_url && <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    {language === 'fr' ? 'Voir PDF' : 'View PDF'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-5xl h-[90vh]">
-                  
-                  <div className="flex-1 h-full">
-                    <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full border rounded-lg" title="Exam PDF" />
-                  </div>
-                </DialogContent>
-              </Dialog>}
+            {exam.file_url && <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setShowPdfSplit(!showPdfSplit)}
+              >
+                <FileText className="h-4 w-4" />
+                {showPdfSplit 
+                  ? (language === 'fr' ? 'Masquer PDF' : 'Hide PDF')
+                  : (language === 'fr' ? 'Voir PDF' : 'View PDF')
+                }
+              </Button>}
           </div>
         </div>
       </div>
       
-      {/* Header with Breadcrumb */}
+      {/* Header with Back Button and Breadcrumb */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/exams">{language === 'fr' ? 'Épreuves' : 'Exams'}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              {exam.classes && <>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                </>}
-              <BreadcrumbItem>
-                <BreadcrumbPage>{exam.subject}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/exams/${exam.class_id}/list?subject=${exam.subject}`)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {language === 'fr' ? 'Retour' : 'Back'}
+            </Button>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/exams">{language === 'fr' ? 'Épreuves' : 'Exams'}</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                {exam.classes && <>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </>}
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{exam.subject}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="flex h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <aside className="w-80 hidden lg:block border-r border-border bg-card">
-          <ExamSidebar questions={sidebarQuestions} activeQuestion={activeQuestion} onQuestionClick={handleQuestionClick} />
+        <aside className={cn(
+          "hidden lg:block border-r border-border bg-card transition-all duration-300",
+          sidebarCollapsed ? "w-12" : "w-80"
+        )}>
+          <ExamSidebar 
+            questions={sidebarQuestions} 
+            activeQuestion={activeQuestion} 
+            onQuestionClick={handleQuestionClick}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-auto">
+        <main className={cn(
+          "flex-1 overflow-auto transition-all duration-300",
+          showPdfSplit && exam.file_url ? "w-1/2" : "w-full"
+        )}>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {/* Title Card */}
             <Card className="mb-6">
@@ -311,6 +334,25 @@ export default function ExamViewer() {
             </div>
           </div>
         </main>
+
+        {/* PDF Split View */}
+        {showPdfSplit && exam.file_url && (
+          <aside className="w-1/2 border-l border-border bg-card relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 z-10"
+              onClick={() => setShowPdfSplit(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <iframe 
+              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
+              className="w-full h-full" 
+              title="Exam PDF" 
+            />
+          </aside>
+        )}
       </div>
 
       {/* Zoom Controls */}
