@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,13 +69,8 @@ export default function ExamViewer() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showPdfSplit, setShowPdfSplit] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (examId) {
-      fetchExam();
-      checkAccess();
-    }
-  }, [examId, user]);
-  const checkAccess = async () => {
+  
+  const checkAccess = useCallback(async () => {
     if (!user) {
       setHasAccess(true); // Allow public access for preview
       return;
@@ -109,8 +104,9 @@ export default function ExamViewer() {
       console.error('Error checking access:', error);
       setHasAccess(false);
     }
-  };
-  const fetchExam = async () => {
+  }, [user]);
+  
+  const fetchExam = useCallback(async () => {
     try {
       const {
         data: examData,
@@ -145,7 +141,15 @@ export default function ExamViewer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [examId, language, toast]);
+
+  useEffect(() => {
+    if (examId) {
+      fetchExam();
+      checkAccess();
+    }
+  }, [examId, fetchExam, checkAccess]);
+  
   const extractQuestions = (content: any): SidebarQuestion[] => {
     const questions: SidebarQuestion[] = [];
     let questionNumber = 0;

@@ -24,9 +24,8 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredQuestions = questions.filter(q => 
-    q.type === 'question' && 
-    (q.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
-     q.number.toLowerCase().includes(searchTerm.toLowerCase()))
+    q.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    q.number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -83,7 +82,7 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
         size="icon"
         className={cn(
           "fixed top-20 z-50 h-10 w-10 rounded-full shadow-lg transition-all duration-300",
-          collapsed ? "left-4" : "left-[19rem]"
+          collapsed ? "left-0" : "left-[19.5rem]"
         )}
         onClick={onToggleCollapse}
       >
