@@ -229,7 +229,13 @@ export default function ExamViewer() {
                 variant="outline" 
                 size="sm" 
                 className="gap-2"
-                onClick={() => setShowPdfSplit(!showPdfSplit)}
+                onClick={() => {
+                  const newShowPdf = !showPdfSplit;
+                  setShowPdfSplit(newShowPdf);
+                  if (newShowPdf) {
+                    setSidebarCollapsed(true);
+                  }
+                }}
               >
                 <FileText className="h-4 w-4" />
                 {showPdfSplit 
@@ -284,7 +290,7 @@ export default function ExamViewer() {
         {/* Sidebar */}
         <aside className={cn(
           "hidden lg:block border-r border-border bg-card transition-all duration-300",
-          sidebarCollapsed ? "w-12" : "w-80"
+          sidebarCollapsed ? "w-0 border-0" : "w-80"
         )}>
           <ExamSidebar 
             questions={sidebarQuestions} 

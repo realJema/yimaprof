@@ -30,19 +30,9 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
   );
 
   return (
-    <div className="h-full flex flex-col relative">
-      {/* Collapse/Expand Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute -right-3 top-4 z-10 h-6 w-6 rounded-full border bg-background shadow-md"
-        onClick={onToggleCollapse}
-      >
-        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </Button>
-
+    <>
       {!collapsed && (
-        <>
+        <div className="h-full flex flex-col">
           {/* Search */}
           <div className="p-4 border-b">
             <div className="relative">
@@ -71,11 +61,11 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
                   )}
                 >
                   {question.type === 'question' ? (
-                    <div className="space-y-1">
-                      <div className="font-medium text-sm">{question.number}</div>
-                      <div className="text-xs text-muted-foreground line-clamp-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm flex-shrink-0">{question.number}</span>
+                      <span className="text-xs text-muted-foreground line-clamp-1 flex-1">
                         {question.text}
-                      </div>
+                      </span>
                     </div>
                   ) : (
                     <div className="text-sm line-clamp-1">{question.text}</div>
@@ -84,8 +74,21 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
               ))}
             </div>
           </ScrollArea>
-        </>
+        </div>
       )}
-    </div>
+
+      {/* Floating Collapse/Expand Button */}
+      <Button
+        variant="default"
+        size="icon"
+        className={cn(
+          "fixed top-20 z-50 h-10 w-10 rounded-full shadow-lg transition-all duration-300",
+          collapsed ? "left-4" : "left-[19rem]"
+        )}
+        onClick={onToggleCollapse}
+      >
+        {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+      </Button>
+    </>
   );
 }
