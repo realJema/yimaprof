@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { CheckCircle } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Answer {
   id: string;
@@ -67,8 +68,10 @@ export function ExamContentRenderer({
   onAnswerChange,
   questionIdPrefix = ''
 }: ExamContentRendererProps) {
+  const { language } = useLanguage();
+  
   if (!content) {
-    return <p className="text-muted-foreground">No content available.</p>;
+    return <p className="text-muted-foreground">{language === 'fr' ? 'Aucun contenu disponible.' : 'No content available.'}</p>;
   }
 
   // Handle legacy format (old questions array)
@@ -89,7 +92,7 @@ export function ExamContentRenderer({
     return renderNewFormat(content as ExamContentItem[]);
   }
 
-  return <p className="text-muted-foreground">Invalid content format.</p>;
+  return <p className="text-muted-foreground">{language === 'fr' ? 'Format de contenu invalide.' : 'Invalid content format.'}</p>;
 
   function renderNewFormat(items: ExamContentItem[]) {
     const sortedItems = [...items].sort((a, b) => a.order - b.order);
@@ -114,7 +117,7 @@ export function ExamContentRenderer({
             return (
               <div key={item.id} className="bg-muted/50 p-4 rounded-lg border border-border">
                 <p className="text-sm text-muted-foreground italic">
-                  <span className="font-semibold text-foreground">Instructions: </span>
+                  <span className="font-semibold text-foreground">{language === 'fr' ? 'Instructions : ' : 'Instructions: '}</span>
                   {item.text}
                 </p>
               </div>
@@ -188,11 +191,11 @@ export function ExamContentRenderer({
                     <div className="flex items-center gap-2 shrink-0">
                       {question.marks && (
                         <Badge variant="secondary" className="text-xs">
-                          {question.marks} marks
+                          {question.marks} {language === 'fr' ? 'points' : 'marks'}
                         </Badge>
                       )}
                       <Badge variant="outline" className="text-xs">
-                        {question.question_type === 'multiple_choice' ? 'MCQ' : 'Essay'}
+                        {question.question_type === 'multiple_choice' ? 'QCM' : (language === 'fr' ? 'Dissertation' : 'Essay')}
                       </Badge>
                     </div>
                   </div>
@@ -200,7 +203,7 @@ export function ExamContentRenderer({
                   {/* Context Reference */}
                   {question.context_ref && (
                     <p className="text-xs text-muted-foreground italic">
-                      (Refer to {question.context_ref})
+                      ({language === 'fr' ? 'Référez-vous à' : 'Refer to'} {question.context_ref})
                     </p>
                   )}
 
@@ -262,81 +265,81 @@ export function ExamContentRenderer({
 
                   {/* Long Form Answers */}
                   {question.question_type === 'long_form' && (
-                    <div className="ml-8 space-y-4">
-                      {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Your Answer:</label>
-                          <textarea
-                            placeholder="Enter your detailed answer here..."
-                            value={currentAnswer?.answer || ''}
-                            onChange={(e) => onAnswerChange(actualQuestionIndex, e.target.value)}
-                            className="w-full min-h-[120px] p-3 border border-input rounded-lg bg-background text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            rows={6}
-                          />
-                        </div>
-                      ) : showAnswers && question.answers && question.answers[0] ? (
-                        <div className="space-y-3">
-                          <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                            <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2 text-sm">
-                              Expected Answer / Key Points:
-                            </h4>
-                            <div className="text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap">
-                              {question.answers[0].text}
-                            </div>
-                            
-                            {/* Rubric */}
-                            {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
-                                <h5 className="font-semibold text-green-800 dark:text-green-300 mb-2 text-xs">
-                                  Marking Rubric:
-                                </h5>
-                                <div className="space-y-1">
-                                  {question.answers[0].rubric.map((criterion, idx) => (
-                                    <div key={idx} className="flex justify-between text-xs">
-                                      <span className="text-green-700 dark:text-green-400">
-                                        • {criterion.criteria}
-                                      </span>
-                                      <Badge variant="outline" className="h-5 text-xs">
-                                        {criterion.points} pts
-                                      </Badge>
-                                    </div>
-                                  ))}
+                      <div className="ml-8 space-y-4">
+                        {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">{language === 'fr' ? 'Votre réponse :' : 'Your Answer:'}</label>
+                            <textarea
+                              placeholder={language === 'fr' ? 'Entrez votre réponse détaillée ici...' : 'Enter your detailed answer here...'}
+                              value={currentAnswer?.answer || ''}
+                              onChange={(e) => onAnswerChange(actualQuestionIndex, e.target.value)}
+                              className="w-full min-h-[120px] p-3 border border-input rounded-lg bg-background text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              rows={6}
+                            />
+                          </div>
+                        ) : showAnswers && question.answers && question.answers[0] ? (
+                          <div className="space-y-3">
+                            <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                              <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2 text-sm">
+                                {language === 'fr' ? 'Réponse attendue / Points clés :' : 'Expected Answer / Key Points:'}
+                              </h4>
+                              <div className="text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap">
+                                {question.answers[0].text}
+                              </div>
+                              
+                              {/* Rubric */}
+                              {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+                                  <h5 className="font-semibold text-green-800 dark:text-green-300 mb-2 text-xs">
+                                    {language === 'fr' ? 'Barème de notation :' : 'Marking Rubric:'}
+                                  </h5>
+                                  <div className="space-y-1">
+                                    {question.answers[0].rubric.map((criterion, idx) => (
+                                      <div key={idx} className="flex justify-between text-xs">
+                                        <span className="text-green-700 dark:text-green-400">
+                                          • {criterion.criteria}
+                                        </span>
+                                        <Badge variant="outline" className="h-5 text-xs">
+                                          {criterion.points} {language === 'fr' ? 'pts' : 'pts'}
+                                        </Badge>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
+                              )}
+                            </div>
+
+                            {/* Sub-questions */}
+                            {question.sub_questions && question.sub_questions.length > 0 && (
+                              <div className="space-y-3">
+                                <h4 className="font-semibold text-sm text-foreground">{language === 'fr' ? 'Sous-questions :' : 'Sub-questions:'}</h4>
+                                {question.sub_questions.map((subQ, subIndex) => (
+                                  <div
+                                    key={subQ.id}
+                                    className="ml-4 p-3 bg-muted/50 rounded-lg border border-border"
+                                  >
+                                    <div className="flex items-start gap-2 mb-2">
+                                      <Badge variant="outline" className="text-xs">
+                                        {subQ.display_number || `${questionNumber}(${String.fromCharCode(97 + subIndex)})`}
+                                      </Badge>
+                                      <p className="text-sm font-medium flex-1">{subQ.text}</p>
+                                    </div>
+                                    
+                                    {showAnswers && subQ.answers && subQ.answers[0] && (
+                                      <div className="ml-6 mt-2 bg-green-50 dark:bg-green-950 p-3 rounded border border-green-200 dark:border-green-800">
+                                        <p className="text-xs font-medium text-green-800 dark:text-green-300 mb-1">
+                                          {language === 'fr' ? 'Réponse attendue :' : 'Expected Answer:'}
+                                        </p>
+                                        <div className="text-xs text-green-700 dark:text-green-400 whitespace-pre-wrap">
+                                          {subQ.answers[0].text}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
-
-                          {/* Sub-questions */}
-                          {question.sub_questions && question.sub_questions.length > 0 && (
-                            <div className="space-y-3">
-                              <h4 className="font-semibold text-sm text-foreground">Sub-questions:</h4>
-                              {question.sub_questions.map((subQ, subIndex) => (
-                                <div
-                                  key={subQ.id}
-                                  className="ml-4 p-3 bg-muted/50 rounded-lg border border-border"
-                                >
-                                  <div className="flex items-start gap-2 mb-2">
-                                    <Badge variant="outline" className="text-xs">
-                                      {subQ.display_number || `${questionNumber}(${String.fromCharCode(97 + subIndex)})`}
-                                    </Badge>
-                                    <p className="text-sm font-medium flex-1">{subQ.text}</p>
-                                  </div>
-                                  
-                                  {showAnswers && subQ.answers && subQ.answers[0] && (
-                                    <div className="ml-6 mt-2 bg-green-50 dark:bg-green-950 p-3 rounded border border-green-200 dark:border-green-800">
-                                      <p className="text-xs font-medium text-green-800 dark:text-green-300 mb-1">
-                                        Expected Answer:
-                                      </p>
-                                      <div className="text-xs text-green-700 dark:text-green-400 whitespace-pre-wrap">
-                                        {subQ.answers[0].text}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
                       ) : null}
                     </div>
                   )}
@@ -345,7 +348,7 @@ export function ExamContentRenderer({
                   {showAnswers && currentAnswer && (
                     <div className="ml-8 mt-4 pt-4 border-t bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
                       <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2 text-sm">
-                        Your Answer:
+                        {language === 'fr' ? 'Votre réponse :' : 'Your Answer:'}
                       </h4>
                       <p className="text-sm text-blue-700 dark:text-blue-400 whitespace-pre-wrap">
                         {currentAnswer.answer}
@@ -382,7 +385,7 @@ export function ExamContentRenderer({
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {question.type === 'multiple_choice' ? 'MCQ' : 'Essay'}
+                    {question.type === 'multiple_choice' ? 'QCM' : (language === 'fr' ? 'Dissertation' : 'Essay')}
                   </Badge>
                 </div>
 
@@ -445,9 +448,9 @@ export function ExamContentRenderer({
                   <div className="ml-8 space-y-3">
                     {mode === 'evaluation' && onAnswerChange && !showAnswers ? (
                       <div>
-                        <label className="block text-sm font-medium mb-2">Your Answer:</label>
+                        <label className="block text-sm font-medium mb-2">{language === 'fr' ? 'Votre réponse :' : 'Your Answer:'}</label>
                         <textarea
-                          placeholder="Enter your detailed answer here..."
+                          placeholder={language === 'fr' ? 'Entrez votre réponse détaillée ici...' : 'Enter your detailed answer here...'}
                           value={currentAnswer?.answer || ''}
                           onChange={(e) => onAnswerChange(index, e.target.value)}
                           className="w-full min-h-[120px] p-3 border border-input rounded-lg bg-background text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -457,7 +460,7 @@ export function ExamContentRenderer({
                     ) : showAnswers && question.answers && question.answers[0] ? (
                       <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
                         <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2 text-sm">
-                          Expected Answer:
+                          {language === 'fr' ? 'Réponse attendue :' : 'Expected Answer:'}
                         </h4>
                         <div className="text-sm text-green-700 dark:text-green-400">
                           {question.answers[0].text}
