@@ -135,7 +135,7 @@ export default function ExamViewer() {
     } catch (error) {
       toast({
         title: language === 'fr' ? 'Erreur' : 'Error',
-        description: 'Failed to fetch exam details',
+        description: language === 'fr' ? 'Échec de la récupération des détails de l\'épreuve' : 'Failed to fetch exam details',
         variant: 'destructive'
       });
     } finally {

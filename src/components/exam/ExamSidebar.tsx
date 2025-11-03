@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Question {
   id: string;
@@ -22,6 +23,7 @@ interface ExamSidebarProps {
 
 export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collapsed, onToggleCollapse }: ExamSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const { language } = useLanguage();
 
   const filteredQuestions = questions.filter(q => 
     q.text.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -37,7 +39,7 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search questions..."
+                placeholder={language === 'fr' ? 'Rechercher des questions...' : 'Search questions...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
