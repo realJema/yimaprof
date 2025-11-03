@@ -81,7 +81,7 @@ export function ExamSidebar({ questions, activeQuestion, onQuestionClick, collap
         variant="default"
         size="icon"
         className={cn(
-          "fixed top-20 z-50 h-10 w-10 rounded-full shadow-lg transition-all duration-300",
+          "fixed top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full shadow-lg transition-all duration-300",
           collapsed ? "left-4" : "left-[304px]"
         )}
         onClick={onToggleCollapse}
