@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
 
 export default function PaymentProcessing() {
@@ -12,6 +13,7 @@ export default function PaymentProcessing() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [status, setStatus] = useState<'processing' | 'completed' | 'failed'>('processing');
   const [checkCount, setCheckCount] = useState(0);
   const maxChecks = 30; // Check for 5 minutes (30 checks * 10 seconds)
@@ -61,14 +63,14 @@ export default function PaymentProcessing() {
       if (data.status === 'completed') {
         setStatus('completed');
         toast({
-          title: 'Payment Successful!',
-          description: 'Your subscription has been activated.',
+          title: t('payment_success'),
+          description: t('payment_success_desc'),
         });
       } else if (data.status === 'failed') {
         setStatus('failed');
         toast({
-          title: 'Payment Failed',
-          description: 'Your payment could not be processed.',
+          title: t('payment_failed'),
+          description: t('payment_failed_desc'),
           variant: 'destructive',
         });
       }
@@ -81,8 +83,12 @@ export default function PaymentProcessing() {
     navigate('/subscriptions');
   };
 
-  const handleContinue = () => {
+  const handleGoToSubscriptions = () => {
     navigate('/subscriptions');
+  };
+
+  const handleGoToExams = () => {
+    navigate('/exams');
   };
 
   return (
@@ -103,21 +109,21 @@ export default function PaymentProcessing() {
             </div>
             
             <CardTitle className="text-2xl">
-              {status === 'processing' && 'Processing Payment'}
-              {status === 'completed' && 'Payment Successful!'}
-              {status === 'failed' && 'Payment Failed'}
+              {status === 'processing' && t('payment_processing')}
+              {status === 'completed' && t('payment_success')}
+              {status === 'failed' && t('payment_failed')}
             </CardTitle>
             
             <CardDescription>
               {status === 'processing' && (
                 <>
-                  Please complete the payment on your mobile device.
+                  {t('payment_processing_desc')}
                   <br />
-                  Check #{checkCount + 1} of {maxChecks}
+                  {t('check')} #{checkCount + 1} {t('of')} {maxChecks}
                 </>
               )}
-              {status === 'completed' && 'Your subscription has been activated successfully.'}
-              {status === 'failed' && 'Your payment could not be processed. Please try again.'}
+              {status === 'completed' && t('payment_success_desc')}
+              {status === 'failed' && t('payment_failed_desc')}
             </CardDescription>
           </CardHeader>
 
@@ -126,15 +132,15 @@ export default function PaymentProcessing() {
               <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4" />
-                  Check your phone for the payment prompt
+                  {t('check_phone_payment')}
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg text-sm">
-                  <p className="font-medium mb-2">What to do next:</p>
+                  <p className="font-medium mb-2">{t('what_to_do_next')}</p>
                   <ol className="text-left space-y-1 list-decimal list-inside">
-                    <li>Check your phone for a payment notification</li>
-                    <li>Enter your mobile money PIN when prompted</li>
-                    <li>Confirm the payment amount</li>
-                    <li>Wait for confirmation</li>
+                    <li>{t('check_phone_notification')}</li>
+                    <li>{t('enter_pin')}</li>
+                    <li>{t('confirm_amount')}</li>
+                    <li>{t('wait_confirmation')}</li>
                   </ol>
                 </div>
                 <Button
@@ -142,28 +148,38 @@ export default function PaymentProcessing() {
                   onClick={() => navigate('/subscriptions')}
                   className="w-full"
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
               </div>
             )}
 
             {status === 'completed' && (
-              <Button onClick={handleContinue} className="w-full" size="lg">
-                Continue to Subscriptions
-              </Button>
+              <div className="space-y-3">
+                <Button onClick={handleGoToSubscriptions} className="w-full" size="lg">
+                  {t('go_to_subscriptions')}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleGoToExams}
+                  className="w-full"
+                  size="lg"
+                >
+                  {t('go_to_exams')}
+                </Button>
+              </div>
             )}
 
             {status === 'failed' && (
               <div className="space-y-3">
                 <Button onClick={handleRetry} className="w-full" size="lg">
-                  Try Again
+                  {t('try_again')}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigate('/subscriptions')}
                   className="w-full"
                 >
-                  Back to Plans
+                  {t('back_to_plans')}
                 </Button>
               </div>
             )}

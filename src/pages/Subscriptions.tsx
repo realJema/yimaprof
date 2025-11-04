@@ -53,6 +53,7 @@ export default function Subscriptions() {
 
   useEffect(() => {
     fetchPlans();
+    refreshSubscription(); // Refresh subscription when page mounts
     
     // Check for referral code in URL
     const refCode = searchParams.get('ref');
