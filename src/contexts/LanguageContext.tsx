@@ -406,6 +406,16 @@ const translations = {
     confirm_amount: 'Confirmez le montant du paiement',
     wait_confirmation: 'Attendez la confirmation',
     
+    // Evaluation Mode
+    evaluation_results: 'Résultats de l\'évaluation',
+    correct_answers: 'Questions correctes',
+    score: 'Score',
+    retry_evaluation: 'Recommencer l\'évaluation',
+    submit_evaluation: 'Soumettre l\'évaluation',
+    answer_at_least_one: 'Répondez à au moins une question pour soumettre',
+    evaluation_submitted: 'Évaluation soumise',
+    your_score: 'Votre score',
+    
     // Transaction History
     transaction_history: 'Historique des transactions',
     date: 'Date',
@@ -942,6 +952,16 @@ const translations = {
     enter_pin: 'Enter your mobile money PIN when prompted',
     confirm_amount: 'Confirm the payment amount',
     wait_confirmation: 'Wait for confirmation',
+    
+    // Evaluation Mode
+    evaluation_results: 'Evaluation Results',
+    correct_answers: 'Correct answers',
+    score: 'Score',
+    retry_evaluation: 'Retry Evaluation',
+    submit_evaluation: 'Submit Evaluation',
+    answer_at_least_one: 'Answer at least one question to submit',
+    evaluation_submitted: 'Evaluation Submitted',
+    your_score: 'Your score',
     
     // Transaction History
     transaction_history: 'Transaction History',

@@ -51,7 +51,8 @@ export default function ExamViewer() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const {
-    language
+    language,
+    t
   } = useLanguage();
   const {
     user
@@ -69,6 +70,11 @@ export default function ExamViewer() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showPdfSplit, setShowPdfSplit] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Evaluation mode state
+  const [userAnswers, setUserAnswers] = useState<Array<{ questionIndex: number; answer: string }>>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
   
   const checkAccess = useCallback(async () => {
     if (!user) {
@@ -187,6 +193,55 @@ export default function ExamViewer() {
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleZoomReset = () => setZoom(1);
+  
+  const handleAnswerChange = (questionIndex: number, answer: string) => {
+    setUserAnswers(prev => {
+      const existing = prev.findIndex(a => a.questionIndex === questionIndex);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { questionIndex, answer };
+        return updated;
+      }
+      return [...prev, { questionIndex, answer }];
+    });
+  };
+  
+  const calculateScore = () => {
+    if (!exam?.content) return;
+    
+    let correct = 0;
+    let total = 0;
+    
+    const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
+    const questions = items.filter((item: any) => 
+      (item.item_type === 'question' && item.question_type === 'multiple_choice') || 
+      item.type === 'multiple_choice'
+    );
+    
+    questions.forEach((question: any, index: number) => {
+      total++;
+      const userAnswer = userAnswers.find(a => a.questionIndex === index);
+      const correctAnswer = question.answers?.find((a: any) => a.is_correct);
+      
+      if (correctAnswer && userAnswer?.answer === correctAnswer.text) {
+        correct++;
+      }
+    });
+    
+    setScore({ correct, total });
+    setSubmitted(true);
+    
+    toast({
+      title: t('evaluation_submitted'),
+      description: t('your_score') + `: ${correct}/${total} (${total > 0 ? Math.round((correct / total) * 100) : 0}%)`,
+    });
+  };
+  
+  const resetEvaluation = () => {
+    setUserAnswers([]);
+    setSubmitted(false);
+    setScore(null);
+  };
   if (loading) {
     return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <p className="text-muted-foreground">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
@@ -206,7 +261,7 @@ export default function ExamViewer() {
         </Card>
       </div>;
   }
-  const showAnswers = mode === 'correction';
+  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   return <div className="min-h-screen bg-background">
       {/* Exam Details Banner */}
       <div className="border-b border-border bg-muted/30">
@@ -329,12 +384,55 @@ export default function ExamViewer() {
               </CardContent>
             </Card>
 
+            {/* Score Card for Evaluation Mode */}
+            {mode === 'evaluation' && submitted && score && (
+              <Card className="mb-6 border-primary bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    {t('evaluation_results')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-3xl font-bold text-primary">
+                          {score.correct}/{score.total}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t('correct_answers')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">
+                          {Math.round((score.correct / score.total) * 100)}%
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t('score')}
+                        </p>
+                      </div>
+                    </div>
+                    <Button onClick={resetEvaluation} className="w-full">
+                      {t('retry_evaluation')}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Exam Content */}
             <div ref={contentRef} style={{
             transform: `scale(${zoom})`,
             transformOrigin: 'top left'
           }} className="transition-transform duration-200">
-              {exam.content ? <ExamContentRenderer content={exam.content} showAnswers={showAnswers} mode={mode as 'preview' | 'evaluation' | 'solution'} questionIdPrefix="question-" /> : <Card>
+              {exam.content ? <ExamContentRenderer 
+                content={exam.content} 
+                showAnswers={showAnswers} 
+                mode={mode as 'preview' | 'evaluation' | 'solution'} 
+                questionIdPrefix="question-"
+                userAnswers={userAnswers}
+                onAnswerChange={handleAnswerChange}
+              /> : <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
                       {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
@@ -342,6 +440,27 @@ export default function ExamViewer() {
                   </CardContent>
                 </Card>}
             </div>
+
+            {/* Submit Button for Evaluation Mode */}
+            {mode === 'evaluation' && !submitted && (
+              <Card className="mt-6 sticky bottom-4">
+                <CardContent className="pt-6">
+                  <Button 
+                    onClick={calculateScore} 
+                    className="w-full" 
+                    size="lg"
+                    disabled={userAnswers.length === 0}
+                  >
+                    {t('submit_evaluation')}
+                  </Button>
+                  {userAnswers.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center mt-2">
+                      {t('answer_at_least_one')}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </main>
 
