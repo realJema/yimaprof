@@ -258,61 +258,84 @@ export default function ExamList() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {sortedExams.map(exam => (
-              <Card key={exam.id} className="group hover:shadow-lg transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <Badge variant="secondary">
-                      {exam.year || new Date(exam.created_at).getFullYear()}
-                    </Badge>
-                    {exam.exam_type && (
-                      <Badge variant="outline">{exam.exam_type}</Badge>
+            {sortedExams.map((exam, index) => {
+              // Material colors alternating pattern
+              const colorClasses = [
+                'bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50',
+                'bg-gradient-to-br from-green-500/10 to-green-600/20 border-green-500/30 hover:border-green-500/50',
+                'bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30 hover:border-purple-500/50',
+                'bg-gradient-to-br from-orange-500/10 to-orange-600/20 border-orange-500/30 hover:border-orange-500/50',
+              ];
+              const colorIndex = index % 4;
+              
+              return (
+                <Card key={exam.id} className={`group hover:shadow-lg transition-all ${colorClasses[colorIndex]}`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-2">
+                      <Badge variant="secondary">
+                        {exam.year || new Date(exam.created_at).getFullYear()}
+                      </Badge>
+                      {exam.exam_type && (
+                        <Badge variant="outline">{exam.exam_type}</Badge>
+                      )}
+                    </div>
+                    <CardTitle className="line-clamp-2 text-lg">{exam.title}</CardTitle>
+                    {exam.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
+                        {exam.description}
+                      </p>
                     )}
-                  </div>
-                  <CardTitle className="line-clamp-2 text-lg">{exam.title}</CardTitle>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    {exam.period && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{exam.period}</span>
-                      </div>
+                    {!exam.description && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {language === 'fr' 
+                          ? `Épreuve officielle avec correction détaillée`
+                          : `Official exam paper with detailed corrections`}
+                      </p>
                     )}
-                    {exam.duration_minutes && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{exam.duration_minutes} min</span>
-                      </div>
-                    )}
-                  </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      {exam.period && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>{exam.period}</span>
+                        </div>
+                      )}
+                      {exam.duration_minutes && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          <span>{exam.duration_minutes} min</span>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
-                      <Button variant="default" size="sm" className="w-full gap-2">
-                        <Eye className="h-4 w-4" />
-                        {language === 'fr' ? 'Aperçu' : 'Preview'}
-                      </Button>
-                    </Link>
-                    
-                    <Link to={`/exam/${exam.id}?mode=correction`} className="w-full">
-                      <Button variant="outline" size="sm" className="w-full gap-2">
-                        <FileText className="h-4 w-4" />
-                        {language === 'fr' ? 'Voir Correction' : 'View Correction'}
-                      </Button>
-                    </Link>
-                    
-                    <Link to={`/exam/${exam.id}?mode=evaluation`} className="w-full">
-                      <Button variant="secondary" size="sm" className="w-full gap-2">
-                        <Play className="h-4 w-4" />
-                        {language === 'fr' ? 'Évaluation' : 'Take Evaluation'}
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex flex-col gap-2">
+                      <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
+                        <Button variant="default" size="sm" className="w-full gap-2">
+                          <Eye className="h-4 w-4" />
+                          {language === 'fr' ? 'Aperçu' : 'Preview'}
+                        </Button>
+                      </Link>
+                      
+                      <Link to={`/exam/${exam.id}?mode=correction`} className="w-full">
+                        <Button variant="outline" size="sm" className="w-full gap-2">
+                          <FileText className="h-4 w-4" />
+                          {language === 'fr' ? 'Voir Correction' : 'View Correction'}
+                        </Button>
+                      </Link>
+                      
+                      <Link to={`/exam/${exam.id}?mode=evaluation`} className="w-full">
+                        <Button variant="secondary" size="sm" className="w-full gap-2">
+                          <Play className="h-4 w-4" />
+                          {language === 'fr' ? 'Évaluation' : 'Take Evaluation'}
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
