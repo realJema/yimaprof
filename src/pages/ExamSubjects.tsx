@@ -134,7 +134,7 @@ export default function ExamSubjects() {
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate('/exams')}
+            onClick={() => navigate(-1)}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

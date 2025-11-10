@@ -319,7 +319,7 @@ export default function ExamViewer() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/exams/${exam.class_id}/list?subject=${exam.subject}`)}
+              onClick={() => navigate(-1)}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />

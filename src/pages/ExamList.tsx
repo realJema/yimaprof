@@ -172,7 +172,7 @@ export default function ExamList() {
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate(`/exams/${classId}/subjects`)}
+            onClick={() => navigate(-1)}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
