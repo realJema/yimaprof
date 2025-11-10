@@ -277,15 +277,8 @@ export default function Exams() {
                       </CardDescription>
                     </CardHeader>
                   </Card>;
-        })}
+         })}
             </div>}
-        {Object.keys(groupedClasses).length === 0 ? <Card className="p-12 text-center">
-            <p className="text-muted-foreground">
-              {language === 'fr' ? 'Aucune classe disponible.' : 'No classes available.'}
-            </p>
-          </Card> : <div className="space-y-8">
-            {Object.entries(groupedClasses).map(([group, groupClasses]) => {})}
-          </div>}
       </div>
     </div>;
 }

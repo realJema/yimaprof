@@ -41,7 +41,7 @@ const App = () => <QueryClientProvider client={queryClient}>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/exams" element={<Exams />} className="pb-16 " />
+                  <Route path="/exams" element={<Exams />} />
                   <Route path="/exams/:classId/subjects" element={<ExamSubjects />} />
                   <Route path="/exams/:classId/list" element={<ExamList />} />
                   <Route path="/exam/:examId" element={<ExamViewer />} />

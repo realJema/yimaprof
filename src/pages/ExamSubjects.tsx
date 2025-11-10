@@ -180,17 +180,27 @@ export default function ExamSubjects() {
               </CardHeader>
             </Card>
             
-            {filteredSubjects.map((subject) => {
+            {filteredSubjects.map((subject, index) => {
               const Icon = getSubjectIcon(subject.name);
+              // Material colors alternating pattern
+              const colorClasses = [
+                'bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50',
+                'bg-gradient-to-br from-green-500/10 to-green-600/20 border-green-500/30 hover:border-green-500/50',
+                'bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30 hover:border-purple-500/50',
+                'bg-gradient-to-br from-orange-500/10 to-orange-600/20 border-orange-500/30 hover:border-orange-500/50'
+              ];
+              const iconColors = ['text-blue-500', 'text-green-500', 'text-purple-500', 'text-orange-500'];
+              const colorIndex = index % 4;
+              
               return (
                 <Card 
                   key={subject.name}
-                  className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-border/50"
+                  className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${colorClasses[colorIndex]}`}
                   onClick={() => navigate(`/exams/${classId}/list?subject=${encodeURIComponent(subject.name)}`)}
                 >
                   <CardHeader className="text-center">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 mx-auto mb-3">
-                      <Icon className="h-6 w-6 text-primary" />
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-background/50 mx-auto mb-3">
+                      <Icon className={`h-6 w-6 ${iconColors[colorIndex]}`} />
                     </div>
                     <CardTitle className="text-base group-hover:text-primary transition-colors">
                       {subject.name}
