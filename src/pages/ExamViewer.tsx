@@ -64,6 +64,7 @@ export default function ExamViewer() {
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [isFreeUser, setIsFreeUser] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [activeQuestion, setActiveQuestion] = useState<string>('');
   const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
@@ -79,6 +80,7 @@ export default function ExamViewer() {
   const checkAccess = useCallback(async () => {
     if (!user) {
       setHasAccess(true); // Allow public access for preview
+      setIsFreeUser(true); // Not logged in = free user
       return;
     }
     try {
@@ -91,6 +93,7 @@ export default function ExamViewer() {
       });
       if (!adminError && isAdminUser === true) {
         setHasAccess(true);
+        setIsFreeUser(false);
         return;
       }
 
@@ -103,12 +106,15 @@ export default function ExamViewer() {
         `).eq('user_id', user.id).eq('status', 'active').single();
       if (subscription) {
         setHasAccess(true);
+        setIsFreeUser(false);
       } else {
         setHasAccess(false);
+        setIsFreeUser(true); // Logged in but no subscription = free user
       }
     } catch (error) {
       console.error('Error checking access:', error);
       setHasAccess(false);
+      setIsFreeUser(true);
     }
   }, [user]);
   
@@ -261,7 +267,7 @@ export default function ExamViewer() {
         </Card>
       </div>;
   }
-  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
+  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted) || isFreeUser;
   return <div className="min-h-screen bg-background">
       {/* Exam Details Banner */}
       <div className="border-b border-border bg-muted/30">
