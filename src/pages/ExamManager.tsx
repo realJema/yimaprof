@@ -518,23 +518,38 @@ export default function ExamManager() {
         setLoading(false);
         return;
       }
+      
+      // Clean up the data - remove fields that shouldn't be updated
+      const { created_at, updated_at, classes, subjects, exam_types, academic_years, periods, establishments, created_by, ...cleanFormData } = formData as any;
+      
       const examData = {
-        ...formData,
+        ...cleanFormData,
         content: parsedJson,
         file_url: fileUrl,
-        created_by: user?.id || "",
         is_published: false,
       };
+      
       if (isEditing) {
+        // When updating, don't change created_by
         const { error } = await supabase.from("exams").update(examData).eq("id", examId);
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast({
           title: "Success",
-          description: "Draft saved successfully",
+          description: "Exam saved successfully",
         });
       } else {
-        const { data, error } = await supabase.from("exams").insert(examData).select().single();
-        if (error) throw error;
+        // When inserting, include created_by
+        const { data, error } = await supabase.from("exams").insert({
+          ...examData,
+          created_by: user?.id || "",
+        }).select().single();
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         setIsDraft(true);
         toast({
           title: "Success",
@@ -544,12 +559,12 @@ export default function ExamManager() {
           window.history.replaceState({}, "", `/admin/exam/edit/${data.id}`);
         }
       }
-      navigate("/admin");
+      navigate("/admin?tab=exams");
     } catch (error) {
       console.error("Error saving draft:", error);
       toast({
         title: "Error",
-        description: "Failed to save draft",
+        description: `Failed to save: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     } finally {
