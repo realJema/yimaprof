@@ -508,6 +508,21 @@ export default function ExamManager() {
   const saveDraft = async () => {
     setLoading(true);
     try {
+      // Check if user is authenticated
+      if (!user?.id) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to save exams",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log('Current user ID:', user.id);
+      console.log('Exam ID:', examId);
+      console.log('Is editing:', isEditing);
+      
       // Only upload if there's a selected file that hasn't been uploaded yet
       let fileUrl = formData.file_url;
       if (selectedFile && !formData.file_url) {
@@ -545,9 +560,17 @@ export default function ExamManager() {
         establishment_id: formData.establishment_id || null,
       };
       
+      console.log('Sending exam data:', examData);
+      
       if (isEditing) {
-        // When updating, don't change created_by
-        const { error } = await supabase.from("exams").update(examData).eq("id", examId);
+        // When updating, absolutely DO NOT include created_by
+        // The RLS policy checks that created_by matches the current user
+        const { error } = await supabase
+          .from("exams")
+          .update(examData)
+          .eq("id", examId)
+          .eq("created_by", user.id); // Ensure we only update our own exam
+          
         if (error) {
           console.error('Update error:', error);
           throw error;
@@ -558,7 +581,7 @@ export default function ExamManager() {
         });
       } else {
         // When inserting, include created_by
-        examData.created_by = user?.id || "";
+        examData.created_by = user.id;
         const { data, error } = await supabase.from("exams").insert(examData).select().single();
         if (error) {
           console.error('Insert error:', error);
