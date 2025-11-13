@@ -242,7 +242,7 @@ export default function ExamManager() {
   const handleAddSubject = async (name: string, translations: { en: string; fr: string }) => {
     try {
       const { error } = await supabase
-        .from('subjects')
+        .from('subjects' as any)
         .insert({ name, name_en: translations.en, name_fr: translations.fr });
       
       if (error) throw error;
@@ -291,7 +291,7 @@ export default function ExamManager() {
       const endYear = parseInt(years[1]);
       
       const { error } = await supabase
-        .from('academic_years')
+        .from('academic_years' as any)
         .insert({ year_label: yearLabel, start_year: startYear, end_year: endYear });
       
       if (error) throw error;
@@ -325,7 +325,7 @@ export default function ExamManager() {
         : `${min} min`;
       
       const { error } = await supabase
-        .from('durations')
+        .from('durations' as any)
         .insert({ minutes: min, display_label: label });
       
       if (error) throw error;
@@ -1250,7 +1250,7 @@ export default function ExamManager() {
                         {t("examSchool")}
                       </Label>
                       <Select
-                        value={formData.establishment_id}
+                        value={formData.establishment_id || ''}
                         onValueChange={(value) => {
                           if (value === '__add_new__') {
                             setShowAddEstablishment(true);
@@ -1282,7 +1282,7 @@ export default function ExamManager() {
                         {t("subject")} *
                       </Label>
                       <Select
-                        value={formData.subject_id}
+                        value={formData.subject_id || ''}
                         onValueChange={(value) => {
                           if (value === '__add_new__') {
                             setShowAddSubject(true);
@@ -1316,7 +1316,7 @@ export default function ExamManager() {
                         {t("exam_type")} *
                       </Label>
                       <Select
-                        value={formData.exam_type_id}
+                        value={formData.exam_type_id || ''}
                         onValueChange={(value) => setFormData((prev) => ({ ...prev, exam_type_id: value }))}
                       >
                         <SelectTrigger className="mt-1">
@@ -1362,7 +1362,7 @@ export default function ExamManager() {
                         {t("year")} *
                       </Label>
                       <Select
-                        value={formData.academic_year_id}
+                        value={formData.academic_year_id || ''}
                         onValueChange={(value) => {
                           if (value === '__add_new__') {
                             setShowAddYear(true);
@@ -1394,7 +1394,7 @@ export default function ExamManager() {
                         {t("period")}
                       </Label>
                       <Select
-                        value={formData.period_id}
+                        value={formData.period_id || ''}
                         onValueChange={(value) => setFormData((prev) => ({ ...prev, period_id: value }))}
                       >
                         <SelectTrigger className="mt-1">
@@ -1416,7 +1416,7 @@ export default function ExamManager() {
                         {t("duration")}
                       </Label>
                       <Select
-                        value={formData.duration_id}
+                        value={formData.duration_id || ''}
                         onValueChange={(value) => {
                           if (value === '__add_new__') {
                             setShowAddDuration(true);
