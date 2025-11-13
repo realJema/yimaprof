@@ -595,7 +595,6 @@ export default function ExamManager() {
           window.history.replaceState({}, "", `/admin/exam/edit/${data.id}`);
         }
       }
-      navigate("/admin?tab=exams");
     } catch (error) {
       console.error("Error saving draft:", error);
       toast({
@@ -679,7 +678,6 @@ export default function ExamManager() {
           description: shouldPublish ? "Exam published successfully" : "Exam created successfully",
         });
       }
-      navigate("/admin");
     } catch (error) {
       console.error("Error saving exam:", error);
       toast({
@@ -697,7 +695,6 @@ export default function ExamManager() {
   };
   const handlePublish = async () => {
     await handleSubmit(true);
-    navigate("/admin?tab=exams");
   };
   const handlePublishAndCreateAnother = async () => {
     const errors = validateFormData();
