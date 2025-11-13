@@ -93,7 +93,6 @@ export default function Header() {
     { to: '/dashboard', icon: BarChart3, label: t('dashboard') },
     { to: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
     { to: '/affiliate', icon: Share2, label: language === 'fr' ? 'Affiliation' : 'Affiliate' },
-    { to: '/profile', icon: User, label: t('profile') },
     { to: '/settings', icon: Settings, label: t('settings') },
   ];
 
