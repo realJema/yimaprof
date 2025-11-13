@@ -300,6 +300,33 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          created_at: string
+          feedback_text: string
+          id: string
+          status: Database["public"]["Enums"]["feedback_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_text: string
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
@@ -726,6 +753,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher" | "student"
+      feedback_status: "new" | "reviewed" | "replied"
       payment_provider: "mtn_momo" | "orange_money" | "mesomb"
       subscription_status: "active" | "expired" | "canceled" | "pending"
       transaction_status:
@@ -863,6 +891,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher", "student"],
+      feedback_status: ["new", "reviewed", "replied"],
       payment_provider: ["mtn_momo", "orange_money", "mesomb"],
       subscription_status: ["active", "expired", "canceled", "pending"],
       transaction_status: [

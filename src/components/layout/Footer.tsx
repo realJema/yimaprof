@@ -28,6 +28,9 @@ export default function Footer({ className }: FooterProps = {}) {
     label: t('contact'),
     href: '/contact'
   }, {
+    label: t('write_to_us'),
+    href: '/write-to-us'
+  }, {
     label: t('privacy_policy'),
     href: '/privacy'
   }, {

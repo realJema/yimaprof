@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3 } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare } from 'lucide-react';
 
 // Import admin components
 import { AdminStats } from '@/components/admin/AdminStats';
@@ -17,6 +17,7 @@ import { SubscriptionPlanManagement } from '@/components/admin/SubscriptionPlanM
 import { TransactionViewer } from '@/components/admin/TransactionViewer';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 import { NotificationComposer } from '@/components/admin/NotificationComposer';
+import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
 
 export default function Admin() {
   const { t } = useLanguage();
@@ -103,6 +104,7 @@ export default function Admin() {
     { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
     { id: 'transactions', label: t('transactions'), icon: Shield },
     { id: 'notifications', label: t('notifications'), icon: Shield },
+    { id: 'feedback', label: t('user_feedback'), icon: MessageSquare },
   ];
 
   return (
@@ -224,6 +226,7 @@ export default function Admin() {
             {activeTab === 'subscriptions' && <ActiveSubscriptions />}
             {activeTab === 'transactions' && <TransactionViewer />}
             {activeTab === 'notifications' && <NotificationComposer />}
+            {activeTab === 'feedback' && <FeedbackViewer />}
           </div>
         </div>
       </div>
