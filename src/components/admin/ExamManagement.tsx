@@ -15,7 +15,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { useExamFormData } from '@/hooks/useExamFormData';
 import { useLanguage } from '@/contexts/LanguageContext';
-
 interface Exam {
   id: string;
   title: string;
@@ -58,32 +57,34 @@ interface Exam {
     name: string;
   };
 }
-
 interface Question {
   id: string;
   text: string;
   type: string;
   answers: Answer[];
 }
-
 interface Answer {
   id: string;
   text: string;
   is_correct: boolean;
 }
-
 interface Class {
   id: string;
   display_name: string;
   section: string;
 }
-
 const generateId = () => Math.random().toString(36).substr(2, 9);
-
 export function ExamManagement() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { language, t } = useLanguage();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    language,
+    t
+  } = useLanguage();
   const [exams, setExams] = useState<Exam[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,20 +98,19 @@ export function ExamManagement() {
   const [previewExam, setPreviewExam] = useState<Exam | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Fetch dropdown options for filters
   const formOptions = useExamFormData();
-
   useEffect(() => {
     fetchExams();
     fetchClasses();
   }, []);
-
   const fetchExams = async () => {
     try {
-      const { data, error } = await supabase
-        .from('exams')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('exams').select(`
           *,
           classes (
             display_name,
@@ -137,9 +137,9 @@ export function ExamManagement() {
           establishments:establishment_id (
             name
           )
-        `)
-        .order('created_at', { ascending: false });
-
+        `).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       setExams(data as any || []);
     } catch (error) {
@@ -147,20 +147,18 @@ export function ExamManagement() {
       toast({
         title: 'Error',
         description: 'Failed to fetch exams',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
   };
-
   const fetchClasses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .order('display_name');
-
+      const {
+        data,
+        error
+      } = await supabase.from('classes').select('*').order('display_name');
       if (error) throw error;
       setClasses(data || []);
     } catch (error) {
@@ -175,15 +173,11 @@ export function ExamManagement() {
   // Apply filters to exams
   const filterExams = (examsList: Exam[]) => {
     return examsList.filter(exam => {
-      const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          exam.subject.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) || exam.subject.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesYear = selectedYear === 'all' || exam.year.toString() === selectedYear;
       const matchesSubject = selectedSubject === 'all' || exam.subject === selectedSubject;
       const matchesClass = selectedClass === 'all' || exam.class_id === selectedClass;
-      const matchesStatus = selectedStatus === 'all' || 
-                          (selectedStatus === 'published' && exam.is_published) ||
-                          (selectedStatus === 'draft' && !exam.is_published);
-      
+      const matchesStatus = selectedStatus === 'all' || selectedStatus === 'published' && exam.is_published || selectedStatus === 'draft' && !exam.is_published;
       return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus;
     });
   };
@@ -191,71 +185,58 @@ export function ExamManagement() {
   // Get unique values for filters
   const uniqueYears = Array.from(new Set(exams.map(e => e.year))).sort((a, b) => b - a);
   const uniqueSubjects = Array.from(new Set(exams.map(e => e.subject))).sort();
-
   const handleDelete = async (exam: Exam) => {
     if (!confirm('Are you sure you want to delete this exam?')) return;
-
     try {
-      const { error } = await supabase
-        .from('exams')
-        .delete()
-        .eq('id', exam.id);
-
+      const {
+        error
+      } = await supabase.from('exams').delete().eq('id', exam.id);
       if (error) throw error;
-
       setExams(prev => prev.filter(e => e.id !== exam.id));
       toast({
         title: 'Success',
-        description: 'Exam deleted successfully',
+        description: 'Exam deleted successfully'
       });
     } catch (error) {
       console.error('Error deleting exam:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete exam',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     }
   };
-
   const togglePublishStatus = async (exam: Exam) => {
     try {
-      const { error } = await supabase
-        .from('exams')
-        .update({ is_published: !exam.is_published })
-        .eq('id', exam.id);
-
+      const {
+        error
+      } = await supabase.from('exams').update({
+        is_published: !exam.is_published
+      }).eq('id', exam.id);
       if (error) throw error;
-
-      setExams(prev => prev.map(e => 
-        e.id === exam.id ? { ...e, is_published: !e.is_published } : e
-      ));
-
+      setExams(prev => prev.map(e => e.id === exam.id ? {
+        ...e,
+        is_published: !e.is_published
+      } : e));
       toast({
         title: 'Success',
-        description: `Exam ${exam.is_published ? 'unpublished' : 'published'} successfully`,
+        description: `Exam ${exam.is_published ? 'unpublished' : 'published'} successfully`
       });
     } catch (error) {
       console.error('Error updating exam status:', error);
       toast({
         title: 'Error',
         description: 'Failed to update exam status',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     }
   };
-
   const renderExamCard = (exam: Exam) => {
     const subjectName = language === 'fr' ? exam.subjects?.name_fr : exam.subjects?.name_en;
     const examTypeName = language === 'fr' ? exam.exam_types?.name_fr : exam.exam_types?.name_en;
     const periodName = language === 'fr' ? exam.periods?.name_fr : exam.periods?.name_en;
     const yearLabel = exam.academic_years?.year_label;
-    
-    return (
-      <Card 
-        key={exam.id} 
-        className="group relative overflow-hidden border-border/40 bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300 h-full flex flex-col"
-      >
+    return <Card key={exam.id} className="group relative overflow-hidden border-border/40 bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300 h-full flex flex-col">
         {/* Accent Bar */}
         <div className={`absolute top-0 left-0 right-0 h-1 ${exam.is_published ? 'bg-primary' : 'bg-muted'}`} />
         
@@ -270,10 +251,7 @@ export function ExamManagement() {
                 {exam.language === 'fr' ? 'FR' : 'EN'}
               </Badge>
             </div>
-            <Badge 
-              variant={exam.is_published ? 'default' : 'secondary'} 
-              className="text-[10px] px-2 flex-shrink-0"
-            >
+            <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-[10px] px-2 flex-shrink-0">
               {exam.is_published ? 'Published' : 'Draft'}
             </Badge>
           </div>
@@ -297,88 +275,61 @@ export function ExamManagement() {
 
           {/* Details Grid */}
           <div className="flex-1 space-y-2 text-xs min-w-0">
-            {exam.classes && (
-              <div className="flex items-center gap-2 min-w-0">
+            {exam.classes && <div className="flex items-center gap-2 min-w-0">
                 <span className="text-muted-foreground flex-shrink-0 w-14">Class:</span>
                 <span className="font-medium text-foreground truncate">{exam.classes.display_name}</span>
-              </div>
-            )}
+              </div>}
             
-            {examTypeName && (
-              <div className="flex items-center gap-2 min-w-0">
+            {examTypeName && <div className="flex items-center gap-2 min-w-0">
                 <span className="text-muted-foreground flex-shrink-0 w-14">Type:</span>
                 <Badge variant="secondary" className="text-[10px] font-normal px-2 py-0.5 truncate">
                   {examTypeName}
                 </Badge>
-              </div>
-            )}
+              </div>}
             
-            {periodName && (
-              <div className="flex items-center gap-2 min-w-0">
+            {periodName && <div className="flex items-center gap-2 min-w-0">
                 <span className="text-muted-foreground flex-shrink-0 w-14">Period:</span>
                 <Badge variant="outline" className="text-[10px] font-normal px-2 py-0.5 truncate">
                   {periodName}
                 </Badge>
-              </div>
-            )}
+              </div>}
             
-            {exam.establishments && (
-              <div className="flex items-center gap-2 min-w-0">
+            {exam.establishments && <div className="flex items-center gap-2 min-w-0">
                 <span className="text-muted-foreground flex-shrink-0 w-14">School:</span>
                 <span className="font-medium text-foreground text-xs truncate" title={exam.establishments.name}>
                   {exam.establishments.name}
                 </span>
-              </div>
-            )}
+              </div>}
           </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-3 gap-1.5 pt-3 border-t border-border/30">
             <Link to={`/admin/exam/edit/${exam.id}`} className="block">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full h-9 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 dark:hover:text-blue-400 transition-colors"
-              >
+              <Button variant="outline" size="sm" className="w-full h-9 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 dark:hover:text-blue-400 transition-colors">
                 <Edit className="h-4 w-4" />
               </Button>
             </Link>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-9 hover:bg-green-500/10 hover:text-green-600 hover:border-green-500/30 dark:hover:text-green-400 transition-colors"
-              onClick={() => {
-                setPreviewExam(exam);
-                setShowPreview(true);
-              }}
-            >
+            <Button variant="outline" size="sm" className="h-9 hover:bg-green-500/10 hover:text-green-600 hover:border-green-500/30 dark:hover:text-green-400 transition-colors" onClick={() => {
+            setPreviewExam(exam);
+            setShowPreview(true);
+          }}>
               <Eye className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDelete(exam)}
-              className="h-9 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 dark:hover:text-red-400 transition-colors"
-            >
+            <Button variant="outline" size="sm" onClick={() => handleDelete(exam)} className="h-9 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 dark:hover:text-red-400 transition-colors">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   };
-
   const renderExamList = (examsList: Exam[]) => {
     const filteredExams = filterExams(examsList);
     const totalPages = Math.ceil(filteredExams.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedExams = filteredExams.slice(startIndex, startIndex + itemsPerPage);
-    
     if (loading) {
-      return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-            <Card key={i} className="border-border/50">
+      return <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <Card key={i} className="border-border/50">
               <CardContent className="p-4">
                 <div className="space-y-3">
                   <Skeleton className="h-5 w-5 rounded" />
@@ -390,83 +341,52 @@ export function ExamManagement() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          ))}
-        </div>
-      );
+            </Card>)}
+        </div>;
     }
-
     if (filteredExams.length === 0) {
-      return (
-        <Card className="border-border/50">
+      return <Card className="border-border/50">
           <CardContent className="p-12 text-center">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No exams found matching your criteria</p>
           </CardContent>
-        </Card>
-      );
+        </Card>;
     }
-
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {paginatedExams.map(renderExamCard)}
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
+        {totalPages > 1 && <div className="flex items-center justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
               Previous
             </Button>
             
             <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setCurrentPage(page)}
-                  className="w-8 h-8 p-0"
-                >
+              {Array.from({
+            length: totalPages
+          }, (_, i) => i + 1).map(page => <Button key={page} variant={currentPage === page ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(page)} className="w-8 h-8 p-0">
                   {page}
-                </Button>
-              ))}
+                </Button>)}
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
               Next
             </Button>
-          </div>
-        )}
+          </div>}
 
         <p className="text-sm text-muted-foreground text-center">
           Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredExams.length)} of {filteredExams.length} exams
         </p>
-      </div>
-    );
+      </div>;
   };
-
-
-  return (
-    <>
+  return <>
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{previewExam?.title}</DialogTitle>
           </DialogHeader>
-          {previewExam?.content && (
-            <ExamContentRenderer content={previewExam.content} showAnswers={true} />
-          )}
+          {previewExam?.content && <ExamContentRenderer content={previewExam.content} showAnswers={true} />}
         </DialogContent>
       </Dialog>
 
@@ -503,12 +423,7 @@ export function ExamManagement() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
               </Button>
@@ -524,18 +439,12 @@ export function ExamManagement() {
       </Card>
 
       {/* Collapsible Filters */}
-      {showFilters && (
-        <Card className="border-border/30 bg-card/50">
+      {showFilters && <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search exams..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-9 text-sm"
-                />
+                <Input placeholder="Search exams..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
               </div>
               
               <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -544,9 +453,7 @@ export function ExamManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Years</SelectItem>
-                  {uniqueYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                  ))}
+                  {uniqueYears.map(year => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -556,9 +463,7 @@ export function ExamManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  {uniqueSubjects.map(subject => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                  ))}
+                  {uniqueSubjects.map(subject => <SelectItem key={subject} value={subject}>{subject}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -568,9 +473,7 @@ export function ExamManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Classes</SelectItem>
-                  {classes.map(cls => (
-                    <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>
-                  ))}
+                  {classes.map(cls => <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -586,14 +489,11 @@ export function ExamManagement() {
               </Select>
             </div>
           </CardContent>
-        </Card>
-      )}
+        </Card>}
 
       {/* Exam Lists by Language */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-lg">Exam Library</CardTitle>
-        </CardHeader>
+        
         <CardContent>
           <Tabs defaultValue="francophone" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -618,6 +518,5 @@ export function ExamManagement() {
         </CardContent>
       </Card>
       </div>
-    </>
-  );
+    </>;
 }
