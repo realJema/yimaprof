@@ -33,47 +33,53 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 
 const queryClient = new QueryClient();
-const App = () => <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/exams" element={<Exams />} />
-                  <Route path="/exams/:classId/subjects" element={<ExamSubjects />} />
-                  <Route path="/exams/:classId/list" element={<ExamList />} />
-                  <Route path="/exam/:examId" element={<ExamViewer />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/subscriptions" element={<Subscriptions />} />
-                  <Route path="/affiliate" element={<Affiliate />} />
-                  <Route path="/payment" element={<Payment />} />
-                  <Route path="/payment-processing" element={<PaymentProcessing />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin/exam/new" element={<ExamManager />} />
-                  <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/test-notifications" element={<TestNotifications />} />
-                  <Route path="/write-to-us" element={<WriteToUs />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Layout>
-            </BrowserRouter>
-          </TooltipProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
-    </LanguageProvider>
-  </QueryClientProvider>;
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/exams" element={<Exams />} />
+                    <Route path="/exams/:classId/subjects" element={<ExamSubjects />} />
+                    <Route path="/exams/:classId/list" element={<ExamList />} />
+                    <Route path="/exam/:examId" element={<ExamViewer />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/subscriptions" element={<Subscriptions />} />
+                    <Route path="/affiliate" element={<Affiliate />} />
+                    <Route path="/payment" element={<Payment />} />
+                    <Route path="/payment-processing" element={<PaymentProcessing />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/admin/exam/new" element={<ExamManager />} />
+                    <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/test-notifications" element={<TestNotifications />} />
+                    <Route path="/write-to-us" element={<WriteToUs />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Layout>
+              </BrowserRouter>
+            </TooltipProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
+  );
+};
+
 export default App;
