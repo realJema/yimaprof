@@ -22,11 +22,13 @@ import PaymentProcessing from "./pages/PaymentProcessing";
 import Admin from "./pages/Admin";
 import ExamManager from "./pages/ExamManager";
 import Affiliate from "./pages/Affiliate";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+
 const queryClient = new QueryClient();
 const App = () => <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -58,6 +60,7 @@ const App = () => <QueryClientProvider client={queryClient}>
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
+                  <Route path="/notifications" element={<Notifications />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

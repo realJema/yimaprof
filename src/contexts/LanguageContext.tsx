@@ -553,6 +553,21 @@ const translations = {
     terms_changes: 'Nous pouvons modifier ces Conditions à tout moment. Nous vous informerons des modifications importantes par e-mail ou par une notification sur le Service.',
     terms_contact_title: 'Contact',
     terms_contact: 'Pour toute question concernant ces Conditions, veuillez nous contacter à :',
+    
+    // Notifications - detailed
+    unreadNotifications: 'non lus',
+    noNotifications: 'Aucune notification',
+    noNotificationsDesc: 'Vous n\'avez pas encore de notifications',
+    viewAllNotifications: 'Voir toutes les notifications',
+    markAllRead: 'Tout marquer comme lu',
+    allTypes: 'Tous les types',
+    subscriptionExpiry: 'Expiration d\'abonnement',
+    paymentConfirmed: 'Paiement confirmé',
+    adminMessage: 'Message administrateur',
+    accountActivity: 'Activité du compte',
+    allNotifications: 'Toutes',
+    readNotifications: 'Lues',
+    loadMore: 'Charger plus',
   },
   en: {
     navigation: 'Navigation',
@@ -1100,6 +1115,21 @@ const translations = {
     terms_changes: 'We may modify these Terms at any time. We will notify you of significant changes via email or a notification on the Service.',
     terms_contact_title: 'Contact',
     terms_contact: 'For any questions about these Terms, please contact us at:',
+    
+    // Notifications - detailed
+    unreadNotifications: 'unread',
+    noNotifications: 'No notifications',
+    noNotificationsDesc: 'You don\'t have any notifications yet',
+    viewAllNotifications: 'View all notifications',
+    markAllRead: 'Mark all as read',
+    allTypes: 'All Types',
+    subscriptionExpiry: 'Subscription Expiry',
+    paymentConfirmed: 'Payment Confirmed',
+    adminMessage: 'Admin Message',
+    accountActivity: 'Account Activity',
+    allNotifications: 'All',
+    readNotifications: 'Read',
+    loadMore: 'Load more',
   },
 };
 

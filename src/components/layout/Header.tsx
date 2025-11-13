@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 // Header component for YIMA platform
 export default function Header() {
@@ -191,6 +192,9 @@ export default function Header() {
               </Button>
               
               <LanguageSwitcher />
+              
+              {/* Notification Bell */}
+              <NotificationBell />
               
               {/* User Dropdown */}
               <DropdownMenu>
