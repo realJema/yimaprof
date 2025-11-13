@@ -251,101 +251,118 @@ export function ExamManagement() {
     const yearLabel = exam.academic_years?.year_label;
     
     return (
-      <Card key={exam.id} className="border-border/50 hover:shadow-md transition-all h-full flex flex-col">
-        <CardContent className="p-5 flex flex-col h-full gap-4">
-          {/* Header Section */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary flex-shrink-0" />
-              <Badge variant="outline" className="text-xs font-medium">
+      <Card 
+        key={exam.id} 
+        className="group relative overflow-hidden border-border/40 bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300 h-full flex flex-col"
+      >
+        {/* Accent Bar */}
+        <div className={`absolute top-0 left-0 right-0 h-1 ${exam.is_published ? 'bg-primary' : 'bg-muted'}`} />
+        
+        <CardContent className="p-4 flex flex-col h-full gap-3.5">
+          {/* Header Row */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <BookOpen className="h-4 w-4 text-primary" />
+              </div>
+              <Badge variant="outline" className="text-[10px] font-semibold px-2 flex-shrink-0">
                 {exam.language === 'fr' ? 'FR' : 'EN'}
               </Badge>
             </div>
             <Badge 
               variant={exam.is_published ? 'default' : 'secondary'} 
-              className="text-xs"
+              className="text-[10px] px-2 flex-shrink-0"
             >
               {exam.is_published ? 'Published' : 'Draft'}
             </Badge>
           </div>
 
           {/* Title */}
-          <h3 className="font-semibold text-base line-clamp-2 leading-snug">
-            {exam.title}
-          </h3>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm line-clamp-2 leading-tight text-foreground group-hover:text-primary transition-colors">
+              {exam.title}
+            </h3>
+          </div>
 
-          {/* Info Grid */}
-          <div className="flex-1 space-y-3 text-sm">
-            {/* Subject and Year Row */}
-            <div className="flex items-center justify-between pb-2 border-b border-border/50">
-              <span className="font-semibold text-foreground">
-                {subjectName || 'No subject'}
-              </span>
-              <span className="text-muted-foreground font-medium">
-                {yearLabel || 'N/A'}
-              </span>
-            </div>
+          {/* Subject & Year Banner */}
+          <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/50 border border-border/30 min-w-0">
+            <span className="font-semibold text-sm text-foreground truncate">
+              {subjectName || 'No subject'}
+            </span>
+            <span className="text-xs text-muted-foreground font-medium flex-shrink-0 bg-background px-2 py-0.5 rounded">
+              {yearLabel || 'N/A'}
+            </span>
+          </div>
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-              {exam.classes && (
-                <>
-                  <span className="text-muted-foreground">Class</span>
-                  <span className="font-medium text-right">{exam.classes.display_name}</span>
-                </>
-              )}
-              
-              {examTypeName && (
-                <>
-                  <span className="text-muted-foreground">Type</span>
-                  <span className="font-medium text-right">{examTypeName}</span>
-                </>
-              )}
-              
-              {periodName && (
-                <>
-                  <span className="text-muted-foreground">Period</span>
-                  <span className="font-medium text-right">{periodName}</span>
-                </>
-              )}
-              
-              {exam.establishments && (
-                <>
-                  <span className="text-muted-foreground">School</span>
-                  <span className="font-medium text-right truncate">{exam.establishments.name}</span>
-                </>
-              )}
-            </div>
+          {/* Details Grid */}
+          <div className="flex-1 space-y-2 text-xs min-w-0">
+            {exam.classes && (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-muted-foreground flex-shrink-0 w-14">Class:</span>
+                <span className="font-medium text-foreground truncate">{exam.classes.display_name}</span>
+              </div>
+            )}
+            
+            {examTypeName && (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-muted-foreground flex-shrink-0 w-14">Type:</span>
+                <Badge variant="secondary" className="text-[10px] font-normal px-2 py-0.5 truncate">
+                  {examTypeName}
+                </Badge>
+              </div>
+            )}
+            
+            {periodName && (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-muted-foreground flex-shrink-0 w-14">Period:</span>
+                <Badge variant="outline" className="text-[10px] font-normal px-2 py-0.5 truncate">
+                  {periodName}
+                </Badge>
+              </div>
+            )}
+            
+            {exam.establishments && (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-muted-foreground flex-shrink-0 w-14">School:</span>
+                <span className="font-medium text-foreground text-xs truncate" title={exam.establishments.name}>
+                  {exam.establishments.name}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-3 border-t border-border/50">
-            <Link to={`/admin/exam/edit/${exam.id}`} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full gap-1.5">
-                <Edit className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline text-xs">Edit</span>
+          <div className="grid grid-cols-3 gap-1.5 pt-3 border-t border-border/30">
+            <Link to={`/admin/exam/edit/${exam.id}`} className="block">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full h-9 text-xs hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <Edit className="h-3.5 w-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Edit</span>
               </Button>
             </Link>
             <Button 
               variant="outline" 
               size="sm" 
-              className="flex-1 gap-1.5"
+              className="h-9 text-xs hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
               onClick={() => {
                 setPreviewExam(exam);
                 setShowPreview(true);
               }}
             >
-              <Eye className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">View</span>
+              <Eye className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">View</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleDelete(exam)}
-              className="flex-1 gap-1.5"
+              className="h-9 text-xs hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Delete</span>
+              <Trash2 className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Delete</span>
             </Button>
           </div>
         </CardContent>
