@@ -925,7 +925,46 @@ export default function ExamManager() {
   return (
     <div className="min-h-screen bg-background">
       {/* Sticky Header */}
-      <div className="border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm"></div>
+      <div className="border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/admin?tab=exams')}
+              className="gap-2"
+            >
+              <ChevronDown className="h-4 w-4 rotate-90" />
+              Back
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <h2 className="text-lg font-semibold">
+              {isEditing ? 'Edit Exam' : 'Create New Exam'}
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={saveDraft}
+              disabled={loading || uploading}
+              className="gap-1"
+            >
+              <Save className="h-4 w-4" />
+              <span className="hidden sm:inline">Save Draft</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={isEditing ? saveDraft : handlePublish}
+              disabled={loading || uploading}
+              className="gap-1"
+            >
+              <FileCheck className="h-4 w-4" />
+              {isEditing ? 'Save' : 'Publish'}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Full Screen Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
@@ -1762,13 +1801,13 @@ export default function ExamManager() {
               </Button>
               <Button
                 size="sm"
-                onClick={handlePublish}
+                onClick={isEditing ? saveDraft : handlePublish}
                 disabled={loading || uploading}
                 className="text-xs md:text-sm flex-1 sm:flex-none"
               >
                 <FileCheck className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">{t("publish_exam")}</span>
-                <span className="sm:hidden">Publish</span>
+                <span className="hidden sm:inline">{isEditing ? 'Save' : t("publish_exam")}</span>
+                <span className="sm:hidden">{isEditing ? 'Save' : 'Publish'}</span>
               </Button>
               {!isEditing && (
                 <Button

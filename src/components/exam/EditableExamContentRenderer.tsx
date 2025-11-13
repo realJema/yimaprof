@@ -66,7 +66,7 @@ export function EditableExamContentRenderer({
     return <p className="text-muted-foreground">No content available.</p>;
   }
 
-  const handleTextChange = (itemId: string, newText: string, field: 'text' = 'text') => {
+  const handleTextChange = (itemId: string, newText: string, field: 'text' | 'paper_number' = 'text') => {
     let updatedContent;
     
     // Handle array format
@@ -292,8 +292,21 @@ export function EditableExamContentRenderer({
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-start gap-3">
-                        <Badge variant="outline" className="text-sm font-semibold shrink-0">
-                          {question.paper_number || questionNumber}
+                        <Badge 
+                          variant="outline" 
+                          className="text-sm font-semibold shrink-0 cursor-pointer hover:bg-muted/50 transition-colors group"
+                          title="Click to edit question number"
+                        >
+                          <span
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => handleTextChange(question.id, e.currentTarget.textContent || '', 'paper_number')}
+                            onFocus={() => setEditingId(question.id)}
+                            className="outline-none"
+                          >
+                            {question.paper_number || questionNumber}
+                          </span>
+                          <Edit2 className="h-2.5 w-2.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Badge>
                         <div className="flex-1">
                           <div
