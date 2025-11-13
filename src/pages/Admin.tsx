@@ -16,6 +16,7 @@ import { ClassManagement } from '@/components/admin/ClassManagement';
 import { SubscriptionPlanManagement } from '@/components/admin/SubscriptionPlanManagement';
 import { TransactionViewer } from '@/components/admin/TransactionViewer';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
+import { NotificationComposer } from '@/components/admin/NotificationComposer';
 
 export default function Admin() {
   const { t } = useLanguage();
@@ -101,6 +102,7 @@ export default function Admin() {
     { id: 'plans', label: t('plans'), icon: Shield },
     { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
     { id: 'transactions', label: t('transactions'), icon: Shield },
+    { id: 'notifications', label: t('notifications'), icon: Shield },
   ];
 
   return (
@@ -221,6 +223,7 @@ export default function Admin() {
             {activeTab === 'plans' && <SubscriptionPlanManagement />}
             {activeTab === 'subscriptions' && <ActiveSubscriptions />}
             {activeTab === 'transactions' && <TransactionViewer />}
+            {activeTab === 'notifications' && <NotificationComposer />}
           </div>
         </div>
       </div>
