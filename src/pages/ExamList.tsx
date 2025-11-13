@@ -17,12 +17,12 @@ import { useSubscription } from "@/hooks/useSubscription";
 interface Exam {
   id: string;
   title: string;
-  subject: string;
+  subject_id: string;
+  exam_type_id: string;
+  period_id: string;
+  academic_year_id: string;
+  duration_id: string;
   description?: string;
-  duration_minutes?: number;
-  year?: number;
-  period?: string;
-  exam_type?: string;
   created_at: string;
   subjects?: {
     name: string;
@@ -94,11 +94,6 @@ export default function ExamList() {
         .select('*')
         .eq('class_id', classId || '')
         .eq('is_published', true);
-      
-      // Only filter by subject if not 'all'
-      if (subject && subject !== 'all') {
-        query = query.eq('subject_id', subject);
-      }
       
       const { data: examsData, error } = await query.order('created_at', { ascending: false });
 
@@ -188,15 +183,37 @@ export default function ExamList() {
     }
   };
 
-  const years = [...new Set(exams.map(e => e.year).filter(Boolean))].sort((a, b) => b! - a!);
-  const examTypes = [...new Set(exams.map(e => e.exam_type).filter(Boolean))];
+  const years = [...new Set(exams.map(e => e.academic_years?.year_label).filter(Boolean))].sort((a, b) => {
+    const yearA = parseInt(a!.split('-')[0]);
+    const yearB = parseInt(b!.split('-')[0]);
+    return yearB - yearA;
+  });
+  const examTypes = [...new Set(exams.map(e => {
+    const examType = e.exam_types;
+    if (!examType) return null;
+    return language === 'fr' ? (examType.name_fr || examType.name) : (examType.name_en || examType.name);
+  }).filter(Boolean))];
 
   const filteredExams = exams.filter(exam => {
-    const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesYear = selectedYear === 'all' || exam.year?.toString() === selectedYear;
-    const matchesType = selectedType === 'all' || exam.exam_type === selectedType;
+    // Match subject filter
+    let matchesSubject = true;
+    if (subject && subject !== 'all') {
+      const subjectName = exam.subjects 
+        ? (language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name)
+        : '';
+      matchesSubject = subjectName === subject;
+    }
     
-    return matchesSearch && matchesYear && matchesType;
+    const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesYear = selectedYear === 'all' || exam.academic_years?.year_label === selectedYear;
+    
+    const examTypeName = exam.exam_types 
+      ? (language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name)
+      : '';
+    const matchesType = selectedType === 'all' || examTypeName === selectedType;
+    
+    return matchesSubject && matchesSearch && matchesYear && matchesType;
   });
 
   const sortedExams = [...filteredExams].sort((a, b) => {
@@ -206,9 +223,13 @@ export default function ExamList() {
       case 'oldest':
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       case 'year-desc':
-        return (b.year || 0) - (a.year || 0);
+        const yearA = a.academic_years?.year_label || '';
+        const yearB = b.academic_years?.year_label || '';
+        return yearB.localeCompare(yearA);
       case 'year-asc':
-        return (a.year || 0) - (b.year || 0);
+        const yearA2 = a.academic_years?.year_label || '';
+        const yearB2 = b.academic_years?.year_label || '';
+        return yearA2.localeCompare(yearB2);
       default:
         return 0;
     }
@@ -333,7 +354,7 @@ export default function ExamList() {
               <SelectContent>
                 <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
                 {years.map(year => (
-                  <SelectItem key={year} value={year!.toString()}>{year}</SelectItem>
+                  <SelectItem key={year} value={year!}>{year}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -376,7 +397,7 @@ export default function ExamList() {
               // Get subject name for color mapping
               const subjectName = exam.subjects 
                 ? (language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name)
-                : exam.subject;
+                : '';
               
               // Subject-based colors
               const subjectColors: Record<string, string> = {
@@ -401,14 +422,14 @@ export default function ExamList() {
               
               const colorClass = subjectColors[subjectName] || 'bg-gradient-to-br from-slate-500/10 to-slate-600/20 border-slate-500/30 hover:border-slate-500/50';
               
-              const displayYear = exam.academic_years?.year_label || exam.year || new Date(exam.created_at).getFullYear();
+              const displayYear = exam.academic_years?.year_label || new Date(exam.created_at).getFullYear();
               const displayType = exam.exam_types 
                 ? (language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name)
-                : exam.exam_type;
+                : undefined;
               const displayPeriod = exam.periods
                 ? (language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name)
-                : exam.period;
-              const displayDuration = exam.durations?.minutes || exam.duration_minutes;
+                : undefined;
+              const displayDuration = exam.durations?.minutes;
               
               return (
                 <Card key={exam.id} className={`group hover:shadow-lg transition-all ${colorClass}`}>

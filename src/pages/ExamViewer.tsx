@@ -138,7 +138,7 @@ export default function ExamViewer() {
           )
         `).eq('id', examId).single();
       if (examError) throw examError;
-      setExam(examData);
+      setExam(examData as any);
 
       // Extract questions for sidebar
       if (examData.content) {
