@@ -96,6 +96,7 @@ export function ExamManagement() {
   const itemsPerPage = 12;
   const [previewExam, setPreviewExam] = useState<Exam | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   
   // Fetch dropdown options for filters
   const formOptions = useExamFormData();
@@ -478,117 +479,118 @@ export function ExamManagement() {
               <BookOpen className="h-5 w-5" />
               Exam Management
             </CardTitle>
-            <Link to="/admin/exam/new">
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Add Exam
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
               </Button>
-            </Link>
+              <Link to="/admin/exam/new">
+                <Button className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Exam
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
       </Card>
 
-      {/* Filters */}
+      {/* Collapsible Filters */}
+      {showFilters && (
+        <Card className="border-border/30 bg-card/50">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search exams..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+              
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {uniqueYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="All Subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  {uniqueSubjects.map(subject => (
+                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="All Classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classes.map(cls => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Compact Stats */}
       <Card className="border-border/30 bg-card/50">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search exams..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Total:</span>
+              <span className="text-lg font-bold text-primary">{exams.length}</span>
             </div>
-            
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Years" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                {uniqueYears.map(year => (
-                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Subjects" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Subjects</SelectItem>
-                {uniqueSubjects.map(subject => (
-                  <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Classes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {classes.map(cls => (
-                  <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Francophone:</span>
+              <span className="text-lg font-bold text-primary">{francophones.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Anglophone:</span>
+              <span className="text-lg font-bold text-primary">{anglophones.length}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Published:</span>
+              <span className="text-lg font-bold text-primary">
+                {exams.filter(e => e.is_published).length}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="border-border/30 bg-card/50">
-          <CardContent className="p-3">
-            <div className="text-center">
-              <p className="text-xl font-bold text-primary">{exams.length}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/30 bg-card/50">
-          <CardContent className="p-3">
-            <div className="text-center">
-              <p className="text-xl font-bold text-primary">{francophones.length}</p>
-              <p className="text-xs text-muted-foreground">Francophone</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/30 bg-card/50">
-          <CardContent className="p-3">
-            <div className="text-center">
-              <p className="text-xl font-bold text-primary">{anglophones.length}</p>
-              <p className="text-xs text-muted-foreground">Anglophone</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/30 bg-card/50">
-          <CardContent className="p-3">
-            <div className="text-center">
-              <p className="text-xl font-bold text-primary">
-                {exams.filter(e => e.is_published).length}
-              </p>
-              <p className="text-xs text-muted-foreground">Published</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Exam Lists by Language */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
