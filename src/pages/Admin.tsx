@@ -137,15 +137,21 @@ export default function Admin() {
         {/* Floating Sidebar Toggle Button */}
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           onClick={() => setSidebarVisible(!sidebarVisible)}
-          className="hidden lg:flex fixed left-4 top-32 z-50 h-10 w-10 rounded-full shadow-lg bg-card hover:bg-muted border-2 transition-all duration-300"
+          className="hidden lg:flex fixed left-4 top-32 z-50 rounded-full shadow-lg bg-card hover:bg-muted border-2 transition-all duration-300 gap-2 px-4"
           style={{ left: sidebarVisible ? '17rem' : '1rem' }}
         >
           {sidebarVisible ? (
-            <PanelLeftClose className="h-5 w-5" />
+            <>
+              <PanelLeftClose className="h-4 w-4" />
+              <span className="text-xs font-medium">Hide Menu</span>
+            </>
           ) : (
-            <PanelLeftOpen className="h-5 w-5" />
+            <>
+              <PanelLeftOpen className="h-4 w-4" />
+              <span className="text-xs font-medium">Show Menu</span>
+            </>
           )}
         </Button>
 

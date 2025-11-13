@@ -489,27 +489,21 @@ export function ExamManagement() {
       </Card>
 
       {/* Filters */}
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <Card className="border-border/30 bg-card/50">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search exams..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-9 text-sm"
               />
             </div>
             
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Years" />
               </SelectTrigger>
               <SelectContent>
@@ -521,7 +515,7 @@ export function ExamManagement() {
             </Select>
 
             <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Subjects" />
               </SelectTrigger>
               <SelectContent>
@@ -533,7 +527,7 @@ export function ExamManagement() {
             </Select>
 
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Classes" />
               </SelectTrigger>
               <SelectContent>
@@ -545,7 +539,7 @@ export function ExamManagement() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -559,49 +553,42 @@ export function ExamManagement() {
       </Card>
 
       {/* Stats */}
-      <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-lg">Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-border/50 bg-muted/50">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-2xl lg:text-3xl font-bold text-primary">{exams.length}</p>
-                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Total Exams</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-muted/50">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-2xl lg:text-3xl font-bold text-primary">{francophones.length}</p>
-                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Francophone</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-muted/50">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-2xl lg:text-3xl font-bold text-primary">{anglophones.length}</p>
-                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Anglophone</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-muted/50">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-2xl lg:text-3xl font-bold text-primary">
-                    {exams.filter(e => e.is_published).length}
-                  </p>
-                  <p className="text-xs lg:text-sm text-muted-foreground mt-1">Published</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="border-border/30 bg-card/50">
+          <CardContent className="p-3">
+            <div className="text-center">
+              <p className="text-xl font-bold text-primary">{exams.length}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/30 bg-card/50">
+          <CardContent className="p-3">
+            <div className="text-center">
+              <p className="text-xl font-bold text-primary">{francophones.length}</p>
+              <p className="text-xs text-muted-foreground">Francophone</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/30 bg-card/50">
+          <CardContent className="p-3">
+            <div className="text-center">
+              <p className="text-xl font-bold text-primary">{anglophones.length}</p>
+              <p className="text-xs text-muted-foreground">Anglophone</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/30 bg-card/50">
+          <CardContent className="p-3">
+            <div className="text-center">
+              <p className="text-xl font-bold text-primary">
+                {exams.filter(e => e.is_published).length}
+              </p>
+              <p className="text-xs text-muted-foreground">Published</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Exam Lists by Language */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
