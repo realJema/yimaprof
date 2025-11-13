@@ -115,28 +115,14 @@ export default function Admin() {
       <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarVisible(!sidebarVisible)}
-                className="hidden lg:flex hover:bg-muted"
-              >
-                {sidebarVisible ? (
-                  <PanelLeftClose className="h-5 w-5" />
-                ) : (
-                  <PanelLeftOpen className="h-5 w-5" />
-                )}
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <Shield className="h-6 w-6 text-primary" />
-                  {t('admin_dashboard')}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('platform_management')}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Shield className="h-6 w-6 text-primary" />
+                {t('admin_dashboard')}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t('platform_management')}
+              </p>
             </div>
             <Badge variant="secondary" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -148,6 +134,21 @@ export default function Admin() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-4 md:p-6">
+        {/* Floating Sidebar Toggle Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setSidebarVisible(!sidebarVisible)}
+          className="hidden lg:flex fixed left-4 top-32 z-50 h-10 w-10 rounded-full shadow-lg bg-card hover:bg-muted border-2 transition-all duration-300"
+          style={{ left: sidebarVisible ? '17rem' : '1rem' }}
+        >
+          {sidebarVisible ? (
+            <PanelLeftClose className="h-5 w-5" />
+          ) : (
+            <PanelLeftOpen className="h-5 w-5" />
+          )}
+        </Button>
+
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Mobile Navigation Tabs */}
           <div className="lg:hidden">
