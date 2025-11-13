@@ -44,6 +44,9 @@ import { EditableExamContentRenderer } from "@/components/exam/EditableExamConte
 import { EXAM_JSON_TEMPLATE } from "@/components/exam/ExamJsonTemplate";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useExamFormData } from "@/hooks/useExamFormData";
+import { AddNewItemDialog } from "@/components/admin/AddNewItemDialog";
+import { useQueryClient } from '@tanstack/react-query';
 interface Question {
   id: string;
   text: string;
@@ -74,6 +77,12 @@ interface ExamData {
   duration_minutes?: number;
   tags?: string[];
   file_url?: string;
+  establishment_id?: string;
+  subject_id?: string;
+  exam_type_id?: string;
+  period_id?: string;
+  academic_year_id?: string;
+  duration_id?: string;
 }
 const generateId = () => Math.random().toString(36).substr(2, 9);
 export default function ExamManager() {
@@ -82,9 +91,19 @@ export default function ExamManager() {
   const navigate = useNavigate();
   const { examId } = useParams();
   const isEditing = !!examId;
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const queryClient = useQueryClient();
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Fetch form dropdown data
+  const formOptions = useExamFormData();
+  
+  // State for "Add New" dialogs
+  const [showAddSubject, setShowAddSubject] = useState(false);
+  const [showAddEstablishment, setShowAddEstablishment] = useState(false);
+  const [showAddYear, setShowAddYear] = useState(false);
+  const [showAddDuration, setShowAddDuration] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState<ExamData>({
@@ -218,6 +237,109 @@ export default function ExamManager() {
       setInitialLoading(false);
     }
   };
+  
+  // Handlers for adding new items
+  const handleAddSubject = async (name: string, translations: { en: string; fr: string }) => {
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .insert({ name, name_en: translations.en, name_fr: translations.fr });
+      
+      if (error) throw error;
+      toast({ title: t('examSuccessSubject') });
+      formOptions.refetchSubjects();
+    } catch (error) {
+      console.error('Error adding subject:', error);
+      toast({ 
+        title: t('examErrorAdding'),
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  const handleAddEstablishment = async (name: string) => {
+    try {
+      const { error } = await supabase
+        .from('establishments')
+        .insert({ name, type: 'Lycée', country: 'CI' });
+      
+      if (error) throw error;
+      toast({ title: t('examSuccessSchool') });
+      formOptions.refetchEstablishments();
+    } catch (error) {
+      console.error('Error adding establishment:', error);
+      toast({ 
+        title: t('examErrorAdding'),
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  const handleAddYear = async (yearLabel: string) => {
+    try {
+      const years = yearLabel.split('-');
+      if (years.length !== 2) {
+        toast({ 
+          title: t('error'),
+          description: 'Year format should be YYYY-YYYY (e.g., 2024-2025)',
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
+      const startYear = parseInt(years[0]);
+      const endYear = parseInt(years[1]);
+      
+      const { error } = await supabase
+        .from('academic_years')
+        .insert({ year_label: yearLabel, start_year: startYear, end_year: endYear });
+      
+      if (error) throw error;
+      toast({ title: t('examSuccessYear') });
+      formOptions.refetchAcademicYears();
+    } catch (error) {
+      console.error('Error adding academic year:', error);
+      toast({ 
+        title: t('examErrorAdding'),
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  const handleAddDuration = async (minutes: string) => {
+    try {
+      const min = parseInt(minutes);
+      if (isNaN(min) || min <= 0) {
+        toast({ 
+          title: t('error'),
+          description: 'Duration must be a positive number',
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
+      const hours = Math.floor(min / 60);
+      const remainingMins = min % 60;
+      const label = hours > 0 
+        ? (remainingMins > 0 ? `${hours}h${remainingMins}` : `${hours}h`)
+        : `${min} min`;
+      
+      const { error } = await supabase
+        .from('durations')
+        .insert({ minutes: min, display_label: label });
+      
+      if (error) throw error;
+      toast({ title: t('examSuccessDuration') });
+      formOptions.refetchDurations();
+    } catch (error) {
+      console.error('Error adding duration:', error);
+      toast({ 
+        title: t('examErrorAdding'),
+        variant: 'destructive' 
+      });
+    }
+  };
+  
   const validateJson = (jsonString: string) => {
     try {
       const parsed = JSON.parse(jsonString);
@@ -1122,93 +1244,202 @@ export default function ExamManager() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
+                    {/* Establishment/School */}
+                    <div>
+                      <Label htmlFor="establishment" className="text-xs">
+                        {t("examSchool")}
+                      </Label>
+                      <Select
+                        value={formData.establishment_id}
+                        onValueChange={(value) => {
+                          if (value === '__add_new__') {
+                            setShowAddEstablishment(true);
+                          } else {
+                            setFormData((prev) => ({ ...prev, establishment_id: value }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("examSelectSchool")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formOptions.establishments?.map((school) => (
+                            <SelectItem key={school.id} value={school.id}>
+                              {school.name}
+                            </SelectItem>
+                          ))}
+                          <Separator className="my-2" />
+                          <SelectItem value="__add_new__" className="text-primary font-medium">
+                            + {t("examAddNewSchool")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Subject */}
                     <div>
                       <Label htmlFor="subject" className="text-xs">
                         {t("subject")} *
                       </Label>
-                      <Input
-                        id="subject"
-                        value={formData.subject}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            subject: e.target.value,
-                          }))
-                        }
-                        placeholder="Mathematics"
-                        className="mt-1"
-                      />
+                      <Select
+                        value={formData.subject_id}
+                        onValueChange={(value) => {
+                          if (value === '__add_new__') {
+                            setShowAddSubject(true);
+                          } else {
+                            setFormData((prev) => ({ ...prev, subject_id: value }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("examSelectSubject")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formOptions.subjects?.map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {language === 'fr' ? subject.name_fr : subject.name_en}
+                            </SelectItem>
+                          ))}
+                          <Separator className="my-2" />
+                          <SelectItem value="__add_new__" className="text-primary font-medium">
+                            + {t("examAddNewSubject")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Exam Type */}
                     <div>
                       <Label htmlFor="exam_type" className="text-xs">
                         {t("exam_type")} *
                       </Label>
-                      <Input
-                        id="exam_type"
-                        value={formData.exam_type}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            exam_type: e.target.value,
-                          }))
-                        }
-                        placeholder="Test, Exam"
-                        className="mt-1"
-                      />
+                      <Select
+                        value={formData.exam_type_id}
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, exam_type_id: value }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("examSelectExamType")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formOptions.examTypes?.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {language === 'fr' ? type.name_fr : type.name_en}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Class */}
+                    <div>
+                      <Label htmlFor="class" className="text-xs">
+                        {t("class")} *
+                      </Label>
+                      <Select
+                        value={formData.class_id}
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, class_id: value }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("select_class")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classes.map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.display_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
+                    {/* Academic Year */}
                     <div>
                       <Label htmlFor="year" className="text-xs">
                         {t("year")} *
                       </Label>
-                      <Input
-                        id="year"
-                        type="number"
-                        value={formData.year}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            year: parseInt(e.target.value),
-                          }))
-                        }
-                        className="mt-1"
-                      />
+                      <Select
+                        value={formData.academic_year_id}
+                        onValueChange={(value) => {
+                          if (value === '__add_new__') {
+                            setShowAddYear(true);
+                          } else {
+                            setFormData((prev) => ({ ...prev, academic_year_id: value }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("examSelectYear")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formOptions.academicYears?.map((year) => (
+                            <SelectItem key={year.id} value={year.id}>
+                              {year.year_label}
+                            </SelectItem>
+                          ))}
+                          <Separator className="my-2" />
+                          <SelectItem value="__add_new__" className="text-primary font-medium">
+                            + {t("examAddNewYear")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Period */}
                     <div>
                       <Label htmlFor="period" className="text-xs">
                         {t("period")}
                       </Label>
-                      <Input
-                        id="period"
-                        value={formData.period}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            period: e.target.value,
-                          }))
-                        }
-                        placeholder="1st Semester"
-                        className="mt-1"
-                      />
+                      <Select
+                        value={formData.period_id}
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, period_id: value }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("examSelectPeriod")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formOptions.periods?.map((period) => (
+                            <SelectItem key={period.id} value={period.id}>
+                              {language === 'fr' ? period.name_fr : period.name_en}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Duration */}
                     <div>
                       <Label htmlFor="duration" className="text-xs">
                         {t("duration")}
                       </Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        value={formData.duration_minutes}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            duration_minutes: parseInt(e.target.value),
-                          }))
-                        }
-                        className="mt-1"
-                      />
+                      <Select
+                        value={formData.duration_id}
+                        onValueChange={(value) => {
+                          if (value === '__add_new__') {
+                            setShowAddDuration(true);
+                          } else {
+                            setFormData((prev) => ({ ...prev, duration_id: value }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder={t("examSelectDuration")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formOptions.durations?.map((duration) => (
+                            <SelectItem key={duration.id} value={duration.id}>
+                              {duration.display_label}
+                            </SelectItem>
+                          ))}
+                          <Separator className="my-2" />
+                          <SelectItem value="__add_new__" className="text-primary font-medium">
+                            + {t("examAddCustomDuration")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
@@ -1563,6 +1794,42 @@ export default function ExamManager() {
           </div>
         </Card>
       </div>
+      
+      {/* Add New Item Dialogs */}
+      <AddNewItemDialog
+        open={showAddSubject}
+        onClose={() => setShowAddSubject(false)}
+        onAdd={handleAddSubject}
+        title={t("examAddingSubject")}
+        fieldLabel={t("examSubject")}
+        requiresTranslation={true}
+      />
+
+      <AddNewItemDialog
+        open={showAddEstablishment}
+        onClose={() => setShowAddEstablishment(false)}
+        onAdd={handleAddEstablishment}
+        title={t("examAddingSchool")}
+        fieldLabel={t("examSchoolName")}
+      />
+
+      <AddNewItemDialog
+        open={showAddYear}
+        onClose={() => setShowAddYear(false)}
+        onAdd={handleAddYear}
+        title={t("examAddingYear")}
+        fieldLabel={t("examYearFormat")}
+        isYear={true}
+      />
+
+      <AddNewItemDialog
+        open={showAddDuration}
+        onClose={() => setShowAddDuration(false)}
+        onAdd={handleAddDuration}
+        title={t("examAddingDuration")}
+        fieldLabel={t("examDurationMinutes")}
+        isDuration={true}
+      />
     </div>
   );
 }
