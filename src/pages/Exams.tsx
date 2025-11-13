@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, BookOpen as BookOpenIcon, Repeat, Lock, Crown } from 'lucide-react';
+import { GraduationCap, BookOpen as BookOpenIcon, Repeat, Lock, Crown, School } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 interface Class {
   id: string;
   name: string;
@@ -198,28 +197,63 @@ export default function Exams() {
                   {systemDescription}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {establishments.length > 0 && (
-                  <Select value={selectedEstablishment} onValueChange={setSelectedEstablishment}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder={language === 'fr' ? 'École' : 'School'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{language === 'fr' ? 'Toutes les écoles' : 'All Schools'}</SelectItem>
-                      {establishments.map(est => (
-                        <SelectItem key={est.id} value={est.id}>{est.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <Button variant="outline" className="gap-2" onClick={() => setSelectedSystem(selectedSystem === 'francophone' ? 'anglophone' : 'francophone')}>
-                  <Repeat className="h-4 w-4" />
-                  {language === 'fr' ? 'Changer de Système' : 'Change System'}
-                </Button>
-              </div>
+              <Button variant="outline" className="gap-2" onClick={() => setSelectedSystem(selectedSystem === 'francophone' ? 'anglophone' : 'francophone')}>
+                <Repeat className="h-4 w-4" />
+                {language === 'fr' ? 'Changer de Système' : 'Change System'}
+              </Button>
             </div>
           </CardHeader>
         </Card>
+
+        {/* School Filter Cards */}
+        {isFullAccessUser && establishments.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <School className="h-5 w-5" />
+              {language === 'fr' ? 'Filtrer par École' : 'Filter by School'}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  selectedEstablishment === 'all' 
+                    ? 'ring-2 ring-primary bg-primary/5' 
+                    : 'hover:border-primary/50'
+                }`}
+                onClick={() => setSelectedEstablishment('all')}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center gap-2">
+                    <School className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm">
+                      {language === 'fr' ? 'Toutes les écoles' : 'All Schools'}
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+              </Card>
+              
+              {establishments.map(est => (
+                <Card 
+                  key={est.id}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    selectedEstablishment === est.id 
+                      ? 'ring-2 ring-primary bg-primary/5' 
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setSelectedEstablishment(est.id)}
+                >
+                  <CardHeader className="p-4">
+                    <div className="flex items-center gap-2">
+                      <School className="h-5 w-5 text-muted-foreground" />
+                      <CardTitle className="text-sm line-clamp-2">
+                        {est.name}
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Free Access Notice */}
         {!isFullAccessUser && <div className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
