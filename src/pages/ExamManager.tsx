@@ -205,6 +205,14 @@ export default function ExamManager() {
         duration_minutes: data.duration_minutes || 120,
         tags: data.tags || [],
         file_url: data.file_url || "",
+        visibility: data.visibility || "public",
+        // Include all ID fields to preserve them during updates
+        subject_id: data.subject_id,
+        exam_type_id: data.exam_type_id,
+        period_id: data.period_id,
+        academic_year_id: data.academic_year_id,
+        duration_id: data.duration_id,
+        establishment_id: data.establishment_id,
       };
 
       setFormData(examFormData);
