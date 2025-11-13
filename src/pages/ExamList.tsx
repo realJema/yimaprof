@@ -24,6 +24,31 @@ interface Exam {
   period?: string;
   exam_type?: string;
   created_at: string;
+  subjects?: {
+    name: string;
+    name_en?: string;
+    name_fr?: string;
+  };
+  academic_years?: {
+    year_label: string;
+  };
+  periods?: {
+    name: string;
+    name_en?: string;
+    name_fr?: string;
+  };
+  exam_types?: {
+    name: string;
+    name_en?: string;
+    name_fr?: string;
+  };
+  durations?: {
+    minutes: number;
+    display_label: string;
+  };
+  establishments?: {
+    name: string;
+  };
 }
 
 export default function ExamList() {
@@ -57,12 +82,13 @@ export default function ExamList() {
         .from('classes')
         .select('display_name')
         .eq('id', classId || '')
-        .single();
+        .maybeSingle();
       
       if (classData) {
         setClassName(classData.display_name);
       }
 
+      // Fetch exams with basic data first
       let query = supabase
         .from('exams')
         .select('*')
@@ -77,7 +103,79 @@ export default function ExamList() {
       const { data: examsData, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
-      setExams(examsData || []);
+      
+      // Enrich exams with related data
+      const enrichedExams = await Promise.all(
+        (examsData || []).map(async (exam) => {
+          const enriched: any = { ...exam };
+          const examAny = exam as any;
+          const sbAny = supabase as any;
+          
+          // Fetch subject
+          if (examAny.subject_id) {
+            const { data: subjectData } = await sbAny
+              .from('subjects')
+              .select('name, name_en, name_fr')
+              .eq('id', examAny.subject_id)
+              .maybeSingle();
+            if (subjectData) enriched.subjects = subjectData;
+          }
+          
+          // Fetch academic year
+          if (examAny.academic_year_id) {
+            const { data: yearData } = await sbAny
+              .from('academic_years')
+              .select('year_label')
+              .eq('id', examAny.academic_year_id)
+              .maybeSingle();
+            if (yearData) enriched.academic_years = yearData;
+          }
+          
+          // Fetch period
+          if (examAny.period_id) {
+            const { data: periodData } = await sbAny
+              .from('periods')
+              .select('name, name_en, name_fr')
+              .eq('id', examAny.period_id)
+              .maybeSingle();
+            if (periodData) enriched.periods = periodData;
+          }
+          
+          // Fetch exam type
+          if (examAny.exam_type_id) {
+            const { data: typeData } = await sbAny
+              .from('exam_types')
+              .select('name, name_en, name_fr')
+              .eq('id', examAny.exam_type_id)
+              .maybeSingle();
+            if (typeData) enriched.exam_types = typeData;
+          }
+          
+          // Fetch duration
+          if (examAny.duration_id) {
+            const { data: durationData } = await sbAny
+              .from('durations')
+              .select('minutes, display_label')
+              .eq('id', examAny.duration_id)
+              .maybeSingle();
+            if (durationData) enriched.durations = durationData;
+          }
+          
+          // Fetch establishment
+          if (examAny.establishment_id) {
+            const { data: estData } = await sbAny
+              .from('establishments')
+              .select('name')
+              .eq('id', examAny.establishment_id)
+              .maybeSingle();
+            if (estData) enriched.establishments = estData;
+          }
+          
+          return enriched;
+        })
+      );
+      
+      setExams(enrichedExams);
     } catch (error) {
       console.error('Error fetching exams:', error);
       toast({
@@ -274,25 +372,53 @@ export default function ExamList() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {sortedExams.map((exam, index) => {
-              // Material colors alternating pattern
-              const colorClasses = [
-                'bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50',
-                'bg-gradient-to-br from-green-500/10 to-green-600/20 border-green-500/30 hover:border-green-500/50',
-                'bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30 hover:border-purple-500/50',
-                'bg-gradient-to-br from-orange-500/10 to-orange-600/20 border-orange-500/30 hover:border-orange-500/50',
-              ];
-              const colorIndex = index % 4;
+            {sortedExams.map((exam) => {
+              // Get subject name for color mapping
+              const subjectName = exam.subjects 
+                ? (language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name)
+                : exam.subject;
+              
+              // Subject-based colors
+              const subjectColors: Record<string, string> = {
+                'Math': 'bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50',
+                'Mathématiques': 'bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50',
+                'Mathematics': 'bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50',
+                'Physics': 'bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30 hover:border-purple-500/50',
+                'Physique': 'bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30 hover:border-purple-500/50',
+                'Chemistry': 'bg-gradient-to-br from-green-500/10 to-green-600/20 border-green-500/30 hover:border-green-500/50',
+                'Chimie': 'bg-gradient-to-br from-green-500/10 to-green-600/20 border-green-500/30 hover:border-green-500/50',
+                'Biology': 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/20 border-emerald-500/30 hover:border-emerald-500/50',
+                'Biologie': 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/20 border-emerald-500/30 hover:border-emerald-500/50',
+                'English': 'bg-gradient-to-br from-red-500/10 to-red-600/20 border-red-500/30 hover:border-red-500/50',
+                'Anglais': 'bg-gradient-to-br from-red-500/10 to-red-600/20 border-red-500/30 hover:border-red-500/50',
+                'French': 'bg-gradient-to-br from-pink-500/10 to-pink-600/20 border-pink-500/30 hover:border-pink-500/50',
+                'Français': 'bg-gradient-to-br from-pink-500/10 to-pink-600/20 border-pink-500/30 hover:border-pink-500/50',
+                'History': 'bg-gradient-to-br from-amber-500/10 to-amber-600/20 border-amber-500/30 hover:border-amber-500/50',
+                'Histoire': 'bg-gradient-to-br from-amber-500/10 to-amber-600/20 border-amber-500/30 hover:border-amber-500/50',
+                'Geography': 'bg-gradient-to-br from-cyan-500/10 to-cyan-600/20 border-cyan-500/30 hover:border-cyan-500/50',
+                'Géographie': 'bg-gradient-to-br from-cyan-500/10 to-cyan-600/20 border-cyan-500/30 hover:border-cyan-500/50',
+              };
+              
+              const colorClass = subjectColors[subjectName] || 'bg-gradient-to-br from-slate-500/10 to-slate-600/20 border-slate-500/30 hover:border-slate-500/50';
+              
+              const displayYear = exam.academic_years?.year_label || exam.year || new Date(exam.created_at).getFullYear();
+              const displayType = exam.exam_types 
+                ? (language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name)
+                : exam.exam_type;
+              const displayPeriod = exam.periods
+                ? (language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name)
+                : exam.period;
+              const displayDuration = exam.durations?.minutes || exam.duration_minutes;
               
               return (
-                <Card key={exam.id} className={`group hover:shadow-lg transition-all ${colorClasses[colorIndex]}`}>
+                <Card key={exam.id} className={`group hover:shadow-lg transition-all ${colorClass}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant="secondary">
-                        {exam.year || new Date(exam.created_at).getFullYear()}
+                        {displayYear}
                       </Badge>
-                      {exam.exam_type && (
-                        <Badge variant="outline">{exam.exam_type}</Badge>
+                      {displayType && (
+                        <Badge variant="outline">{displayType}</Badge>
                       )}
                     </div>
                     <CardTitle className="line-clamp-2 text-lg">{exam.title}</CardTitle>
@@ -312,16 +438,16 @@ export default function ExamList() {
                   
                   <CardContent className="space-y-4">
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      {exam.period && (
+                      {displayPeriod && (
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          <span>{exam.period}</span>
+                          <span>{displayPeriod}</span>
                         </div>
                       )}
-                      {exam.duration_minutes && (
+                      {displayDuration && (
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
-                          <span>{exam.duration_minutes} min</span>
+                          <span>{displayDuration} min</span>
                         </div>
                       )}
                     </div>

@@ -39,18 +39,24 @@ export default function ExamSubjects() {
         setClassName(classData.display_name);
       }
 
-      // Fetch subjects with exam counts
+      // Fetch subjects with exam counts using the standardized subject_id
       const { data: examsData, error } = await supabase
         .from('exams')
-        .select('subject')
+        .select(`
+          subject_id,
+          subjects!inner(name, name_en, name_fr)
+        `)
         .eq('class_id', classId || '')
         .eq('is_published', true);
 
       if (error) throw error;
 
-      // Count exams per subject
-      const subjectCounts = (examsData || []).reduce((acc, exam) => {
-        acc[exam.subject] = (acc[exam.subject] || 0) + 1;
+      // Count exams per subject using subject_id
+      const subjectCounts = (examsData || []).reduce((acc, exam: any) => {
+        const subjectName = language === 'fr' 
+          ? (exam.subjects.name_fr || exam.subjects.name)
+          : (exam.subjects.name_en || exam.subjects.name);
+        acc[subjectName] = (acc[subjectName] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
