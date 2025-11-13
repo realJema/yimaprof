@@ -66,19 +66,20 @@ interface Class {
 }
 interface ExamData {
   title: string;
-  subject: string;
-  year: number;
-  exam_type: string;
+  subject?: string;  // Legacy field
+  year?: number;  // Legacy field
+  exam_type?: string;  // Legacy field
   class_id: string;
   description: string;
   is_published: boolean;
-  period?: string;
+  period?: string;  // Legacy field
   language?: string;
-  duration_minutes?: number;
+  duration_minutes?: number;  // Legacy field
   tags?: string[];
   file_url?: string;
   visibility?: string;
   establishment_id?: string;
+  // Standardized ID fields (new structure)
   subject_id?: string;
   exam_type_id?: string;
   period_id?: string;
@@ -206,13 +207,13 @@ export default function ExamManager() {
         tags: data.tags || [],
         file_url: data.file_url || "",
         visibility: data.visibility || "public",
-        // Include all ID fields to preserve them during updates
-        subject_id: data.subject_id,
-        exam_type_id: data.exam_type_id,
-        period_id: data.period_id,
-        academic_year_id: data.academic_year_id,
-        duration_id: data.duration_id,
-        establishment_id: data.establishment_id,
+        // Include all ID fields from the database (safely accessing with any type)
+        subject_id: (data as any).subject_id || null,
+        exam_type_id: (data as any).exam_type_id || null,
+        period_id: (data as any).period_id || null,
+        academic_year_id: (data as any).academic_year_id || null,
+        duration_id: (data as any).duration_id || null,
+        establishment_id: (data as any).establishment_id || null,
       };
 
       setFormData(examFormData);
@@ -544,23 +545,18 @@ export default function ExamManager() {
         return;
       }
       
-      // Build clean exam data with only valid columns
+      // Build clean exam data with only valid columns (using standardized ID fields)
       const examData: any = {
         title: formData.title,
-        subject: formData.subject,
-        year: formData.year,
-        exam_type: formData.exam_type,
         class_id: formData.class_id,
         description: formData.description,
-        period: formData.period,
         language: formData.language,
-        duration_minutes: formData.duration_minutes,
         file_url: fileUrl,
         visibility: formData.visibility || 'public',
         tags: formData.tags || [],
         content: parsedJson,
         is_published: false,
-        // Include the new ID fields if they exist
+        // Use standardized ID fields only
         subject_id: formData.subject_id || null,
         exam_type_id: formData.exam_type_id || null,
         period_id: formData.period_id || null,
@@ -595,7 +591,7 @@ export default function ExamManager() {
       } else {
         // When inserting, include created_by
         examData.created_by = user.id;
-        const { data, error } = await supabase.from("exams").insert(examData).select().single();
+        const { data, error } = await supabase.from("exams").insert([examData as any]).select().single();
         if (error) {
           console.error('Insert error:', error);
           throw error;
@@ -660,7 +656,9 @@ export default function ExamManager() {
           description: shouldPublish ? "Exam published successfully" : "Exam updated successfully",
         });
       } else {
-        const { error } = await supabase.from("exams").insert(examData);
+        // When inserting, include created_by
+        examData.created_by = user.id;
+        const { error } = await supabase.from("exams").insert([examData as any]);
         if (error) throw error;
         toast({
           title: "Success",
@@ -709,14 +707,27 @@ export default function ExamManager() {
         setLoading(false);
         return;
       }
-      const examData = {
-        ...formData,
-        content: parsedJson,
+      // Build clean exam data with only valid columns
+      const examData: any = {
+        title: formData.title,
+        class_id: formData.class_id,
+        description: formData.description,
+        language: formData.language,
         file_url: fileUrl,
-        created_by: user?.id || "",
+        visibility: formData.visibility || 'public',
+        tags: formData.tags || [],
+        content: parsedJson,
         is_published: true,
+        created_by: user?.id || "",
+        // Use standardized ID fields only
+        subject_id: formData.subject_id || null,
+        exam_type_id: formData.exam_type_id || null,
+        period_id: formData.period_id || null,
+        academic_year_id: formData.academic_year_id || null,
+        duration_id: formData.duration_id || null,
+        establishment_id: formData.establishment_id || null,
       };
-      const { error } = await supabase.from("exams").insert(examData);
+      const { error } = await supabase.from("exams").insert([examData as any]);
       if (error) throw error;
       toast({
         title: "Success",
