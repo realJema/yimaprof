@@ -97,7 +97,7 @@ export default function ExamList() {
       
       // Only filter by subject if not 'all'
       if (subject && subject !== 'all') {
-        query = query.eq('subject', subject);
+        query = query.eq('subject_id', subject);
       }
       
       const { data: examsData, error } = await query.order('created_at', { ascending: false });

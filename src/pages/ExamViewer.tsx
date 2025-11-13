@@ -18,17 +18,19 @@ import { cn } from '@/lib/utils';
 interface Exam {
   id: string;
   title: string;
-  subject: string;
   class_id?: string;
-  year?: number;
-  period?: string;
-  exam_type?: string;
   description?: string;
   language?: string;
-  duration_minutes?: number;
   content?: any;
   file_url?: string;
   created_at: string;
+  // Standardized ID fields
+  subject_id: string;
+  exam_type_id: string;
+  period_id: string;
+  academic_year_id: string;
+  duration_id: string;
+  establishment_id?: string;
   classes?: {
     id: string;
     name: string;
@@ -277,18 +279,6 @@ export default function ExamViewer() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 flex-wrap">
               <h2 className="font-semibold text-lg">{exam.title}</h2>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                {exam.year && <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>{exam.year}</span>
-                  </div>}
-                {exam.period && <Badge variant="outline" className="text-xs">{exam.period}</Badge>}
-                {exam.exam_type && <Badge variant="outline" className="text-xs">{exam.exam_type}</Badge>}
-                {exam.duration_minutes && <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>{exam.duration_minutes} min</span>
-                  </div>}
-              </div>
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
@@ -378,7 +368,7 @@ export default function ExamViewer() {
                     <BreadcrumbSeparator />
                   </>}
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{exam.subject}</BreadcrumbPage>
+                  <BreadcrumbPage>{exam.title}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -419,9 +409,7 @@ export default function ExamViewer() {
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {exam.classes && <Badge variant="secondary">{exam.classes.display_name}</Badge>}
-                  {exam.subject && <Badge variant="outline">{exam.subject}</Badge>}
-                  {exam.year && <Badge variant="outline">{exam.year}</Badge>}
-                  {exam.exam_type && <Badge variant="outline">{exam.exam_type}</Badge>}
+                  {exam.description && <p className="text-sm text-muted-foreground">{exam.description}</p>}
                 </div>
               </CardContent>
             </Card>
