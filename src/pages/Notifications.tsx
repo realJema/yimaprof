@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Layout from '@/components/layout/Layout';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
 import { NotificationModal } from '@/components/notifications/NotificationModal';
@@ -52,7 +51,7 @@ export default function Notifications() {
   ];
 
   return (
-    <Layout>
+    <>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Card className="bg-card border-border">
           <CardHeader>
@@ -169,6 +168,6 @@ export default function Notifications() {
           setSelectedNotification(null);
         }}
       />
-    </Layout>
+    </>
   );
 }
