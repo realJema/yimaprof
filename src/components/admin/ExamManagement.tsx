@@ -471,14 +471,37 @@ export function ExamManagement() {
       </Dialog>
 
       <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Stats */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <CardTitle className="text-card-foreground flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               Exam Management
             </CardTitle>
+            
+            {/* Inline Stats */}
+            <div className="flex items-center gap-4 flex-wrap text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Total:</span>
+                <span className="font-bold text-primary">{exams.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">FR:</span>
+                <span className="font-bold text-primary">{francophones.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">EN:</span>
+                <span className="font-bold text-primary">{anglophones.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Published:</span>
+                <span className="font-bold text-primary">
+                  {exams.filter(e => e.is_published).length}
+                </span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
@@ -565,32 +588,6 @@ export function ExamManagement() {
           </CardContent>
         </Card>
       )}
-
-      {/* Compact Stats */}
-      <Card className="border-border/30 bg-card/50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Total:</span>
-              <span className="text-lg font-bold text-primary">{exams.length}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Francophone:</span>
-              <span className="text-lg font-bold text-primary">{francophones.length}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Anglophone:</span>
-              <span className="text-lg font-bold text-primary">{anglophones.length}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Published:</span>
-              <span className="text-lg font-bold text-primary">
-                {exams.filter(e => e.is_published).length}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Exam Lists by Language */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
