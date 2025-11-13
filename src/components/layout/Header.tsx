@@ -140,6 +140,18 @@ export default function Header() {
               </Link>
             </Button>
             
+            {/* Write to Us link */}
+            <Button
+              variant={isActive('/write-to-us') ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/write-to-us">
+                <span>{t('write_to_us')}</span>
+              </Link>
+            </Button>
+            
             {/* More dropdown - subtle navigation links */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -158,11 +170,6 @@ export default function Header() {
                 <DropdownMenuItem asChild>
                   <Link to="/contact" className="cursor-pointer">
                     {t('contact_us')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/write-to-us" className="cursor-pointer">
-                    {t('write_to_us')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
