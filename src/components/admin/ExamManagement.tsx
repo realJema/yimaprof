@@ -231,21 +231,39 @@ export function ExamManagement() {
       });
     }
   };
+  const getSubjectColor = (subjectName: string): string => {
+    const subject = subjectName?.toLowerCase() || '';
+    if (subject.includes('math') || subject.includes('mathématiques')) return 'subject-math';
+    if (subject.includes('science')) return 'subject-science';
+    if (subject.includes('english') || subject.includes('anglais')) return 'subject-english';
+    if (subject.includes('french') || subject.includes('français')) return 'subject-french';
+    if (subject.includes('history') || subject.includes('histoire')) return 'subject-history';
+    if (subject.includes('geography') || subject.includes('géographie')) return 'subject-geography';
+    if (subject.includes('physics') || subject.includes('physique')) return 'subject-physics';
+    if (subject.includes('chemistry') || subject.includes('chimie')) return 'subject-chemistry';
+    if (subject.includes('biology') || subject.includes('biologie') || subject.includes('svt')) return 'subject-biology';
+    if (subject.includes('computer') || subject.includes('informatique') || subject.includes('ict')) return 'subject-computer';
+    if (subject.includes('economics') || subject.includes('économie')) return 'subject-economics';
+    return 'subject-default';
+  };
+
   const renderExamCard = (exam: Exam) => {
     const subjectName = language === 'fr' ? exam.subjects?.name_fr : exam.subjects?.name_en;
     const examTypeName = language === 'fr' ? exam.exam_types?.name_fr : exam.exam_types?.name_en;
     const periodName = language === 'fr' ? exam.periods?.name_fr : exam.periods?.name_en;
     const yearLabel = exam.academic_years?.year_label;
+    const subjectColor = getSubjectColor(subjectName || '');
+    
     return <Card key={exam.id} className="group relative overflow-hidden border-border/40 bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300 h-full flex flex-col">
         {/* Accent Bar */}
-        <div className={`absolute top-0 left-0 right-0 h-1 ${exam.is_published ? 'bg-primary' : 'bg-muted'}`} />
+        <div className={`absolute top-0 left-0 right-0 h-1.5 bg-${subjectColor}`} />
         
         <CardContent className="p-4 flex flex-col h-full gap-3.5">
           {/* Header Row */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <BookOpen className="h-4 w-4 text-primary" />
+              <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-${subjectColor}/10 flex items-center justify-center`}>
+                <BookOpen className={`h-4 w-4 text-${subjectColor}`} />
               </div>
               <Badge variant="outline" className="text-[10px] font-semibold px-2 flex-shrink-0">
                 {exam.language === 'fr' ? 'FR' : 'EN'}
@@ -264,8 +282,8 @@ export function ExamManagement() {
           </div>
 
           {/* Subject & Year Banner */}
-          <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/50 border border-border/30 min-w-0">
-            <span className="font-semibold text-sm text-foreground truncate">
+          <div className={`flex items-center justify-between gap-2 p-2.5 rounded-lg bg-${subjectColor}/10 border border-${subjectColor}/20 min-w-0`}>
+            <span className={`font-semibold text-sm text-${subjectColor} truncate`}>
               {subjectName || 'No subject'}
             </span>
             <span className="text-xs text-muted-foreground font-medium flex-shrink-0 bg-background px-2 py-0.5 rounded">
