@@ -15,7 +15,6 @@ import Exams from "./pages/Exams";
 import ExamSubjects from "./pages/ExamSubjects";
 import ExamList from "./pages/ExamList";
 import ExamViewer from "./pages/ExamViewer";
-import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Subscriptions from "./pages/Subscriptions";
 import Payment from "./pages/Payment";
@@ -52,10 +51,9 @@ const App = () => {
                     <Route path="/exams" element={<Exams />} />
                     <Route path="/exams/:classId/subjects" element={<ExamSubjects />} />
                     <Route path="/exams/:classId/list" element={<ExamList />} />
-                    <Route path="/exam/:examId" element={<ExamViewer />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/subscriptions" element={<Subscriptions />} />
+                  <Route path="/exam/:examId" element={<ExamViewer />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/subscriptions" element={<Subscriptions />} />
                     <Route path="/affiliate" element={<Affiliate />} />
                     <Route path="/payment" element={<Payment />} />
                     <Route path="/payment-processing" element={<PaymentProcessing />} />
