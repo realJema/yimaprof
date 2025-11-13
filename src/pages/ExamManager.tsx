@@ -560,19 +560,21 @@ export default function ExamManager() {
         establishment_id: formData.establishment_id || null,
       };
       
-      console.log('Sending exam data:', examData);
-      
       if (isEditing) {
-        // When updating, absolutely DO NOT include created_by
-        // The RLS policy checks that created_by matches the current user
+        // When updating, DO NOT include created_by field
+        // The RLS policy allows admins to update any exam, and users to update their own
         const { error } = await supabase
           .from("exams")
           .update(examData)
-          .eq("id", examId)
-          .eq("created_by", user.id); // Ensure we only update our own exam
+          .eq("id", examId);
           
         if (error) {
           console.error('Update error:', error);
+          toast({
+            title: "Update Failed",
+            description: error.message || "Could not update exam. Please try again.",
+            variant: "destructive",
+          });
           throw error;
         }
         toast({
