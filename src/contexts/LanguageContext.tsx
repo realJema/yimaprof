@@ -47,7 +47,7 @@ const translations = {
     all_rights_reserved: 'Tous droits réservés',
     home: 'Accueil',
     more: 'Plus',
-    exams: 'Examens',
+    exams: 'Épreuves',
     practice: 'Pratique',
     quizzes: 'Quiz',
     lessons: 'Leçons',
