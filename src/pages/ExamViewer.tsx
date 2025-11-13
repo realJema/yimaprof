@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,6 +71,7 @@ export default function ExamViewer() {
   const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showPdfSplit, setShowPdfSplit] = useState(false);
+  const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   
   // Evaluation mode state
@@ -293,23 +295,22 @@ export default function ExamViewer() {
               {/* Mode Switcher Buttons */}
               <div className="flex items-center gap-2">
                 <Button 
-                  variant={mode === 'preview' ? 'default' : 'outline'}
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => navigate(`/exam/${examId}?mode=preview`)}
-                >
-                  <FileText className="h-4 w-4" />
-                  {language === 'fr' ? 'Aperçu' : 'Preview'}
-                </Button>
-                
-                <Button 
                   variant={mode === 'correction' ? 'default' : 'outline'}
                   size="sm" 
                   className="gap-2"
-                  onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                  onClick={() => {
+                    if (mode === 'correction') {
+                      navigate(`/exam/${examId}?mode=preview`);
+                    } else {
+                      setShowCorrectionDialog(true);
+                    }
+                  }}
                 >
                   <FileText className="h-4 w-4" />
-                  {language === 'fr' ? 'Correction' : 'Correction'}
+                  {mode === 'correction' 
+                    ? (language === 'fr' ? 'Masquer Solutions' : 'Hide Solutions')
+                    : (language === 'fr' ? 'Voir Correction' : 'View Correction')
+                  }
                 </Button>
                 
                 <Button 
@@ -527,5 +528,38 @@ export default function ExamViewer() {
 
       {/* Zoom Controls */}
       <ZoomControls zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onReset={handleZoomReset} />
+      
+      {/* Correction Confirmation Dialog */}
+      <AlertDialog open={showCorrectionDialog} onOpenChange={setShowCorrectionDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === 'fr' ? 'Voir la correction ?' : 'View Correction?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                {language === 'fr' 
+                  ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.'
+                  : 'You are about to view the official solutions for this exam.'
+                }
+              </p>
+              <p className="font-semibold text-foreground">
+                {language === 'fr'
+                  ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !'
+                  : 'We suggest taking the evaluation first to test your knowledge!'
+                }
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {language === 'fr' ? 'Annuler' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate(`/exam/${examId}?mode=correction`)}>
+              {language === 'fr' ? 'Voir quand même' : 'View Anyway'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>;
 }
