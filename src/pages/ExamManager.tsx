@@ -490,9 +490,9 @@ export default function ExamManager() {
   const validateFormData = () => {
     const errors = [];
     if (!formData.title.trim()) errors.push("Title is required");
-    if (!formData.subject.trim()) errors.push("Subject is required");
+    if (!formData.subject_id) errors.push("Subject is required");
     if (!formData.class_id) errors.push("Class is required");
-    if (!formData.exam_type.trim()) errors.push("Exam type is required");
+    if (!formData.exam_type_id) errors.push("Exam type is required");
     if (!parsedJson) {
       errors.push("Valid JSON content is required");
     }
@@ -545,7 +545,14 @@ export default function ExamManager() {
         return;
       }
       
-      // Build clean exam data with only valid columns (using standardized ID fields)
+      // Derive old text fields from new ID fields for backward compatibility
+      const selectedSubject = formOptions.subjects?.find(s => s.id === formData.subject_id);
+      const selectedExamType = formOptions.examTypes?.find(t => t.id === formData.exam_type_id);
+      const selectedPeriod = formOptions.periods?.find(p => p.id === formData.period_id);
+      const selectedYear = formOptions.academicYears?.find(y => y.id === formData.academic_year_id);
+      const selectedDuration = formOptions.durations?.find(d => d.id === formData.duration_id);
+      
+      // Build clean exam data with BOTH old and new fields
       const examData: any = {
         title: formData.title,
         class_id: formData.class_id,
@@ -556,7 +563,13 @@ export default function ExamManager() {
         tags: formData.tags || [],
         content: parsedJson,
         is_published: false,
-        // Use standardized ID fields only
+        // OLD fields (for backward compatibility and NOT NULL constraints)
+        subject: selectedSubject ? (language === 'fr' ? selectedSubject.name_fr : selectedSubject.name_en) : '',
+        exam_type: selectedExamType ? selectedExamType.name : '',
+        period: selectedPeriod ? selectedPeriod.name : '',
+        year: selectedYear ? selectedYear.start_year : new Date().getFullYear(),
+        duration_minutes: selectedDuration ? selectedDuration.minutes : 120,
+        // NEW standardized ID fields
         subject_id: formData.subject_id || null,
         exam_type_id: formData.exam_type_id || null,
         period_id: formData.period_id || null,
@@ -641,15 +654,39 @@ export default function ExamManager() {
         setLoading(false);
         return;
       }
-      const examData = {
-        ...formData,
-        content: parsedJson,
+      // Derive old text fields from new ID fields for backward compatibility
+      const selectedSubject = formOptions.subjects?.find(s => s.id === formData.subject_id);
+      const selectedExamType = formOptions.examTypes?.find(t => t.id === formData.exam_type_id);
+      const selectedPeriod = formOptions.periods?.find(p => p.id === formData.period_id);
+      const selectedYear = formOptions.academicYears?.find(y => y.id === formData.academic_year_id);
+      const selectedDuration = formOptions.durations?.find(d => d.id === formData.duration_id);
+      
+      const examData: any = {
+        title: formData.title,
+        class_id: formData.class_id,
+        description: formData.description,
+        language: formData.language,
         file_url: fileUrl,
-        created_by: user?.id || "",
+        visibility: formData.visibility || 'public',
+        tags: formData.tags || [],
+        content: parsedJson,
         is_published: shouldPublish,
+        // OLD fields (for backward compatibility and NOT NULL constraints)
+        subject: selectedSubject ? (language === 'fr' ? selectedSubject.name_fr : selectedSubject.name_en) : '',
+        exam_type: selectedExamType ? selectedExamType.name : '',
+        period: selectedPeriod ? selectedPeriod.name : '',
+        year: selectedYear ? selectedYear.start_year : new Date().getFullYear(),
+        duration_minutes: selectedDuration ? selectedDuration.minutes : 120,
+        // NEW standardized ID fields
+        subject_id: formData.subject_id || null,
+        exam_type_id: formData.exam_type_id || null,
+        period_id: formData.period_id || null,
+        academic_year_id: formData.academic_year_id || null,
+        duration_id: formData.duration_id || null,
+        establishment_id: formData.establishment_id || null,
       };
       if (isEditing) {
-        const { error } = await supabase.from("exams").update(examData).eq("id", examId);
+        const { error } = await supabase.from("exams").update(examData as any).eq("id", examId);
         if (error) throw error;
         toast({
           title: "Success",
@@ -707,7 +744,14 @@ export default function ExamManager() {
         setLoading(false);
         return;
       }
-      // Build clean exam data with only valid columns
+      // Derive old text fields from new ID fields for backward compatibility
+      const selectedSubject = formOptions.subjects?.find(s => s.id === formData.subject_id);
+      const selectedExamType = formOptions.examTypes?.find(t => t.id === formData.exam_type_id);
+      const selectedPeriod = formOptions.periods?.find(p => p.id === formData.period_id);
+      const selectedYear = formOptions.academicYears?.find(y => y.id === formData.academic_year_id);
+      const selectedDuration = formOptions.durations?.find(d => d.id === formData.duration_id);
+      
+      // Build clean exam data with BOTH old and new fields
       const examData: any = {
         title: formData.title,
         class_id: formData.class_id,
@@ -719,7 +763,13 @@ export default function ExamManager() {
         content: parsedJson,
         is_published: true,
         created_by: user?.id || "",
-        // Use standardized ID fields only
+        // OLD fields (for backward compatibility and NOT NULL constraints)
+        subject: selectedSubject ? (language === 'fr' ? selectedSubject.name_fr : selectedSubject.name_en) : '',
+        exam_type: selectedExamType ? selectedExamType.name : '',
+        period: selectedPeriod ? selectedPeriod.name : '',
+        year: selectedYear ? selectedYear.start_year : new Date().getFullYear(),
+        duration_minutes: selectedDuration ? selectedDuration.minutes : 120,
+        // NEW standardized ID fields
         subject_id: formData.subject_id || null,
         exam_type_id: formData.exam_type_id || null,
         period_id: formData.period_id || null,
