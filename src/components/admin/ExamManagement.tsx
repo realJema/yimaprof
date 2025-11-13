@@ -254,7 +254,7 @@ export function ExamManagement() {
     const yearLabel = exam.academic_years?.year_label;
     const subjectColor = getSubjectColor(subjectName || '');
     
-    return <Card key={exam.id} className="group relative overflow-hidden border-border/40 bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300 h-full flex flex-col">
+    return <Card key={exam.id} className={`group relative overflow-hidden border-${subjectColor}/30 bg-${subjectColor}/5 hover:bg-${subjectColor}/10 hover:border-${subjectColor}/40 hover:shadow-lg transition-all duration-300 h-full flex flex-col`}>
         {/* Accent Bar */}
         <div className={`absolute top-0 left-0 right-0 h-1.5 bg-${subjectColor}`} />
         
