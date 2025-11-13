@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 // Import admin components
 import { AdminStats } from '@/components/admin/AdminStats';
@@ -26,6 +27,7 @@ export default function Admin() {
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -113,14 +115,28 @@ export default function Admin() {
       <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                {t('admin_dashboard')}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('platform_management')}
-              </p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarVisible(!sidebarVisible)}
+                className="hidden lg:flex hover:bg-muted"
+              >
+                {sidebarVisible ? (
+                  <PanelLeftClose className="h-5 w-5" />
+                ) : (
+                  <PanelLeftOpen className="h-5 w-5" />
+                )}
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <Shield className="h-6 w-6 text-primary" />
+                  {t('admin_dashboard')}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('platform_management')}
+                </p>
+              </div>
             </div>
             <Badge variant="secondary" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -152,26 +168,28 @@ export default function Admin() {
           </div>
 
           {/* Desktop Left Sidebar Navigation */}
-          <Card className="hidden lg:block w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium">
-            <CardContent className="p-4">
-              <nav className="space-y-1">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                      activeTab === item.id
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </CardContent>
-          </Card>
+          {sidebarVisible && (
+            <Card className="hidden lg:block w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium">
+              <CardContent className="p-4">
+                <nav className="space-y-1">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        activeTab === item.id
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </button>
+                  ))}
+                </nav>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Right Content Area */}
           <div className="flex-1 space-y-6 min-w-0">
