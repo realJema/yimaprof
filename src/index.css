@@ -69,6 +69,20 @@ All colors MUST be HSL. Mobile-first responsive design.
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Material Subject Colors */
+    --subject-math: 239 84% 67%;
+    --subject-science: 142 71% 45%;
+    --subject-english: 271 81% 60%;
+    --subject-french: 339 82% 62%;
+    --subject-history: 32 95% 44%;
+    --subject-geography: 187 71% 50%;
+    --subject-physics: 199 89% 48%;
+    --subject-chemistry: 160 84% 39%;
+    --subject-biology: 84 81% 44%;
+    --subject-computer: 217 91% 60%;
+    --subject-economics: 25 85% 57%;
+    --subject-default: 215 16% 47%;
   }
 
   .dark {
@@ -110,6 +124,20 @@ All colors MUST be HSL. Mobile-first responsive design.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Material Subject Colors - Dark Mode */
+    --subject-math: 239 84% 75%;
+    --subject-science: 142 71% 55%;
+    --subject-english: 271 81% 70%;
+    --subject-french: 339 82% 70%;
+    --subject-history: 32 95% 60%;
+    --subject-geography: 187 71% 60%;
+    --subject-physics: 199 89% 65%;
+    --subject-chemistry: 160 84% 50%;
+    --subject-biology: 84 81% 55%;
+    --subject-computer: 217 91% 70%;
+    --subject-economics: 25 85% 65%;
+    --subject-default: 215 20% 65%;
   }
 }
 
