@@ -23,6 +23,7 @@ import Admin from "./pages/Admin";
 import ExamManager from "./pages/ExamManager";
 import Affiliate from "./pages/Affiliate";
 import Notifications from "./pages/Notifications";
+import TestNotifications from "./pages/TestNotifications";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -61,6 +62,7 @@ const App = () => <QueryClientProvider client={queryClient}>
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/test-notifications" element={<TestNotifications />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
