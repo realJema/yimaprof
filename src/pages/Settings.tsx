@@ -261,16 +261,16 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
-                {t('language_settings')}
+                {t('language')}
               </CardTitle>
-              <CardDescription>Interface language</CardDescription>
+              <CardDescription>{t('chooseInterfaceLanguage')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                 <div>
-                  <Label className="font-medium">Display Language</Label>
+                  <Label className="font-medium">{t('interfaceLanguage')}</Label>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Change the app language
+                    {t('chooseInterfaceLanguage')}
                   </p>
                 </div>
                 <LanguageSwitcher />
