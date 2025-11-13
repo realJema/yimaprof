@@ -522,6 +522,7 @@ export default function ExamManager() {
       console.log('Current user ID:', user.id);
       console.log('Exam ID:', examId);
       console.log('Is editing:', isEditing);
+      console.log('Form data:', JSON.stringify(formData, null, 2));
       
       // Only upload if there's a selected file that hasn't been uploaded yet
       let fileUrl = formData.file_url;
@@ -559,6 +560,8 @@ export default function ExamManager() {
         duration_id: formData.duration_id || null,
         establishment_id: formData.establishment_id || null,
       };
+      
+      console.log('Exam data to send:', JSON.stringify(examData, null, 2));
       
       if (isEditing) {
         // When updating, DO NOT include created_by field
