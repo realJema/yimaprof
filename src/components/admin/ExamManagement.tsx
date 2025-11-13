@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { useExamFormData } from '@/hooks/useExamFormData';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Exam {
   id: string;
@@ -25,9 +27,35 @@ interface Exam {
   class_id: string;
   language: string;
   content?: any;
+  subject_id?: string;
+  exam_type_id?: string;
+  academic_year_id?: string;
+  period_id?: string;
+  establishment_id?: string;
   classes?: {
     display_name: string;
     section: string;
+  };
+  subjects?: {
+    name: string;
+    name_en: string;
+    name_fr: string;
+  };
+  exam_types?: {
+    name: string;
+    name_en: string;
+    name_fr: string;
+  };
+  academic_years?: {
+    year_label: string;
+  };
+  periods?: {
+    name: string;
+    name_en: string;
+    name_fr: string;
+  };
+  establishments?: {
+    name: string;
   };
 }
 
@@ -55,6 +83,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 export function ExamManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { language, t } = useLanguage();
   const [exams, setExams] = useState<Exam[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +96,9 @@ export function ExamManagement() {
   const itemsPerPage = 12;
   const [previewExam, setPreviewExam] = useState<Exam | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  
+  // Fetch dropdown options for filters
+  const formOptions = useExamFormData();
 
   useEffect(() => {
     fetchExams();
@@ -82,12 +114,33 @@ export function ExamManagement() {
           classes (
             display_name,
             section
+          ),
+          subjects:subject_id (
+            name,
+            name_en,
+            name_fr
+          ),
+          exam_types:exam_type_id (
+            name,
+            name_en,
+            name_fr
+          ),
+          academic_years:academic_year_id (
+            year_label
+          ),
+          periods:period_id (
+            name,
+            name_en,
+            name_fr
+          ),
+          establishments:establishment_id (
+            name
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setExams(data || []);
+      setExams(data as any || []);
     } catch (error) {
       console.error('Error fetching exams:', error);
       toast({
@@ -191,63 +244,110 @@ export function ExamManagement() {
     }
   };
 
-  const renderExamCard = (exam: Exam) => (
-    <Card key={exam.id} className="border-border/50 hover:shadow-lg transition-all h-full flex flex-col group">
-      <CardContent className="p-6 flex flex-col h-full">
-        <div className="space-y-4 flex-1">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-2">
-            <BookOpen className="h-5 w-5 text-primary flex-shrink-0" />
-            <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-xs">
-              {exam.is_published ? 'Published' : 'Draft'}
-            </Badge>
-          </div>
-
-          {/* Title */}
-          <h3 className="font-semibold text-base line-clamp-2 min-h-[3rem]">{exam.title}</h3>
-
-          {/* Info */}
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{exam.subject}</span>
-              <span>{exam.year}</span>
+  const renderExamCard = (exam: Exam) => {
+    const subjectName = language === 'fr' ? exam.subjects?.name_fr : exam.subjects?.name_en;
+    const examTypeName = language === 'fr' ? exam.exam_types?.name_fr : exam.exam_types?.name_en;
+    const periodName = language === 'fr' ? exam.periods?.name_fr : exam.periods?.name_en;
+    const yearLabel = exam.academic_years?.year_label;
+    
+    return (
+      <Card key={exam.id} className="border-border/50 hover:shadow-lg transition-all h-full flex flex-col group">
+        <CardContent className="p-4 flex flex-col h-full">
+          <div className="space-y-3 flex-1">
+            {/* Header with Language Badge */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary flex-shrink-0" />
+                <Badge variant="outline" className="text-xs">
+                  {exam.language === 'fr' ? 'FR' : 'EN'}
+                </Badge>
+              </div>
+              <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-xs">
+                {exam.is_published ? 'Published' : 'Draft'}
+              </Badge>
             </div>
-            {exam.classes && (
-              <div className="text-xs">{exam.classes.display_name}</div>
-            )}
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
-          <Link to={`/admin/exam/edit/${exam.id}`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
-              <Edit className="h-3.5 w-3.5" />
+            {/* Title */}
+            <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] leading-tight">{exam.title}</h3>
+
+            {/* Main Info Grid */}
+            <div className="space-y-2 text-xs">
+              {/* Subject & Year */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-foreground truncate">{subjectName || 'No subject'}</span>
+                <span className="text-muted-foreground flex-shrink-0">{yearLabel || 'N/A'}</span>
+              </div>
+              
+              {/* Class */}
+              {exam.classes && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Class:</span>
+                  <span className="font-medium text-foreground">{exam.classes.display_name}</span>
+                </div>
+              )}
+              
+              {/* School/Establishment */}
+              {exam.establishments && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">School:</span>
+                  <span className="font-medium text-foreground truncate">{exam.establishments.name}</span>
+                </div>
+              )}
+              
+              {/* Exam Type & Period */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {examTypeName && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">Type:</span>
+                    <Badge variant="secondary" className="text-xs font-normal px-1.5 py-0">
+                      {examTypeName}
+                    </Badge>
+                  </div>
+                )}
+                
+                {periodName && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">Period:</span>
+                    <Badge variant="outline" className="text-xs font-normal px-1.5 py-0">
+                      {periodName}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
+            <Link to={`/admin/exam/edit/${exam.id}`} className="flex-1">
+              <Button variant="outline" size="sm" className="w-full h-8">
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 h-8"
+              onClick={() => {
+                setPreviewExam(exam);
+                setShowPreview(true);
+              }}
+            >
+              <Eye className="h-3.5 w-3.5" />
             </Button>
-          </Link>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1"
-            onClick={() => {
-              setPreviewExam(exam);
-              setShowPreview(true);
-            }}
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDelete(exam)}
-            className="flex-1"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDelete(exam)}
+              className="flex-1 h-8"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderExamList = (examsList: Exam[]) => {
     const filteredExams = filterExams(examsList);
