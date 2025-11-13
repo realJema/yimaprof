@@ -77,6 +77,7 @@ interface ExamData {
   duration_minutes?: number;
   tags?: string[];
   file_url?: string;
+  visibility?: string;
   establishment_id?: string;
   subject_id?: string;
   exam_type_id?: string;
@@ -519,14 +520,29 @@ export default function ExamManager() {
         return;
       }
       
-      // Clean up the data - remove fields that shouldn't be updated
-      const { created_at, updated_at, classes, subjects, exam_types, academic_years, periods, establishments, created_by, ...cleanFormData } = formData as any;
-      
-      const examData = {
-        ...cleanFormData,
-        content: parsedJson,
+      // Build clean exam data with only valid columns
+      const examData: any = {
+        title: formData.title,
+        subject: formData.subject,
+        year: formData.year,
+        exam_type: formData.exam_type,
+        class_id: formData.class_id,
+        description: formData.description,
+        period: formData.period,
+        language: formData.language,
+        duration_minutes: formData.duration_minutes,
         file_url: fileUrl,
+        visibility: formData.visibility || 'public',
+        tags: formData.tags || [],
+        content: parsedJson,
         is_published: false,
+        // Include the new ID fields if they exist
+        subject_id: formData.subject_id || null,
+        exam_type_id: formData.exam_type_id || null,
+        period_id: formData.period_id || null,
+        academic_year_id: formData.academic_year_id || null,
+        duration_id: formData.duration_id || null,
+        establishment_id: formData.establishment_id || null,
       };
       
       if (isEditing) {
@@ -542,10 +558,8 @@ export default function ExamManager() {
         });
       } else {
         // When inserting, include created_by
-        const { data, error } = await supabase.from("exams").insert({
-          ...examData,
-          created_by: user?.id || "",
-        }).select().single();
+        examData.created_by = user?.id || "";
+        const { data, error } = await supabase.from("exams").insert(examData).select().single();
         if (error) {
           console.error('Insert error:', error);
           throw error;
