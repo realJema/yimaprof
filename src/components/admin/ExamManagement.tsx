@@ -337,32 +337,29 @@ export function ExamManagement() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full h-9 text-xs hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
+                className="w-full h-9 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 dark:hover:text-blue-400 transition-colors"
               >
-                <Edit className="h-3.5 w-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Edit</span>
+                <Edit className="h-4 w-4" />
               </Button>
             </Link>
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 text-xs hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
+              className="h-9 hover:bg-green-500/10 hover:text-green-600 hover:border-green-500/30 dark:hover:text-green-400 transition-colors"
               onClick={() => {
                 setPreviewExam(exam);
                 setShowPreview(true);
               }}
             >
-              <Eye className="h-3.5 w-3.5 sm:mr-1.5" />
-              <span className="hidden sm:inline">View</span>
+              <Eye className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleDelete(exam)}
-              className="h-9 text-xs hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+              className="h-9 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 dark:hover:text-red-400 transition-colors"
             >
-              <Trash2 className="h-3.5 w-3.5 sm:mr-1.5" />
-              <span className="hidden sm:inline">Delete</span>
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
