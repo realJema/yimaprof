@@ -66,25 +66,20 @@ interface Class {
 }
 interface ExamData {
   title: string;
-  subject?: string;  // Legacy field
-  year?: number;  // Legacy field
-  exam_type?: string;  // Legacy field
   class_id: string;
   description: string;
   is_published: boolean;
-  period?: string;  // Legacy field
   language?: string;
-  duration_minutes?: number;  // Legacy field
   tags?: string[];
   file_url?: string;
   visibility?: string;
+  // Standardized ID fields
+  subject_id: string;
+  exam_type_id: string;
+  period_id: string;
+  academic_year_id: string;
+  duration_id: string;
   establishment_id?: string;
-  // Standardized ID fields (new structure)
-  subject_id?: string;
-  exam_type_id?: string;
-  period_id?: string;
-  academic_year_id?: string;
-  duration_id?: string;
 }
 const generateId = () => Math.random().toString(36).substr(2, 9);
 export default function ExamManager() {
@@ -110,16 +105,16 @@ export default function ExamManager() {
   // Form data
   const [formData, setFormData] = useState<ExamData>({
     title: "",
-    subject: "",
-    year: new Date().getFullYear(),
-    exam_type: "",
     class_id: "",
     description: "",
     is_published: false,
-    period: "",
     language: "fr",
-    duration_minutes: 120,
     tags: [],
+    subject_id: "",
+    exam_type_id: "",
+    period_id: "",
+    academic_year_id: "",
+    duration_id: "",
   });
 
   // Questions for form-based creation
@@ -195,19 +190,14 @@ export default function ExamManager() {
 
       const examFormData = {
         title: data.title,
-        subject: data.subject,
-        year: data.year,
-        exam_type: data.exam_type,
         class_id: data.class_id,
         description: data.description || "",
         is_published: data.is_published,
-        period: data.period || "",
         language: data.language || "fr",
-        duration_minutes: data.duration_minutes || 120,
         tags: data.tags || [],
         file_url: data.file_url || "",
         visibility: data.visibility || "public",
-        // Include all ID fields from the database (safely accessing with any type)
+        // Include all ID fields from the database
         subject_id: (data as any).subject_id || null,
         exam_type_id: (data as any).exam_type_id || null,
         period_id: (data as any).period_id || null,
@@ -545,14 +535,7 @@ export default function ExamManager() {
         return;
       }
       
-      // Derive old text fields from new ID fields for backward compatibility
-      const selectedSubject = formOptions.subjects?.find(s => s.id === formData.subject_id);
-      const selectedExamType = formOptions.examTypes?.find(t => t.id === formData.exam_type_id);
-      const selectedPeriod = formOptions.periods?.find(p => p.id === formData.period_id);
-      const selectedYear = formOptions.academicYears?.find(y => y.id === formData.academic_year_id);
-      const selectedDuration = formOptions.durations?.find(d => d.id === formData.duration_id);
-      
-      // Build clean exam data with BOTH old and new fields
+      // Build clean exam data with standardized ID fields
       const examData: any = {
         title: formData.title,
         class_id: formData.class_id,
@@ -563,18 +546,12 @@ export default function ExamManager() {
         tags: formData.tags || [],
         content: parsedJson,
         is_published: false,
-        // OLD fields (for backward compatibility and NOT NULL constraints)
-        subject: selectedSubject ? (language === 'fr' ? selectedSubject.name_fr : selectedSubject.name_en) : '',
-        exam_type: selectedExamType ? selectedExamType.name : '',
-        period: selectedPeriod ? selectedPeriod.name : '',
-        year: selectedYear ? selectedYear.start_year : new Date().getFullYear(),
-        duration_minutes: selectedDuration ? selectedDuration.minutes : 120,
-        // NEW standardized ID fields
-        subject_id: formData.subject_id || null,
-        exam_type_id: formData.exam_type_id || null,
-        period_id: formData.period_id || null,
-        academic_year_id: formData.academic_year_id || null,
-        duration_id: formData.duration_id || null,
+        // Standardized ID fields
+        subject_id: formData.subject_id,
+        exam_type_id: formData.exam_type_id,
+        period_id: formData.period_id,
+        academic_year_id: formData.academic_year_id,
+        duration_id: formData.duration_id,
         establishment_id: formData.establishment_id || null,
       };
       
@@ -787,16 +764,16 @@ export default function ExamManager() {
       // Reset form for new exam
       setFormData({
         title: "",
-        subject: "",
-        year: new Date().getFullYear(),
-        exam_type: "",
         class_id: "",
         description: "",
         is_published: false,
-        period: "",
         language: "fr",
-        duration_minutes: 120,
         tags: [],
+        subject_id: "",
+        exam_type_id: "",
+        period_id: "",
+        academic_year_id: "",
+        duration_id: "",
       });
       setJsonData("");
       setSelectedFile(null);
@@ -1041,7 +1018,7 @@ export default function ExamManager() {
 
   // Auto-generate preview when data changes
   useEffect(() => {
-    if (!initialLoading && (formData.title || formData.subject || parsedJson)) {
+    if (!initialLoading && (formData.title || formData.subject_id || parsedJson)) {
       setPreviewData({
         ...formData,
         content: parsedJson,
@@ -1153,42 +1130,18 @@ export default function ExamManager() {
                   ) : (
                     <>
                       {/* Exam Details Card */}
-                      {(formData.title || formData.subject) && (
+                      {formData.title && (
                         <div className="bg-card rounded-lg border p-4 md:p-6 shadow-medium">
                           <div className="space-y-4">
                             <div>
                               <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                                 {formData.title || "Untitled Exam"}
                               </h1>
-                              <p className="text-base md:text-lg text-muted-foreground mt-1">
-                                {formData.subject || "No Subject"}
-                              </p>
                             </div>
 
                             <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
-                              {formData.exam_type && (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-foreground">Type:</span>
-                                  <Badge variant="secondary">{formData.exam_type}</Badge>
-                                </div>
-                              )}
-                              {formData.year && (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-foreground">Year:</span>
-                                  <Badge variant="outline">{formData.year}</Badge>
-                                </div>
-                              )}
-                              {formData.period && (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-foreground">Period:</span>
-                                  <Badge variant="outline">{formData.period}</Badge>
-                                </div>
-                              )}
-                              {formData.duration_minutes && (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-foreground">Duration:</span>
-                                  <Badge variant="outline">{formData.duration_minutes} minutes</Badge>
-                                </div>
+                              {formData.description && (
+                                <p className="text-muted-foreground">{formData.description}</p>
                               )}
                               {formData.language && (
                                 <div className="flex items-center gap-2">
@@ -1263,42 +1216,18 @@ export default function ExamManager() {
             ) : (
               <>
                 {/* Exam Details Card */}
-                {(formData.title || formData.subject) && (
+                {formData.title && (
                   <div className="bg-card rounded-lg border p-4 md:p-6 shadow-medium">
                     <div className="space-y-4">
                       <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                           {formData.title || "Untitled Exam"}
                         </h1>
-                        <p className="text-base md:text-lg text-muted-foreground mt-1">
-                          {formData.subject || "No Subject"}
-                        </p>
                       </div>
 
                       <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm">
-                        {formData.exam_type && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">Type:</span>
-                            <Badge variant="secondary">{formData.exam_type}</Badge>
-                          </div>
-                        )}
-                        {formData.year && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">Year:</span>
-                            <Badge variant="outline">{formData.year}</Badge>
-                          </div>
-                        )}
-                        {formData.period && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">Period:</span>
-                            <Badge variant="outline">{formData.period}</Badge>
-                          </div>
-                        )}
-                        {formData.duration_minutes && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">Duration:</span>
-                            <Badge variant="outline">{formData.duration_minutes} minutes</Badge>
-                          </div>
+                        {formData.description && (
+                          <p className="text-muted-foreground">{formData.description}</p>
                         )}
                         {formData.language && (
                           <div className="flex items-center gap-2">
