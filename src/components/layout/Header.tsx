@@ -160,6 +160,11 @@ export default function Header() {
                     {t('contact_us')}
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/write-to-us" className="cursor-pointer">
+                    {t('write_to_us')}
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/privacy" className="cursor-pointer text-muted-foreground">
