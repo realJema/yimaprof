@@ -300,6 +300,102 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          email_admin_messages: boolean | null
+          email_enabled: boolean | null
+          email_payment_confirmed: boolean | null
+          email_subscription_expiry: boolean | null
+          id: string
+          inapp_account_activity: boolean | null
+          inapp_admin_messages: boolean | null
+          inapp_payment_confirmed: boolean | null
+          inapp_subscription_expiry: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_admin_messages?: boolean | null
+          email_enabled?: boolean | null
+          email_payment_confirmed?: boolean | null
+          email_subscription_expiry?: boolean | null
+          id?: string
+          inapp_account_activity?: boolean | null
+          inapp_admin_messages?: boolean | null
+          inapp_payment_confirmed?: boolean | null
+          inapp_subscription_expiry?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_admin_messages?: boolean | null
+          email_enabled?: boolean | null
+          email_payment_confirmed?: boolean | null
+          email_subscription_expiry?: boolean | null
+          id?: string
+          inapp_account_activity?: boolean | null
+          inapp_admin_messages?: boolean | null
+          inapp_payment_confirmed?: boolean | null
+          inapp_subscription_expiry?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_broadcast: boolean | null
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          priority: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_broadcast?: boolean | null
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          priority?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_broadcast?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          priority?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           class_level: string | null
@@ -564,6 +660,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      broadcast_notification: {
+        Args: {
+          p_action_url?: string
+          p_message: string
+          p_metadata?: Json
+          p_priority?: string
+          p_title: string
+          p_type: string
+          p_user_ids: string[]
+        }
+        Returns: number
+      }
       change_user_role: {
         Args: {
           new_role: Database["public"]["Enums"]["app_role"]
@@ -571,6 +679,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_subscription_expiry: { Args: never; Returns: number }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -589,6 +698,18 @@ export type Database = {
           p_metadata?: Json
           p_target_id?: string
           p_target_type: string
+        }
+        Returns: string
+      }
+      send_notification: {
+        Args: {
+          p_action_url?: string
+          p_message: string
+          p_metadata?: Json
+          p_priority?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
         }
         Returns: string
       }
