@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Calendar, Clock, ArrowLeft, X } from 'lucide-react';
+import { FileText, Calendar, Clock, ArrowLeft, X, Play } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
@@ -272,7 +272,7 @@ export default function ExamViewer() {
       {/* Exam Details Banner */}
       <div className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4 flex-wrap">
               <h2 className="font-semibold text-lg">{exam.title}</h2>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -289,8 +289,42 @@ export default function ExamViewer() {
               </div>
             </div>
             
-            {/* View PDF Button */}
-            {exam.file_url && <Button 
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Mode Switcher Buttons */}
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={mode === 'preview' ? 'default' : 'outline'}
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => navigate(`/exam/${examId}?mode=preview`)}
+                >
+                  <FileText className="h-4 w-4" />
+                  {language === 'fr' ? 'Aperçu' : 'Preview'}
+                </Button>
+                
+                <Button 
+                  variant={mode === 'correction' ? 'default' : 'outline'}
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => navigate(`/exam/${examId}?mode=correction`)}
+                >
+                  <FileText className="h-4 w-4" />
+                  {language === 'fr' ? 'Correction' : 'Correction'}
+                </Button>
+                
+                <Button 
+                  variant={mode === 'evaluation' ? 'default' : 'outline'}
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}
+                >
+                  <Play className="h-4 w-4" />
+                  {language === 'fr' ? 'Évaluation' : 'Evaluation'}
+                </Button>
+              </div>
+              
+              {/* View PDF Button */}
+              {exam.file_url && <Button 
                 variant="outline" 
                 size="sm" 
                 className="gap-2"
@@ -308,6 +342,7 @@ export default function ExamViewer() {
                   : (language === 'fr' ? 'Voir PDF' : 'View PDF')
                 }
               </Button>}
+            </div>
           </div>
         </div>
       </div>

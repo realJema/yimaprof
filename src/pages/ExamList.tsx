@@ -314,21 +314,7 @@ export default function ExamList() {
                       <Link to={`/exam/${exam.id}?mode=preview`} className="w-full">
                         <Button variant="default" size="sm" className="w-full gap-2">
                           <Eye className="h-4 w-4" />
-                          {language === 'fr' ? 'Aperçu' : 'Preview'}
-                        </Button>
-                      </Link>
-                      
-                      <Link to={`/exam/${exam.id}?mode=correction`} className="w-full">
-                        <Button variant="outline" size="sm" className="w-full gap-2">
-                          <FileText className="h-4 w-4" />
-                          {language === 'fr' ? 'Voir Correction' : 'View Correction'}
-                        </Button>
-                      </Link>
-                      
-                      <Link to={`/exam/${exam.id}?mode=evaluation`} className="w-full">
-                        <Button variant="secondary" size="sm" className="w-full gap-2">
-                          <Play className="h-4 w-4" />
-                          {language === 'fr' ? 'Évaluation' : 'Take Evaluation'}
+                          {language === 'fr' ? 'Voir l\'Épreuve' : 'View Exam'}
                         </Button>
                       </Link>
                     </div>
