@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Clock, Calendar, Eye, ArrowLeft, Search, Lock, Crown, FileText, Play } from 'lucide-react';
+import { BookOpen, Clock, Calendar, Eye, ArrowLeft, Search, Lock, Crown, FileText, Play, Filter } from 'lucide-react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +43,7 @@ export default function ExamList() {
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchClassAndExams();
@@ -201,53 +202,68 @@ export default function ExamList() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger>
-              <SelectValue placeholder={language === 'fr' ? 'Année' : 'Year'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
-              {years.map(year => (
-                <SelectItem key={year} value={year!.toString()}>{year}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger>
-              <SelectValue placeholder={language === 'fr' ? 'Type' : 'Type'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
-              {examTypes.map(type => (
-                <SelectItem key={type} value={type!}>{type}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
-              <SelectValue placeholder={language === 'fr' ? 'Trier' : 'Sort'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">{language === 'fr' ? 'Plus récent' : 'Most Recent'}</SelectItem>
-              <SelectItem value="year-desc">{language === 'fr' ? 'Année (desc)' : 'Year (desc)'}</SelectItem>
-              <SelectItem value="year-asc">{language === 'fr' ? 'Année (asc)' : 'Year (asc)'}</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Filters Toggle */}
+        <div className="mb-6 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            {language === 'fr' ? 'Filtres' : 'Filters'}
+          </Button>
         </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <div className="grid gap-4 md:grid-cols-4 mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'fr' ? 'Année' : 'Year'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
+                {years.map(year => (
+                  <SelectItem key={year} value={year!.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'fr' ? 'Type' : 'Type'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
+                {examTypes.map(type => (
+                  <SelectItem key={type} value={type!}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'fr' ? 'Trier' : 'Sort'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">{language === 'fr' ? 'Plus récent' : 'Most Recent'}</SelectItem>
+                <SelectItem value="year-desc">{language === 'fr' ? 'Année (desc)' : 'Year (desc)'}</SelectItem>
+                <SelectItem value="year-asc">{language === 'fr' ? 'Année (asc)' : 'Year (asc)'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Exams Grid */}
         {sortedExams.length === 0 ? (
@@ -257,7 +273,7 @@ export default function ExamList() {
             </p>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {sortedExams.map((exam, index) => {
               // Material colors alternating pattern
               const colorClasses = [
