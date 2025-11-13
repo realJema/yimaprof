@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 interface Class {
   id: string;
   name: string;
@@ -43,14 +44,34 @@ export default function Exams() {
   const [freeExams, setFreeExams] = useState<FreeExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSystem, setSelectedSystem] = useState<'francophone' | 'anglophone'>('francophone');
+  const [establishments, setEstablishments] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedEstablishment, setSelectedEstablishment] = useState<string>('all');
   const isFullAccessUser = user && hasActiveSubscription;
+  useEffect(() => {
+    fetchEstablishments();
+  }, []);
+
   useEffect(() => {
     if (isFullAccessUser) {
       fetchClasses();
     } else {
       fetchFreeExams();
     }
-  }, [selectedSystem, isFullAccessUser]);
+  }, [selectedSystem, selectedEstablishment, isFullAccessUser]);
+
+  const fetchEstablishments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('establishments')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      setEstablishments(data || []);
+    } catch (error) {
+      console.error('Error fetching establishments:', error);
+    }
+  };
   const fetchFreeExams = async () => {
     try {
       setLoading(true);
@@ -88,25 +109,31 @@ export default function Exams() {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from('classes').select('*').eq('section', selectedSystem).order('level');
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('section', selectedSystem)
+        .order('level');
+        
       if (error) throw error;
 
       // Fetch paper counts for each class
-      const classesWithCounts = await Promise.all((data || []).map(async cls => {
-        const {
-          count
-        } = await supabase.from('exams').select('*', {
-          count: 'exact',
-          head: true
-        }).eq('class_id', cls.id).eq('is_published', true);
-        return {
-          ...cls,
-          paperCount: count || 0
-        };
-      }));
+      const classesWithCounts = await Promise.all(
+        (data || []).map(async cls => {
+          let examQuery = supabase
+            .from('exams')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', cls.id)
+            .eq('is_published', true);
+          
+          if (selectedEstablishment !== 'all') {
+            examQuery = examQuery.eq('establishment_id', selectedEstablishment);
+          }
+          
+          const { count } = await examQuery;
+          return { ...cls, paperCount: count || 0 };
+        })
+      );
       setClasses(classesWithCounts);
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -162,7 +189,7 @@ export default function Exams() {
         {/* System Switcher - Top */}
         <Card className="mb-8 border-border/50 bg-gradient-to-br from-primary/5 to-primary/10 backdrop-blur-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex-1">
                 <CardTitle className="text-xl text-primary mb-2">
                   {systemName}
@@ -171,10 +198,25 @@ export default function Exams() {
                   {systemDescription}
                 </CardDescription>
               </div>
-              <Button variant="outline" className="gap-2" onClick={() => setSelectedSystem(selectedSystem === 'francophone' ? 'anglophone' : 'francophone')}>
-                <Repeat className="h-4 w-4" />
-                {language === 'fr' ? 'Changer de Système' : 'Change System'}
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {establishments.length > 0 && (
+                  <Select value={selectedEstablishment} onValueChange={setSelectedEstablishment}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder={language === 'fr' ? 'École' : 'School'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{language === 'fr' ? 'Toutes les écoles' : 'All Schools'}</SelectItem>
+                      {establishments.map(est => (
+                        <SelectItem key={est.id} value={est.id}>{est.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button variant="outline" className="gap-2" onClick={() => setSelectedSystem(selectedSystem === 'francophone' ? 'anglophone' : 'francophone')}>
+                  <Repeat className="h-4 w-4" />
+                  {language === 'fr' ? 'Changer de Système' : 'Change System'}
+                </Button>
+              </div>
             </div>
           </CardHeader>
         </Card>
