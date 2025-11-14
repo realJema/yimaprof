@@ -1038,23 +1038,13 @@ export default function ExamManager() {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
               size="sm"
-              onClick={saveDraft}
-              disabled={loading || uploading}
-              className="gap-1"
-            >
-              <Save className="h-4 w-4" />
-              <span className="hidden sm:inline">Save Draft</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={isEditing ? saveDraft : handlePublish}
+              onClick={handlePublish}
               disabled={loading || uploading}
               className="gap-1"
             >
               <FileCheck className="h-4 w-4" />
-              {isEditing ? 'Save' : 'Publish'}
+              Publish
             </Button>
           </div>
         </div>
@@ -1835,25 +1825,14 @@ export default function ExamManager() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button
-                variant="outline"
                 size="sm"
-                onClick={saveDraft}
-                disabled={loading || uploading}
-                className="text-xs md:text-sm flex-1 sm:flex-none"
-              >
-                <Save className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">{t("save_draft")}</span>
-                <span className="sm:hidden">Save</span>
-              </Button>
-              <Button
-                size="sm"
-                onClick={isEditing ? saveDraft : handlePublish}
+                onClick={handlePublish}
                 disabled={loading || uploading}
                 className="text-xs md:text-sm flex-1 sm:flex-none"
               >
                 <FileCheck className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
-                <span className="hidden sm:inline">{isEditing ? 'Save' : t("publish_exam")}</span>
-                <span className="sm:hidden">{isEditing ? 'Save' : 'Publish'}</span>
+                <span className="hidden sm:inline">{t("publish_exam")}</span>
+                <span className="sm:hidden">Publish</span>
               </Button>
               {!isEditing && (
                 <Button
