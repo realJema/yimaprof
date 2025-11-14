@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_years: {
+        Row: {
+          created_at: string | null
+          end_year: number
+          id: string
+          is_active: boolean | null
+          start_year: number
+          year_label: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_year: number
+          id?: string
+          is_active?: boolean | null
+          start_year: number
+          year_label: string
+        }
+        Update: {
+          created_at?: string | null
+          end_year?: number
+          id?: string
+          is_active?: boolean | null
+          start_year?: number
+          year_label?: string
+        }
+        Relationships: []
+      }
       affiliate_earnings: {
         Row: {
           affiliate_id: string
@@ -186,6 +213,30 @@ export type Database = {
           },
         ]
       }
+      durations: {
+        Row: {
+          created_at: string | null
+          display_label: string
+          id: string
+          is_active: boolean | null
+          minutes: number
+        }
+        Insert: {
+          created_at?: string | null
+          display_label: string
+          id?: string
+          is_active?: boolean | null
+          minutes: number
+        }
+        Update: {
+          created_at?: string | null
+          display_label?: string
+          id?: string
+          is_active?: boolean | null
+          minutes?: number
+        }
+        Relationships: []
+      }
       establishments: {
         Row: {
           country: string | null
@@ -213,77 +264,111 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          name_fr: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          name_fr?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          name_fr?: string | null
+        }
+        Relationships: []
+      }
       exams: {
         Row: {
+          academic_year_id: string
           class_id: string | null
           content: Json | null
           created_at: string
           created_by: string
           description: string | null
           download_count: number | null
-          duration_minutes: number | null
+          duration_id: string
           establishment_id: string | null
-          exam_type: string | null
+          exam_type_id: string
           file_url: string | null
           id: string
           is_published: boolean | null
           language: string | null
-          period: string | null
-          subject: string
+          period_id: string
+          subject_id: string
           tags: string[] | null
           thumbnail_url: string | null
           title: string
           updated_at: string
           visibility: string | null
-          year: number | null
         }
         Insert: {
+          academic_year_id: string
           class_id?: string | null
           content?: Json | null
           created_at?: string
           created_by: string
           description?: string | null
           download_count?: number | null
-          duration_minutes?: number | null
+          duration_id: string
           establishment_id?: string | null
-          exam_type?: string | null
+          exam_type_id: string
           file_url?: string | null
           id?: string
           is_published?: boolean | null
           language?: string | null
-          period?: string | null
-          subject: string
+          period_id: string
+          subject_id: string
           tags?: string[] | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
           visibility?: string | null
-          year?: number | null
         }
         Update: {
+          academic_year_id?: string
           class_id?: string | null
           content?: Json | null
           created_at?: string
           created_by?: string
           description?: string | null
           download_count?: number | null
-          duration_minutes?: number | null
+          duration_id?: string
           establishment_id?: string | null
-          exam_type?: string | null
+          exam_type_id?: string
           file_url?: string | null
           id?: string
           is_published?: boolean | null
           language?: string | null
-          period?: string | null
-          subject?: string
+          period_id?: string
+          subject_id?: string
           tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
           visibility?: string | null
-          year?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "exams_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exams_class_id_fkey"
             columns: ["class_id"]
@@ -292,10 +377,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "exams_duration_id_fkey"
+            columns: ["duration_id"]
+            isOneToOne: false
+            referencedRelation: "durations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "exams_establishment_id_fkey"
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_exam_type_id_fkey"
+            columns: ["exam_type_id"]
+            isOneToOne: false
+            referencedRelation: "exam_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -423,6 +536,36 @@ export type Database = {
         }
         Relationships: []
       }
+      periods: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          name_fr: string | null
+          order_number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          name_fr?: string | null
+          order_number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          name_fr?: string | null
+          order_number?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           class_level: string | null
@@ -475,6 +618,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subjects: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          name_fr: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          name_fr?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          name_fr?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       subscription_plan_classes: {
         Row: {
@@ -711,6 +884,7 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      harmonize_exam_data: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
