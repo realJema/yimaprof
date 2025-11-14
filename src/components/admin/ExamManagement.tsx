@@ -173,9 +173,15 @@ export function ExamManagement() {
   // Apply filters to exams
   const filterExams = (examsList: Exam[]) => {
     return examsList.filter(exam => {
-      const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) || exam.subject.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesYear = selectedYear === 'all' || exam.year.toString() === selectedYear;
-      const matchesSubject = selectedSubject === 'all' || exam.subject === selectedSubject;
+      const subjectName = exam.subjects 
+        ? (language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name)
+        : '';
+      const yearLabel = exam.academic_years?.year_label || '';
+      
+      const matchesSearch = exam.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           subjectName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesYear = selectedYear === 'all' || yearLabel === selectedYear;
+      const matchesSubject = selectedSubject === 'all' || subjectName === selectedSubject;
       const matchesClass = selectedClass === 'all' || exam.class_id === selectedClass;
       const matchesStatus = selectedStatus === 'all' || selectedStatus === 'published' && exam.is_published || selectedStatus === 'draft' && !exam.is_published;
       return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus;
@@ -183,8 +189,15 @@ export function ExamManagement() {
   };
 
   // Get unique values for filters
-  const uniqueYears = Array.from(new Set(exams.map(e => e.year))).sort((a, b) => b - a);
-  const uniqueSubjects = Array.from(new Set(exams.map(e => e.subject))).sort();
+  const uniqueYears = Array.from(new Set(exams.map(e => e.academic_years?.year_label).filter(Boolean))).sort((a, b) => {
+    const yearA = parseInt((a as string).split('-')[0]);
+    const yearB = parseInt((b as string).split('-')[0]);
+    return yearB - yearA;
+  });
+  const uniqueSubjects = Array.from(new Set(exams.map(e => {
+    const subject = e.subjects;
+    return subject ? (language === 'fr' ? subject.name_fr || subject.name : subject.name_en || subject.name) : '';
+  }).filter(Boolean))).sort();
   const handleDelete = async (exam: Exam) => {
     if (!confirm('Are you sure you want to delete this exam?')) return;
     try {

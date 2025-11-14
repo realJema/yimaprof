@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 export default function Dashboard() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
@@ -78,7 +78,12 @@ export default function Dashboard() {
         .from('exams')
         .select(`
           *,
-          classes (display_name, level)
+          classes (display_name, level),
+          subjects:subject_id (
+            name,
+            name_en,
+            name_fr
+          )
         `)
         .eq('is_published', true)
         .order('created_at', { ascending: false })
@@ -442,7 +447,7 @@ export default function Dashboard() {
                         <div className="flex-1">
                           <h4 className="font-medium text-foreground">{exam.title}</h4>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {exam.classes?.display_name} • {exam.subject}
+                            {exam.classes?.display_name} • {exam.subjects ? (language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name) : ''}
                           </p>
                         </div>
                         <BookOpen className="h-5 w-5 text-muted-foreground" />
