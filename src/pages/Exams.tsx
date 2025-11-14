@@ -81,15 +81,19 @@ export default function Exams() {
       } = await supabase.from('exams').select(`
           id,
           title,
-          subject,
           class_id,
-          classes!inner(display_name)
+          classes!inner(display_name),
+          subjects:subject_id (
+            name,
+            name_en,
+            name_fr
+          )
         `).eq('is_published', true).eq('classes.section', selectedSystem).limit(5);
       if (error) throw error;
       const formattedExams = (examsData || []).map((exam: any) => ({
         id: exam.id,
         title: exam.title,
-        subject: exam.subject,
+        subject: exam.subjects ? (language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name) : '',
         class_id: exam.class_id,
         class_name: exam.classes.display_name
       }));
