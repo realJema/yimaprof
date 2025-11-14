@@ -647,13 +647,7 @@ export default function ExamManager() {
         tags: formData.tags || [],
         content: parsedJson,
         is_published: shouldPublish,
-        // OLD fields (for backward compatibility and NOT NULL constraints)
-        subject: selectedSubject ? (language === 'fr' ? selectedSubject.name_fr : selectedSubject.name_en) : '',
-        exam_type: selectedExamType ? selectedExamType.name : '',
-        period: selectedPeriod ? selectedPeriod.name : '',
-        year: selectedYear ? selectedYear.start_year : new Date().getFullYear(),
-        duration_minutes: selectedDuration ? selectedDuration.minutes : 120,
-        // NEW standardized ID fields
+        // Standardized ID fields
         subject_id: formData.subject_id || null,
         exam_type_id: formData.exam_type_id || null,
         period_id: formData.period_id || null,
