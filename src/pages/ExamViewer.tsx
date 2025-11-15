@@ -104,12 +104,17 @@ export default function ExamViewer() {
   const [showPdfSplit, setShowPdfSplit] = useState(false);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-  
+
   // Evaluation mode state
-  const [userAnswers, setUserAnswers] = useState<Array<{ questionIndex: number; answer: string }>>([]);
+  const [userAnswers, setUserAnswers] = useState<Array<{
+    questionIndex: number;
+    answer: string;
+  }>>([]);
   const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
-  
+  const [score, setScore] = useState<{
+    correct: number;
+    total: number;
+  } | null>(null);
   const checkAccess = useCallback(async () => {
     if (!user) {
       setHasAccess(true); // Allow public access for preview
@@ -150,7 +155,6 @@ export default function ExamViewer() {
       setIsFreeUser(true);
     }
   }, [user]);
-  
   const fetchExam = useCallback(async () => {
     try {
       const {
@@ -216,14 +220,12 @@ export default function ExamViewer() {
       setLoading(false);
     }
   }, [examId, language, toast]);
-
   useEffect(() => {
     if (examId) {
       fetchExam();
       checkAccess();
     }
   }, [examId, fetchExam, checkAccess]);
-  
   const extractQuestions = (content: any): SidebarQuestion[] => {
     const questions: SidebarQuestion[] = [];
     let questionNumber = 0;
@@ -261,50 +263,47 @@ export default function ExamViewer() {
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleZoomReset = () => setZoom(1);
-  
   const handleAnswerChange = (questionIndex: number, answer: string) => {
     setUserAnswers(prev => {
       const existing = prev.findIndex(a => a.questionIndex === questionIndex);
       if (existing >= 0) {
         const updated = [...prev];
-        updated[existing] = { questionIndex, answer };
+        updated[existing] = {
+          questionIndex,
+          answer
+        };
         return updated;
       }
-      return [...prev, { questionIndex, answer }];
+      return [...prev, {
+        questionIndex,
+        answer
+      }];
     });
   };
-  
   const calculateScore = () => {
     if (!exam?.content) return;
-    
     let correct = 0;
     let total = 0;
-    
     const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
-    const questions = items.filter((item: any) => 
-      (item.item_type === 'question' && item.question_type === 'multiple_choice') || 
-      item.type === 'multiple_choice'
-    );
-    
+    const questions = items.filter((item: any) => item.item_type === 'question' && item.question_type === 'multiple_choice' || item.type === 'multiple_choice');
     questions.forEach((question: any, index: number) => {
       total++;
       const userAnswer = userAnswers.find(a => a.questionIndex === index);
       const correctAnswer = question.answers?.find((a: any) => a.is_correct);
-      
       if (correctAnswer && userAnswer?.answer === correctAnswer.text) {
         correct++;
       }
     });
-    
-    setScore({ correct, total });
+    setScore({
+      correct,
+      total
+    });
     setSubmitted(true);
-    
     toast({
       title: t('evaluation_submitted'),
-      description: t('your_score') + `: ${correct}/${total} (${total > 0 ? Math.round((correct / total) * 100) : 0}%)`,
+      description: t('your_score') + `: ${correct}/${total} (${total > 0 ? Math.round(correct / total * 100) : 0}%)`
     });
   };
-  
   const resetEvaluation = () => {
     setUserAnswers([]);
     setSubmitted(false);
@@ -329,7 +328,7 @@ export default function ExamViewer() {
         </Card>
       </div>;
   }
-  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted) || isFreeUser;
+  const showAnswers = mode === 'correction' || mode === 'evaluation' && submitted || isFreeUser;
   return <div className="min-h-screen bg-background">
       {/* Exam Details Banner */}
       <div className="border-b border-border bg-muted/30">
@@ -338,87 +337,52 @@ export default function ExamViewer() {
             <div className="flex flex-col gap-1">
               <h2 className="font-semibold text-lg">{exam.title}</h2>
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                {exam.establishments && (
-                  <span className="flex items-center gap-1">
+                {exam.establishments && <span className="flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5" />
                     {exam.establishments.name}
-                  </span>
-                )}
-                {exam.classes && (
-                  <span>{exam.classes.display_name}</span>
-                )}
-                {exam.subjects && (
-                  <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>
-                )}
-                {exam.periods && (
-                  <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>
-                )}
-                {exam.academic_years && (
-                  <span>{exam.academic_years.year_label}</span>
-                )}
-                {exam.exam_types && (
-                  <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>
-                )}
-                {exam.durations && (
-                  <span className="flex items-center gap-1">
+                  </span>}
+                {exam.classes && <span>{exam.classes.display_name}</span>}
+                {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
+                {exam.periods && <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>}
+                {exam.academic_years && <span>{exam.academic_years.year_label}</span>}
+                {exam.exam_types && <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>}
+                {exam.durations && <span className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" />
                     {exam.durations.display_label}
-                  </span>
-                )}
+                  </span>}
               </div>
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
               {/* Mode Switcher Buttons */}
               <div className="flex items-center gap-2">
-                <Button 
-                  variant={mode === 'correction' ? 'default' : 'outline'}
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => {
-                    if (mode === 'correction') {
-                      navigate(`/exam/${examId}?mode=preview`);
-                    } else {
-                      setShowCorrectionDialog(true);
-                    }
-                  }}
-                >
+                <Button variant={mode === 'correction' ? 'default' : 'outline'} size="sm" className="gap-2" onClick={() => {
+                if (mode === 'correction') {
+                  navigate(`/exam/${examId}?mode=preview`);
+                } else {
+                  setShowCorrectionDialog(true);
+                }
+              }}>
                   <FileText className="h-4 w-4" />
-                  {mode === 'correction' 
-                    ? (language === 'fr' ? 'Masquer Solutions' : 'Hide Solutions')
-                    : (language === 'fr' ? 'Voir Correction' : 'View Correction')
-                  }
+                  {mode === 'correction' ? language === 'fr' ? 'Masquer Solutions' : 'Hide Solutions' : language === 'fr' ? 'Voir Correction' : 'View Correction'}
                 </Button>
                 
-                <Button 
-                  variant={mode === 'evaluation' ? 'default' : 'outline'}
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}
-                >
+                <Button variant={mode === 'evaluation' ? 'default' : 'outline'} size="sm" className="gap-2" onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}>
                   <Play className="h-4 w-4" />
                   {language === 'fr' ? 'Évaluation' : 'Evaluation'}
                 </Button>
               </div>
               
               {/* View PDF Button */}
-              {exam.file_url && <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => {
-                  const newShowPdf = !showPdfSplit;
-                  setShowPdfSplit(newShowPdf);
-                  if (newShowPdf) {
-                    setSidebarCollapsed(true);
-                  }
-                }}
-              >
+              {exam.file_url && <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+              const newShowPdf = !showPdfSplit;
+              setShowPdfSplit(newShowPdf);
+              if (newShowPdf) {
+                setSidebarCollapsed(true);
+              }
+            }}>
                 <FileText className="h-4 w-4" />
-                {showPdfSplit 
-                  ? (language === 'fr' ? 'Masquer PDF' : 'Hide PDF')
-                  : (language === 'fr' ? 'Voir PDF' : 'View PDF')
-                }
+                {showPdfSplit ? language === 'fr' ? 'Masquer PDF' : 'Hide PDF' : language === 'fr' ? 'Voir PDF' : 'View PDF'}
               </Button>}
             </div>
           </div>
@@ -429,12 +393,7 @@ export default function ExamViewer() {
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="gap-2"
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               {language === 'fr' ? 'Retour' : 'Back'}
             </Button>
@@ -466,44 +425,18 @@ export default function ExamViewer() {
       {/* Main Content */}
       <div className="flex h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <aside className={cn(
-          "hidden lg:block border-r border-border bg-card transition-all duration-300",
-          sidebarCollapsed ? "w-0 border-0" : "w-80"
-        )}>
-          <ExamSidebar 
-            questions={sidebarQuestions} 
-            activeQuestion={activeQuestion} 
-            onQuestionClick={handleQuestionClick}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+        <aside className={cn("hidden lg:block border-r border-border bg-card transition-all duration-300", sidebarCollapsed ? "w-0 border-0" : "w-80")}>
+          <ExamSidebar questions={sidebarQuestions} activeQuestion={activeQuestion} onQuestionClick={handleQuestionClick} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
         </aside>
 
         {/* Content Area */}
-        <main className={cn(
-          "flex-1 overflow-auto transition-all duration-300",
-          showPdfSplit && exam.file_url ? "w-1/2" : "w-full"
-        )}>
+        <main className={cn("flex-1 overflow-auto transition-all duration-300", showPdfSplit && exam.file_url ? "w-1/2" : "w-full")}>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
             {/* Title Card */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-2xl">{exam.title}</CardTitle>
-                <CardDescription>
-                  {mode === 'correction' ? language === 'fr' ? 'Correction officielle' : 'Official Corrections' : mode === 'evaluation' ? language === 'fr' ? 'Mode évaluation' : 'Evaluation Mode' : language === 'fr' ? 'Aperçu des questions' : 'Question Preview'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {exam.classes && <Badge variant="secondary">{exam.classes.display_name}</Badge>}
-                  {exam.description && <p className="text-sm text-muted-foreground">{exam.description}</p>}
-                </div>
-              </CardContent>
-            </Card>
+            
 
             {/* Score Card for Evaluation Mode */}
-            {mode === 'evaluation' && submitted && score && (
-              <Card className="mb-6 border-primary bg-primary/5">
+            {mode === 'evaluation' && submitted && score && <Card className="mb-6 border-primary bg-primary/5">
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center gap-2">
                     {t('evaluation_results')}
@@ -522,7 +455,7 @@ export default function ExamViewer() {
                       </div>
                       <div>
                         <p className="text-3xl font-bold">
-                          {Math.round((score.correct / score.total) * 100)}%
+                          {Math.round(score.correct / score.total * 100)}%
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {t('score')}
@@ -534,22 +467,14 @@ export default function ExamViewer() {
                     </Button>
                   </div>
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
 
             {/* Exam Content */}
             <div ref={contentRef} style={{
             transform: `scale(${zoom})`,
             transformOrigin: 'top left'
           }} className="transition-transform duration-200">
-              {exam.content ? <ExamContentRenderer 
-                content={exam.content} 
-                showAnswers={showAnswers} 
-                mode={mode as 'preview' | 'evaluation' | 'solution'} 
-                questionIdPrefix="question-"
-                userAnswers={userAnswers}
-                onAnswerChange={handleAnswerChange}
-              /> : <Card>
+              {exam.content ? <ExamContentRenderer content={exam.content} showAnswers={showAnswers} mode={mode as 'preview' | 'evaluation' | 'solution'} questionIdPrefix="question-" userAnswers={userAnswers} onAnswerChange={handleAnswerChange} /> : <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
                       {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
@@ -559,46 +484,26 @@ export default function ExamViewer() {
             </div>
 
             {/* Submit Button for Evaluation Mode */}
-            {mode === 'evaluation' && !submitted && (
-              <Card className="mt-6 sticky bottom-4">
+            {mode === 'evaluation' && !submitted && <Card className="mt-6 sticky bottom-4">
                 <CardContent className="pt-6">
-                  <Button 
-                    onClick={calculateScore} 
-                    className="w-full" 
-                    size="lg"
-                    disabled={userAnswers.length === 0}
-                  >
+                  <Button onClick={calculateScore} className="w-full" size="lg" disabled={userAnswers.length === 0}>
                     {t('submit_evaluation')}
                   </Button>
-                  {userAnswers.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center mt-2">
+                  {userAnswers.length === 0 && <p className="text-sm text-muted-foreground text-center mt-2">
                       {t('answer_at_least_one')}
-                    </p>
-                  )}
+                    </p>}
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
           </div>
         </main>
 
         {/* PDF Split View */}
-        {showPdfSplit && exam.file_url && (
-          <aside className="w-1/2 border-l border-border bg-card relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2 z-10"
-              onClick={() => setShowPdfSplit(false)}
-            >
+        {showPdfSplit && exam.file_url && <aside className="w-1/2 border-l border-border bg-card relative">
+            <Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10" onClick={() => setShowPdfSplit(false)}>
               <X className="h-4 w-4" />
             </Button>
-            <iframe 
-              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
-              className="w-full h-full" 
-              title="Exam PDF" 
-            />
-          </aside>
-        )}
+            <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full" title="Exam PDF" />
+          </aside>}
       </div>
 
       {/* Zoom Controls */}
@@ -613,16 +518,10 @@ export default function ExamViewer() {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                {language === 'fr' 
-                  ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.'
-                  : 'You are about to view the official solutions for this exam.'
-                }
+                {language === 'fr' ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.' : 'You are about to view the official solutions for this exam.'}
               </p>
               <p className="font-semibold text-foreground">
-                {language === 'fr'
-                  ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !'
-                  : 'We suggest taking the evaluation first to test your knowledge!'
-                }
+                {language === 'fr' ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !' : 'We suggest taking the evaluation first to test your knowledge!'}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
