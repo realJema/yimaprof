@@ -38,6 +38,35 @@ interface Exam {
     section: string;
     level: string;
   };
+  subjects?: {
+    name: string;
+    name_en?: string;
+    name_fr?: string;
+  };
+  exam_types?: {
+    name: string;
+    name_en?: string;
+    name_fr?: string;
+  };
+  periods?: {
+    name: string;
+    name_en?: string;
+    name_fr?: string;
+  };
+  academic_years?: {
+    year_label: string;
+    start_year: number;
+    end_year: number;
+  };
+  durations?: {
+    display_label: string;
+    minutes: number;
+  };
+  establishments?: {
+    name: string;
+    type?: string;
+    country?: string;
+  };
 }
 interface SidebarQuestion {
   id: string;
@@ -135,6 +164,35 @@ export default function ExamViewer() {
             display_name,
             section,
             level
+          ),
+          subjects:subject_id (
+            name,
+            name_en,
+            name_fr
+          ),
+          exam_types:exam_type_id (
+            name,
+            name_en,
+            name_fr
+          ),
+          periods:period_id (
+            name,
+            name_en,
+            name_fr
+          ),
+          academic_years:academic_year_id (
+            year_label,
+            start_year,
+            end_year
+          ),
+          durations:duration_id (
+            display_label,
+            minutes
+          ),
+          establishments:establishment_id (
+            name,
+            type,
+            country
           )
         `).eq('id', examId).single();
       if (examError) throw examError;
@@ -277,8 +335,37 @@ export default function ExamViewer() {
       <div className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex flex-col gap-1">
               <h2 className="font-semibold text-lg">{exam.title}</h2>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                {exam.establishments && (
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-3.5 w-3.5" />
+                    {exam.establishments.name}
+                  </span>
+                )}
+                {exam.classes && (
+                  <span>{exam.classes.display_name}</span>
+                )}
+                {exam.subjects && (
+                  <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>
+                )}
+                {exam.periods && (
+                  <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>
+                )}
+                {exam.academic_years && (
+                  <span>{exam.academic_years.year_label}</span>
+                )}
+                {exam.exam_types && (
+                  <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>
+                )}
+                {exam.durations && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {exam.durations.display_label}
+                  </span>
+                )}
+              </div>
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">

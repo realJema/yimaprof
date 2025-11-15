@@ -701,6 +701,7 @@ export default function ExamManager() {
       return;
     }
     setLoading(true);
+    setUploading(true);
     try {
       let fileUrl = formData.file_url;
       if (selectedFile && !formData.file_url) {
@@ -710,16 +711,10 @@ export default function ExamManager() {
           variant: "destructive",
         });
         setLoading(false);
+        setUploading(false);
         return;
       }
-      // Derive old text fields from new ID fields for backward compatibility
-      const selectedSubject = formOptions.subjects?.find(s => s.id === formData.subject_id);
-      const selectedExamType = formOptions.examTypes?.find(t => t.id === formData.exam_type_id);
-      const selectedPeriod = formOptions.periods?.find(p => p.id === formData.period_id);
-      const selectedYear = formOptions.academicYears?.find(y => y.id === formData.academic_year_id);
-      const selectedDuration = formOptions.durations?.find(d => d.id === formData.duration_id);
       
-      // Build clean exam data with BOTH old and new fields
       const examData: any = {
         title: formData.title,
         class_id: formData.class_id,
@@ -731,13 +726,6 @@ export default function ExamManager() {
         content: parsedJson,
         is_published: true,
         created_by: user?.id || "",
-        // OLD fields (for backward compatibility and NOT NULL constraints)
-        subject: selectedSubject ? (language === 'fr' ? selectedSubject.name_fr : selectedSubject.name_en) : '',
-        exam_type: selectedExamType ? selectedExamType.name : '',
-        period: selectedPeriod ? selectedPeriod.name : '',
-        year: selectedYear ? selectedYear.start_year : new Date().getFullYear(),
-        duration_minutes: selectedDuration ? selectedDuration.minutes : 120,
-        // NEW standardized ID fields
         subject_id: formData.subject_id || null,
         exam_type_id: formData.exam_type_id || null,
         period_id: formData.period_id || null,
@@ -765,10 +753,14 @@ export default function ExamManager() {
         period_id: "",
         academic_year_id: "",
         duration_id: "",
+        establishment_id: "",
+        file_url: "",
+        visibility: "public",
       });
       setJsonData("");
       setSelectedFile(null);
       setParsedJson(null);
+      setPreviewData(null);
     } catch (error) {
       console.error("Error publishing exam:", error);
       toast({
@@ -778,6 +770,7 @@ export default function ExamManager() {
       });
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
   const addQuestion = () => {
