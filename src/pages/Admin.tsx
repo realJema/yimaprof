@@ -14,6 +14,12 @@ import { AdminStats } from '@/components/admin/AdminStats';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { ExamManagement } from '@/components/admin/ExamManagement';
 import { ClassManagement } from '@/components/admin/ClassManagement';
+import { EstablishmentManagement } from '@/components/admin/EstablishmentManagement';
+import { SubjectManagement } from '@/components/admin/SubjectManagement';
+import { PeriodManagement } from '@/components/admin/PeriodManagement';
+import { AcademicYearManagement } from '@/components/admin/AcademicYearManagement';
+import { ExamTypeManagement } from '@/components/admin/ExamTypeManagement';
+import { DurationManagement } from '@/components/admin/DurationManagement';
 import { SubscriptionPlanManagement } from '@/components/admin/SubscriptionPlanManagement';
 import { TransactionViewer } from '@/components/admin/TransactionViewer';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
@@ -246,7 +252,18 @@ export default function Admin() {
 
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'exams' && <ExamManagement />}
-            {activeTab === 'classes' && <ClassManagement />}
+            {activeTab === 'config' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold">System Configuration</h2>
+                <ClassManagement />
+                <EstablishmentManagement />
+                <SubjectManagement />
+                <PeriodManagement />
+                <AcademicYearManagement />
+                <ExamTypeManagement />
+                <DurationManagement />
+              </div>
+            )}
             {activeTab === 'plans' && <SubscriptionPlanManagement />}
             {activeTab === 'subscriptions' && <ActiveSubscriptions />}
             {activeTab === 'transactions' && <TransactionViewer />}
