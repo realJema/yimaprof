@@ -7,7 +7,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // Import admin components
 import { AdminStats } from '@/components/admin/AdminStats';
@@ -25,6 +26,28 @@ import { TransactionViewer } from '@/components/admin/TransactionViewer';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 import { NotificationComposer } from '@/components/admin/NotificationComposer';
 import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
+
+function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="border-border/50">
+        <CollapsibleTrigger asChild>
+          <button className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+            <h3 className="text-lg font-semibold">{title}</h3>
+            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-6 pb-6">
+            {children}
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
 
 export default function Admin() {
   const { t } = useLanguage();
@@ -253,15 +276,36 @@ export default function Admin() {
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'exams' && <ExamManagement />}
             {activeTab === 'config' && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <h2 className="text-2xl font-bold mb-6">System Configuration</h2>
-                <ClassManagement />
-                <EstablishmentManagement />
-                <SubjectManagement />
-                <PeriodManagement />
-                <AcademicYearManagement />
-                <ExamTypeManagement />
-                <DurationManagement />
+                
+                <ConfigSection title="Classes" defaultOpen>
+                  <ClassManagement />
+                </ConfigSection>
+                
+                <ConfigSection title="Schools/Establishments">
+                  <EstablishmentManagement />
+                </ConfigSection>
+                
+                <ConfigSection title="Subjects">
+                  <SubjectManagement />
+                </ConfigSection>
+                
+                <ConfigSection title="Periods/Semesters">
+                  <PeriodManagement />
+                </ConfigSection>
+                
+                <ConfigSection title="Academic Years">
+                  <AcademicYearManagement />
+                </ConfigSection>
+                
+                <ConfigSection title="Exam Types">
+                  <ExamTypeManagement />
+                </ConfigSection>
+                
+                <ConfigSection title="Durations">
+                  <DurationManagement />
+                </ConfigSection>
               </div>
             )}
             {activeTab === 'plans' && <SubscriptionPlanManagement />}
