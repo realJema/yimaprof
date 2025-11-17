@@ -130,7 +130,7 @@ export default function Admin() {
     { id: 'overview', label: t('overview'), icon: BarChart3 },
     { id: 'users', label: t('users'), icon: Shield },
     { id: 'exams', label: t('exams'), icon: Shield },
-    { id: 'config', label: 'System Configuration', icon: Shield },
+    { id: 'config', label: t('system_configuration'), icon: Shield },
     { id: 'plans', label: t('plans'), icon: Shield },
     { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
     { id: 'transactions', label: t('transactions'), icon: Shield },
@@ -277,33 +277,33 @@ export default function Admin() {
             {activeTab === 'exams' && <ExamManagement />}
             {activeTab === 'config' && (
               <div className="space-y-4">
-                <h2 className="text-2xl font-bold mb-6">System Configuration</h2>
+                <h2 className="text-2xl font-bold mb-6">{t('system_configuration')}</h2>
                 
-                <ConfigSection title="Classes" defaultOpen>
+                <ConfigSection title={t('classes')}>
                   <ClassManagement />
                 </ConfigSection>
                 
-                <ConfigSection title="Schools/Establishments">
+                <ConfigSection title={t('establishments')}>
                   <EstablishmentManagement />
                 </ConfigSection>
                 
-                <ConfigSection title="Subjects">
+                <ConfigSection title={t('subjects')}>
                   <SubjectManagement />
                 </ConfigSection>
                 
-                <ConfigSection title="Periods/Semesters">
+                <ConfigSection title={t('periods')}>
                   <PeriodManagement />
                 </ConfigSection>
                 
-                <ConfigSection title="Academic Years">
+                <ConfigSection title={t('academic_years')}>
                   <AcademicYearManagement />
                 </ConfigSection>
                 
-                <ConfigSection title="Exam Types">
+                <ConfigSection title={t('exam_types')}>
                   <ExamTypeManagement />
                 </ConfigSection>
                 
-                <ConfigSection title="Durations">
+                <ConfigSection title={t('durations')}>
                   <DurationManagement />
                 </ConfigSection>
               </div>
