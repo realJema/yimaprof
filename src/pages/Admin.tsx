@@ -107,7 +107,7 @@ export default function Admin() {
     { id: 'overview', label: t('overview'), icon: BarChart3 },
     { id: 'users', label: t('users'), icon: Shield },
     { id: 'exams', label: t('exams'), icon: Shield },
-    { id: 'classes', label: t('classes'), icon: Shield },
+    { id: 'config', label: 'System Configuration', icon: Shield },
     { id: 'plans', label: t('plans'), icon: Shield },
     { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
     { id: 'transactions', label: t('transactions'), icon: Shield },
@@ -254,7 +254,7 @@ export default function Admin() {
             {activeTab === 'exams' && <ExamManagement />}
             {activeTab === 'config' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold">System Configuration</h2>
+                <h2 className="text-2xl font-bold mb-6">System Configuration</h2>
                 <ClassManagement />
                 <EstablishmentManagement />
                 <SubjectManagement />
