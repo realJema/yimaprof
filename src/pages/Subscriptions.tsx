@@ -128,6 +128,18 @@ export default function Subscriptions() {
         return;
       }
 
+      // Prevent self-referral
+      if (user && data.id === user.id) {
+        toast({
+          title: t('error'),
+          description: t('cannot_refer_yourself'),
+          variant: 'destructive',
+        });
+        setReferredByProfile(null);
+        setReferralUsername('');
+        return;
+      }
+
       setReferredByProfile(data);
     } catch (error) {
       setReferredByProfile(null);
