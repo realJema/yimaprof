@@ -178,14 +178,15 @@ export default function Auth() {
                   >
                     {isLoading ? "Connexion..." : "Se connecter"}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="w-full text-sm"
-                    onClick={handleResetPassword}
-                  >
-                    Mot de passe oublié ?
-                  </Button>
+                  <Link to="/forgot-password">
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      className="w-full text-sm"
+                    >
+                      Mot de passe oublié ?
+                    </Button>
+                  </Link>
                 </form>
               </TabsContent>
               
