@@ -15,19 +15,32 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [hasValidToken, setHasValidToken] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
 
   useEffect(() => {
-    // Check if there's a valid session/token from the password reset link
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Listen for auth state changes to detect when Supabase processes the recovery token
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setHasValidToken(true);
+      } else if (session) {
+        setHasValidToken(true);
+      } else {
+        setHasValidToken(false);
+      }
+      setCheckingAuth(false);
+    });
+
+    // Also check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setHasValidToken(!!session);
-    };
-    
-    checkSession();
+      setCheckingAuth(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -85,6 +98,23 @@ const ResetPassword = () => {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-sm text-muted-foreground">
+                {t('loading')}...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!hasValidToken) {
     return (
