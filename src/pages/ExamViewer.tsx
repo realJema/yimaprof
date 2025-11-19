@@ -382,7 +382,7 @@ export default function ExamViewer() {
               }
             }}>
                 <FileText className="h-4 w-4" />
-                {showPdfSplit ? language === 'fr' ? 'Masquer PDF' : 'Hide PDF' : language === 'fr' ? 'Voir PDF' : 'View PDF'}
+                {showPdfSplit ? language === 'fr' ? 'Masquer PDF' : 'Hide PDF' : language === 'fr' ? 'Version PDF' : 'PDF version'}
               </Button>}
             </div>
           </div>
