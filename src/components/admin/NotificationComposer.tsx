@@ -184,6 +184,7 @@ export const NotificationComposer = () => {
         return;
       }
 
+      // Send in-app notifications via database function
       const { data, error } = await supabase.rpc('broadcast_notification', {
         p_user_ids: userIds,
         p_title: title,
@@ -196,9 +197,33 @@ export const NotificationComposer = () => {
 
       if (error) throw error;
 
+      // Send email notifications for each user
+      let emailsSent = 0;
+      for (const userId of userIds) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-notification-email', {
+            body: {
+              userId,
+              title,
+              message,
+              type,
+              priority,
+              metadata: {},
+              actionUrl: actionUrl || null,
+            },
+          });
+
+          if (!emailError) {
+            emailsSent++;
+          }
+        } catch (emailErr) {
+          console.error('Email send error for user:', userId, emailErr);
+        }
+      }
+
       toast({
         title: t('success'),
-        description: `${t('notificationSent')} ${data} ${t('recipients')}`,
+        description: `${t('notificationSent')} ${data} ${t('recipients')}. ${emailsSent} emails sent.`,
       });
 
       // Reset form
