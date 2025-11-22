@@ -50,6 +50,7 @@ export default function Subscriptions() {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     fetchPlans();
@@ -245,13 +246,42 @@ export default function Subscriptions() {
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            {t('choose_your_plan')}
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('subscription_page_desc')}
-          </p>
+        <div className="text-center space-y-6">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground mb-4">
+              {t('choose_your_plan')}
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t('subscription_page_desc')}
+            </p>
+          </div>
+
+          {/* Billing Cycle Toggle */}
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                billingCycle === 'monthly'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {t('monthly')}
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                billingCycle === 'yearly'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {t('yearly')}
+              <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600">
+                -20%
+              </Badge>
+            </button>
+          </div>
         </div>
 
         {!userSubscription && (
@@ -376,9 +406,21 @@ export default function Subscriptions() {
                   </CardDescription>
                   <div className="pt-4">
                     <span className="text-3xl font-bold text-foreground">
-                      {formatPrice(plan.price, plan.currency)}
+                      {formatPrice(
+                        billingCycle === 'yearly' ? Math.floor(plan.price * 12 * 0.8) : plan.price,
+                        plan.currency
+                      )}
                     </span>
-                    <span className="text-muted-foreground">{t('per_month')}</span>
+                    <span className="text-muted-foreground">
+                      {billingCycle === 'yearly' ? `/${t('year')}` : `/${t('month')}`}
+                    </span>
+                    {billingCycle === 'yearly' && (
+                      <div className="mt-2">
+                        <span className="text-sm text-muted-foreground line-through">
+                          {formatPrice(plan.price * 12, plan.currency)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
 
