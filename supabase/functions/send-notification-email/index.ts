@@ -28,8 +28,19 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  console.log('=== Email notification request received ===')
+  console.log('Method:', req.method)
+  console.log('Headers:', Object.fromEntries(req.headers))
+
   try {
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    console.log('RESEND_API_KEY exists:', !!resendApiKey)
+    
+    if (!resendApiKey) {
+      throw new Error('RESEND_API_KEY not configured')
+    }
+    
+    const resend = new Resend(resendApiKey)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -161,23 +172,30 @@ Deno.serve(async (req) => {
         )
     }
 
+    console.log('Sending email to:', profile.email)
+    console.log('Email type:', type)
+    console.log('Email title:', title)
+    
     // Send email via Resend
     const { data, error } = await resend.emails.send({
-      from: 'ExamHub <notifications@resend.dev>', // Replace with your verified domain
+      from: 'ExamHub <onboarding@resend.dev>', // Using resend.dev domain for testing
       to: [profile.email],
       subject: title,
       html: htmlContent,
     })
 
     if (error) {
-      console.error('Failed to send email:', error)
+      console.error('❌ Failed to send email:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
       return new Response(
         JSON.stringify({ error: 'Failed to send email', details: error }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Email sent successfully:', data)
+    console.log('✅ Email sent successfully!')
+    console.log('Email ID:', data?.id)
+    console.log('Email data:', JSON.stringify(data, null, 2))
 
     return new Response(
       JSON.stringify({ success: true, emailId: data.id }),
@@ -185,9 +203,10 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in send-notification-email function:', error)
+    console.error('❌ Error in send-notification-email function:', error)
+    console.error('Error stack:', error.stack)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, stack: error.stack }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
