@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search, BookOpen, Calculator, Beaker, Globe, History, Dna, Languages, Library } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,8 @@ export default function ExamSubjects() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { classId } = useParams<{ classId: string }>();
+  const [searchParams] = useSearchParams();
+  const schoolFilter = searchParams.get('school');
   const { toast } = useToast();
   const [subjects, setSubjects] = useState<{ name: string; count: number }[]>([]);
   const [className, setClassName] = useState('');
@@ -22,7 +24,7 @@ export default function ExamSubjects() {
 
   useEffect(() => {
     fetchClassAndSubjects();
-  }, [classId]);
+  }, [classId, schoolFilter]);
 
   const fetchClassAndSubjects = async () => {
     try {
@@ -40,7 +42,7 @@ export default function ExamSubjects() {
       }
 
       // Fetch subjects with exam counts using the standardized subject_id
-      const { data: examsData, error } = await supabase
+      let examQuery = supabase
         .from('exams')
         .select(`
           subject_id,
@@ -48,6 +50,12 @@ export default function ExamSubjects() {
         `)
         .eq('class_id', classId || '')
         .eq('is_published', true);
+      
+      if (schoolFilter && schoolFilter !== 'all') {
+        examQuery = examQuery.eq('establishment_id', schoolFilter);
+      }
+      
+      const { data: examsData, error } = await examQuery;
 
       if (error) throw error;
 
@@ -118,7 +126,7 @@ export default function ExamSubjects() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/exams">{language === 'fr' ? 'Classes' : 'Classes'}</Link>
+                <Link to={`/exams${schoolFilter ? `?school=${schoolFilter}` : ''}`}>{language === 'fr' ? 'Classes' : 'Classes'}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -171,7 +179,7 @@ export default function ExamSubjects() {
             {/* All Papers Option */}
             <Card 
               className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-border/50 bg-gradient-to-br from-primary/5 to-primary/10"
-              onClick={() => navigate(`/exams/${classId}/list?subject=all`)}
+              onClick={() => navigate(`/exams/${classId}/list?subject=all${schoolFilter ? `&school=${schoolFilter}` : ''}`)}
             >
               <CardHeader className="text-center">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/20 mx-auto mb-3">
@@ -202,7 +210,7 @@ export default function ExamSubjects() {
                 <Card 
                   key={subject.name}
                   className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${colorClasses[colorIndex]}`}
-                  onClick={() => navigate(`/exams/${classId}/list?subject=${encodeURIComponent(subject.name)}`)}
+                  onClick={() => navigate(`/exams/${classId}/list?subject=${encodeURIComponent(subject.name)}${schoolFilter ? `&school=${schoolFilter}` : ''}`)}
                 >
                   <CardHeader className="text-center">
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-background/50 mx-auto mb-3">

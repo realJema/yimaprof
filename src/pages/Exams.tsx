@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, BookOpen as BookOpenIcon, Repeat, Lock, Crown, School } from 'lucide-react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { GraduationCap, BookOpen as BookOpenIcon, Repeat, Lock, Crown, School, ChevronDown, Search, X, Check } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 interface Class {
   id: string;
   name: string;
@@ -39,13 +42,36 @@ export default function Exams() {
   const {
     hasActiveSubscription
   } = useSubscription();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [classes, setClasses] = useState<Class[]>([]);
   const [freeExams, setFreeExams] = useState<FreeExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSystem, setSelectedSystem] = useState<'francophone' | 'anglophone'>('francophone');
   const [establishments, setEstablishments] = useState<Array<{ id: string; name: string }>>([]);
-  const [selectedEstablishment, setSelectedEstablishment] = useState<string>('all');
+  const [schoolSearchTerm, setSchoolSearchTerm] = useState('');
+  const [schoolDropdownOpen, setSchoolDropdownOpen] = useState(false);
+  
+  const selectedEstablishment = searchParams.get('school') || 'all';
+  
+  const setSelectedEstablishment = (value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value === 'all') {
+      newParams.delete('school');
+    } else {
+      newParams.set('school', value);
+    }
+    setSearchParams(newParams);
+  };
+  
   const isFullAccessUser = user && hasActiveSubscription;
+  
+  const filteredEstablishments = establishments.filter(est =>
+    est.name.toLowerCase().includes(schoolSearchTerm.toLowerCase())
+  );
+  
+  const selectedSchoolName = selectedEstablishment === 'all' 
+    ? (language === 'fr' ? 'Toutes les écoles' : 'All Schools')
+    : establishments.find(e => e.id === selectedEstablishment)?.name || '';
   useEffect(() => {
     fetchEstablishments();
   }, []);
@@ -209,52 +235,100 @@ export default function Exams() {
           </CardHeader>
         </Card>
 
-        {/* School Filter Cards */}
+        {/* School Filter Dropdown */}
         {isFullAccessUser && establishments.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <School className="h-5 w-5" />
-              {language === 'fr' ? 'Filtrer par École' : 'Filter by School'}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedEstablishment === 'all' 
-                    ? 'ring-2 ring-primary bg-primary/5' 
-                    : 'hover:border-primary/50'
-                }`}
-                onClick={() => setSelectedEstablishment('all')}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center gap-2">
-                    <School className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm">
-                      {language === 'fr' ? 'Toutes les écoles' : 'All Schools'}
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-              </Card>
-              
-              {establishments.map(est => (
-                <Card 
-                  key={est.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    selectedEstablishment === est.id 
-                      ? 'ring-2 ring-primary bg-primary/5' 
-                      : 'hover:border-primary/50'
-                  }`}
-                  onClick={() => setSelectedEstablishment(est.id)}
-                >
-                  <CardHeader className="p-4">
-                    <div className="flex items-center gap-2">
-                      <School className="h-5 w-5 text-muted-foreground" />
-                      <CardTitle className="text-sm line-clamp-2">
-                        {est.name}
-                      </CardTitle>
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-sm font-medium flex items-center gap-2">
+                <School className="h-4 w-4" />
+                {language === 'fr' ? 'Filtrer par École:' : 'Filter by School:'}
+              </span>
+              <Popover open={schoolDropdownOpen} onOpenChange={setSchoolDropdownOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={schoolDropdownOpen}
+                    className="min-w-[200px] max-w-[350px] justify-between"
+                  >
+                    <span className="truncate">{selectedSchoolName}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[350px] p-0 bg-popover" align="start">
+                  <div className="p-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={language === 'fr' ? 'Rechercher une école...' : 'Search schools...'}
+                        value={schoolSearchTerm}
+                        onChange={(e) => setSchoolSearchTerm(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                      {schoolSearchTerm && (
+                        <button
+                          onClick={() => setSchoolSearchTerm('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
-                  </CardHeader>
-                </Card>
-              ))}
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedEstablishment('all');
+                        setSchoolDropdownOpen(false);
+                        setSchoolSearchTerm('');
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors",
+                        selectedEstablishment === 'all' && "bg-accent"
+                      )}
+                    >
+                      <Check className={cn("h-4 w-4", selectedEstablishment === 'all' ? "opacity-100" : "opacity-0")} />
+                      <School className="h-4 w-4 text-primary" />
+                      <span>{language === 'fr' ? 'Toutes les écoles' : 'All Schools'}</span>
+                    </button>
+                    {filteredEstablishments.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        {language === 'fr' ? 'Aucune école trouvée' : 'No schools found'}
+                      </div>
+                    ) : (
+                      filteredEstablishments.map(est => (
+                        <button
+                          key={est.id}
+                          onClick={() => {
+                            setSelectedEstablishment(est.id);
+                            setSchoolDropdownOpen(false);
+                            setSchoolSearchTerm('');
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors text-left",
+                            selectedEstablishment === est.id && "bg-accent"
+                          )}
+                        >
+                          <Check className={cn("h-4 w-4 shrink-0", selectedEstablishment === est.id ? "opacity-100" : "opacity-0")} />
+                          <School className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{est.name}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {selectedEstablishment !== 'all' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedEstablishment('all')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  {language === 'fr' ? 'Effacer' : 'Clear'}
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -311,7 +385,7 @@ export default function Exams() {
               const colorClasses = ['bg-gradient-to-br from-blue-500/10 to-blue-600/20 border-blue-500/30 hover:border-blue-500/50', 'bg-gradient-to-br from-green-500/10 to-green-600/20 border-green-500/30 hover:border-green-500/50', 'bg-gradient-to-br from-purple-500/10 to-purple-600/20 border-purple-500/30 hover:border-purple-500/50', 'bg-gradient-to-br from-orange-500/10 to-orange-600/20 border-orange-500/30 hover:border-orange-500/50'];
               const iconColors = ['text-blue-500', 'text-green-500', 'text-purple-500', 'text-orange-500'];
               const colorIndex = index % 4;
-              return <Card key={cls.id} className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${colorClasses[colorIndex]}`} onClick={() => navigate(`/exams/${cls.id}/subjects`)}>
+              return <Card key={cls.id} className={`group cursor-pointer hover:shadow-lg transition-all duration-300 ${colorClasses[colorIndex]}`} onClick={() => navigate(`/exams/${cls.id}/subjects${selectedEstablishment !== 'all' ? `?school=${selectedEstablishment}` : ''}`)}>
                           <CardHeader className="text-center">
                             <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-background/50 mx-auto mb-3">
                               {group.includes('2nd') || group.includes('2ème') || group.includes('Advanced') ? <BookOpenIcon className={`h-6 w-6 ${iconColors[colorIndex]}`} /> : <GraduationCap className={`h-6 w-6 ${iconColors[colorIndex]}`} />}

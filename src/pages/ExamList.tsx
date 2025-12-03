@@ -57,6 +57,7 @@ export default function ExamList() {
   const { classId } = useParams();
   const [searchParams] = useSearchParams();
   const subject = searchParams.get('subject');
+  const schoolFilter = searchParams.get('school');
   const { toast } = useToast();
   const { user } = useAuth();
   const { hasActiveSubscription } = useSubscription();
@@ -72,7 +73,7 @@ export default function ExamList() {
 
   useEffect(() => {
     fetchClassAndExams();
-  }, [classId, subject]);
+  }, [classId, subject, schoolFilter]);
 
   const fetchClassAndExams = async () => {
     try {
@@ -94,6 +95,10 @@ export default function ExamList() {
         .select('*')
         .eq('class_id', classId || '')
         .eq('is_published', true);
+      
+      if (schoolFilter && schoolFilter !== 'all') {
+        query = query.eq('establishment_id', schoolFilter);
+      }
       
       const { data: examsData, error } = await query.order('created_at', { ascending: false });
 
@@ -258,13 +263,13 @@ export default function ExamList() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/exams">{language === 'fr' ? 'Classes' : 'Classes'}</Link>
+                <Link to={`/exams${schoolFilter ? `?school=${schoolFilter}` : ''}`}>{language === 'fr' ? 'Classes' : 'Classes'}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to={`/exams/${classId}/subjects`}>{className}</Link>
+                <Link to={`/exams/${classId}/subjects${schoolFilter ? `?school=${schoolFilter}` : ''}`}>{className}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
