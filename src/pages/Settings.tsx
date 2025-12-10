@@ -145,13 +145,13 @@ export default function Settings() {
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from('profile-images')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('profile-images')
         .getPublicUrl(fileName);
 
       const { error: updateError } = await supabase
