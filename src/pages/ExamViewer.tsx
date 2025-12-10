@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { FileText, Calendar, Clock, ArrowLeft, X, Play } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
@@ -102,8 +104,10 @@ export default function ExamViewer() {
   const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showPdfSplit, setShowPdfSplit] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Evaluation mode state
   const [userAnswers, setUserAnswers] = useState<Array<{
@@ -375,14 +379,18 @@ export default function ExamViewer() {
               
               {/* View PDF Button */}
               {exam.file_url && <Button variant="outline" size="sm" className="gap-2" onClick={() => {
-              const newShowPdf = !showPdfSplit;
-              setShowPdfSplit(newShowPdf);
-              if (newShowPdf) {
-                setSidebarCollapsed(true);
+              if (isMobile) {
+                setShowPdfModal(true);
+              } else {
+                const newShowPdf = !showPdfSplit;
+                setShowPdfSplit(newShowPdf);
+                if (newShowPdf) {
+                  setSidebarCollapsed(true);
+                }
               }
             }}>
                 <FileText className="h-4 w-4" />
-                {showPdfSplit ? language === 'fr' ? 'Masquer PDF' : 'Hide PDF' : language === 'fr' ? 'Version PDF' : 'PDF version'}
+                {!isMobile && showPdfSplit ? language === 'fr' ? 'Masquer PDF' : 'Hide PDF' : language === 'fr' ? 'Version PDF' : 'PDF version'}
               </Button>}
             </div>
           </div>
@@ -497,8 +505,8 @@ export default function ExamViewer() {
           </div>
         </main>
 
-        {/* PDF Split View */}
-        {showPdfSplit && exam.file_url && <aside className="w-1/2 border-l border-border bg-card relative">
+        {/* PDF Split View - Desktop Only */}
+        {!isMobile && showPdfSplit && exam.file_url && <aside className="w-1/2 border-l border-border bg-card relative">
             <Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10" onClick={() => setShowPdfSplit(false)}>
               <X className="h-4 w-4" />
             </Button>
@@ -535,5 +543,23 @@ export default function ExamViewer() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* PDF Modal - Mobile Only */}
+      <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
+        <DialogContent className="max-w-[95vw] h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>
+              {language === 'fr' ? 'Version PDF' : 'PDF Version'}
+            </DialogTitle>
+          </DialogHeader>
+          {exam.file_url && (
+            <iframe 
+              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
+              className="w-full h-full rounded-b-lg" 
+              title="Exam PDF" 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>;
 }
