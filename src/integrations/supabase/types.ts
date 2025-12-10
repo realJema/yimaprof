@@ -915,6 +915,7 @@ export type Database = {
         Returns: string
       }
       transition_subscription_plan:
+        | { Args: { p_new_plan_id: string; p_user_id: string }; Returns: Json }
         | {
             Args: {
               p_new_plan_id: string
@@ -923,7 +924,6 @@ export type Database = {
             }
             Returns: Json
           }
-        | { Args: { p_new_plan_id: string; p_user_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "teacher" | "student"
