@@ -213,23 +213,7 @@ export default function Header() {
           </div>
 
           {user ? (
-            <div className="flex items-center space-x-4">
-              {/* Dark Mode Toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleDarkMode}
-                className="h-9 w-9"
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
-              </Button>
-              
-              <LanguageSwitcher />
-              
+            <div className="flex items-center space-x-3">
               {/* Notification Bell */}
               <NotificationBell />
               
@@ -249,7 +233,7 @@ export default function Header() {
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuContent className="w-56 bg-card border-border z-50" align="end">
                   <div className="px-2 py-1.5">
                     <p className="text-sm font-medium">{getUserDisplayName()}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
@@ -266,7 +250,34 @@ export default function Header() {
                   ))}
                   
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center space-x-2 cursor-pointer">
+                  
+                  {/* Theme Toggle */}
+                  <DropdownMenuItem onClick={toggleDarkMode} className="flex items-center space-x-2 cursor-pointer">
+                    {isDarkMode ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    <span>{isDarkMode ? (language === 'fr' ? 'Mode clair' : 'Light Mode') : (language === 'fr' ? 'Mode sombre' : 'Dark Mode')}</span>
+                  </DropdownMenuItem>
+                  
+                  {/* Language Toggle */}
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      const newLang = language === 'fr' ? 'en' : 'fr';
+                      // Access setLanguage from context - we need to import it
+                      window.dispatchEvent(new CustomEvent('toggle-language'));
+                    }} 
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <span className="h-4 w-4 flex items-center justify-center text-xs font-medium">
+                      {language === 'fr' ? '🇬🇧' : '🇫🇷'}
+                    </span>
+                    <span>{language === 'fr' ? 'English' : 'Français'}</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center space-x-2 cursor-pointer text-destructive">
                     <LogOut className="h-4 w-4" />
                     <span>{t('logout')}</span>
                   </DropdownMenuItem>
@@ -274,32 +285,50 @@ export default function Header() {
               </DropdownMenu>
             </div>
           ) : (
-            <div className="flex items-center space-x-4">
-              {/* Dark Mode Toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleDarkMode}
-                className="h-9 w-9"
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5" />
-                ) : (
-                  <Moon className="h-5 w-5" />
-                )}
-              </Button>
+            <div className="flex items-center space-x-3">
+              {/* Settings Dropdown for non-logged in users */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48 bg-card border-border z-50" align="end">
+                  {/* Theme Toggle */}
+                  <DropdownMenuItem onClick={toggleDarkMode} className="flex items-center space-x-2 cursor-pointer">
+                    {isDarkMode ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    <span>{isDarkMode ? (language === 'fr' ? 'Mode clair' : 'Light Mode') : (language === 'fr' ? 'Mode sombre' : 'Dark Mode')}</span>
+                  </DropdownMenuItem>
+                  
+                  {/* Language Toggle */}
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('toggle-language'));
+                    }} 
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <span className="h-4 w-4 flex items-center justify-center text-xs font-medium">
+                      {language === 'fr' ? '🇬🇧' : '🇫🇷'}
+                    </span>
+                    <span>{language === 'fr' ? 'English' : 'Français'}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
-              <LanguageSwitcher />
               <Button
                 variant="ghost"
                 onClick={() => navigate('/auth')}
               >
-                Sign In
+                {t('login')}
               </Button>
               <Button
                 onClick={() => navigate('/auth')}
               >
-                Sign Up
+                {t('register')}
               </Button>
             </div>
           )}

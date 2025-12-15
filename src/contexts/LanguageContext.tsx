@@ -1503,6 +1503,20 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Listen for toggle-language custom event
+  useEffect(() => {
+    const handleToggleLanguage = () => {
+      setLanguage(prev => {
+        const newLang = prev === 'fr' ? 'en' : 'fr';
+        localStorage.setItem('language', newLang);
+        return newLang;
+      });
+    };
+
+    window.addEventListener('toggle-language', handleToggleLanguage);
+    return () => window.removeEventListener('toggle-language', handleToggleLanguage);
+  }, []);
+
   const handleSetLanguage = (lang: 'fr' | 'en') => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
