@@ -536,17 +536,47 @@ const Exams2 = () => {
         </>}
     </div>;
   return <div className="min-h-screen bg-background">
+      {/* Free Papers Banner for non-subscribers */}
+      {!hasActiveSubscription && (
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="secondary" className="bg-primary/20 text-primary border-0">
+                {language === 'fr' ? 'Gratuit' : 'Free'}
+              </Badge>
+              <p className="text-muted-foreground">
+                {language === 'fr' 
+                  ? 'Découvrez nos épreuves gratuites. Abonnez-vous pour accéder à toutes les épreuves!'
+                  : 'Explore our free papers. Subscribe to access all exams!'}
+              </p>
+            </div>
+            <Link to="/subscriptions">
+              <Button size="sm" className="shrink-0">
+                {language === 'fr' ? 'S\'abonner' : 'Subscribe'}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Top Header with System and School */}
       <div className="border-b bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col gap-4">
             {/* Title and System Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h1 className="text-xl font-bold text-foreground">
-                {language === 'fr' ? 'Parcourir les Épreuves' : 'Browse Exams'}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-bold text-foreground">
+                  {language === 'fr' ? 'Parcourir les Épreuves' : 'Browse Exams'}
+                </h1>
+                {!hasActiveSubscription && (
+                  <Badge variant="outline" className="text-xs">
+                    {language === 'fr' ? 'Épreuves gratuites' : 'Free papers'}
+                  </Badge>
+                )}
+              </div>
               
-              {/* System Toggle - Only show available systems */}
+              {/* System Toggle - Only show available systems for subscribers */}
               {hasActiveSubscription && (availableSystems.francophone || availableSystems.anglophone) && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">
@@ -766,12 +796,19 @@ const Exams2 = () => {
                       <Link key={exam.id} to={`/exam/${exam.id}`}>
                         <Card className={`h-full min-h-[160px] hover:shadow-lg transition-all cursor-pointer group border-2 ${cardColor}`}>
                           <CardContent className="p-4 flex flex-col h-full">
-                            {/* Subject badge at top */}
-                            {exam.subject && (
-                              <Badge variant="secondary" className="self-start mb-2 text-xs font-medium">
-                                {subjectName}
-                              </Badge>
-                            )}
+                            {/* Badges at top */}
+                            <div className="flex items-center gap-2 mb-2">
+                              {exam.visibility === 'free' && (
+                                <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+                                  {language === 'fr' ? 'Gratuit' : 'Free'}
+                                </Badge>
+                              )}
+                              {exam.subject && (
+                                <Badge variant="secondary" className="text-xs font-medium">
+                                  {subjectName}
+                                </Badge>
+                              )}
+                            </div>
                             
                             <div className="flex items-start justify-between gap-2 mb-2 flex-1">
                               <h3 className="font-semibold text-foreground line-clamp-2 text-sm group-hover:text-primary transition-colors">
