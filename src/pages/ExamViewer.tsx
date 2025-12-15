@@ -449,6 +449,12 @@ export default function ExamViewer() {
     navigate(`/exam/${examId}?mode=preview`, { replace: true });
   };
 
+  // Handle view answers - navigate to correction mode with submitted answers
+  const handleViewAnswers = () => {
+    setShowResultsDialog(false);
+    navigate(`/exam/${examId}?mode=correction`, { replace: true });
+  };
+
   // Reset evaluation for retry button in old flow
   const resetEvaluation = () => {
     setUserAnswers([]);
@@ -954,6 +960,7 @@ export default function ExamViewer() {
         attemptNumber={currentAttemptNumber}
         onRetry={handleRetry}
         onClose={handleCloseResults}
+        onViewAnswers={handleViewAnswers}
       />
 
       {/* PDF Modal - Mobile Only */}

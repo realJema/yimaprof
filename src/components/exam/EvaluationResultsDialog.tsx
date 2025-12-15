@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
+import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EvaluationResultsDialogProps {
@@ -13,6 +13,7 @@ interface EvaluationResultsDialogProps {
   attemptNumber: number;
   onRetry: () => void;
   onClose: () => void;
+  onViewAnswers: () => void;
 }
 
 export function EvaluationResultsDialog({
@@ -23,7 +24,8 @@ export function EvaluationResultsDialog({
   timeSpentSeconds,
   attemptNumber,
   onRetry,
-  onClose
+  onClose,
+  onViewAnswers
 }: EvaluationResultsDialogProps) {
   const { language } = useLanguage();
 
@@ -135,14 +137,20 @@ export function EvaluationResultsDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onRetry} className="gap-2">
-            <RotateCcw className="h-4 w-4" />
-            {language === 'fr' ? 'Réessayer' : 'Retry'}
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={onViewAnswers} className="gap-2 w-full sm:w-auto">
+            <Eye className="h-4 w-4" />
+            {language === 'fr' ? 'Voir les réponses' : 'View Answers'}
           </Button>
-          <Button onClick={onClose}>
-            {language === 'fr' ? 'Fermer' : 'Close'}
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={onRetry} className="gap-2 flex-1 sm:flex-none">
+              <RotateCcw className="h-4 w-4" />
+              {language === 'fr' ? 'Réessayer' : 'Retry'}
+            </Button>
+            <Button onClick={onClose} className="flex-1 sm:flex-none">
+              {language === 'fr' ? 'Fermer' : 'Close'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
