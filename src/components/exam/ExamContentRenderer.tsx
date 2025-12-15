@@ -104,8 +104,8 @@ export function ExamContentRenderer({
           // Headings
           if (item.item_type === 'heading') {
             return (
-              <div key={item.id} className="border-l-4 border-primary pl-4 py-2">
-                <h2 className="text-xl font-bold text-foreground uppercase tracking-wide">
+              <div key={item.id} className="border-l-4 border-primary pl-3 md:pl-4 py-2">
+                <h2 className="text-sm md:text-base font-bold text-foreground uppercase tracking-wide leading-tight">
                   {item.text}
                 </h2>
               </div>
@@ -172,26 +172,23 @@ export function ExamContentRenderer({
             });
 
             return (
-              <div key={item.id} id={`${questionIdPrefix}${item.id}`} className="border border-border rounded-lg p-4 bg-card scroll-mt-24">
-                <div className="space-y-4">
+              <div key={item.id} id={`${questionIdPrefix}${item.id}`} className="border border-border rounded-lg p-3 md:p-4 bg-card scroll-mt-24">
+                <div className="space-y-3 md:space-y-4">
                   {/* Question Header */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-start gap-3">
-                        <Badge variant="outline" className="text-sm font-semibold shrink-0">
-                          {question.paper_number || questionNumber}
-                        </Badge>
-                        <div className="flex-1">
-                          <p className="text-base font-medium text-foreground whitespace-pre-wrap">
-                            {question.text}
-                          </p>
-                        </div>
-                      </div>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <Badge variant="outline" className="text-xs md:text-sm font-semibold shrink-0 mt-0.5">
+                        {question.paper_number || questionNumber}
+                      </Badge>
+                      <p className="text-sm md:text-base font-medium text-foreground whitespace-pre-wrap flex-1">
+                        {question.text}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Badges below question text on mobile */}
+                    <div className="flex items-center gap-2 ml-7 md:ml-9">
                       {question.marks && (
                         <Badge variant="secondary" className="text-xs">
-                          {question.marks} {language === 'fr' ? 'points' : 'marks'}
+                          {question.marks} {language === 'fr' ? 'pts' : 'marks'}
                         </Badge>
                       )}
                       <Badge variant="outline" className="text-xs">
