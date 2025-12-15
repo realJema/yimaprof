@@ -156,8 +156,10 @@ export function FeedbackViewer() {
   };
 
   const getUserName = (feedback: Feedback) => {
-    if (feedback.profiles?.first_name || feedback.profiles?.last_name) {
-      return `${feedback.profiles?.first_name || ''} ${feedback.profiles?.last_name || ''}`.trim();
+    if (!feedback) return t('unknown_user');
+    const profiles = feedback.profiles;
+    if (profiles?.first_name || profiles?.last_name) {
+      return `${profiles?.first_name || ''} ${profiles?.last_name || ''}`.trim();
     }
     return t('unknown_user');
   };
@@ -184,7 +186,7 @@ export function FeedbackViewer() {
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {feedback.profiles?.email || t('no_email')}
+            {feedback?.profiles?.email || t('no_email')}
           </span>
         </div>
       ),
