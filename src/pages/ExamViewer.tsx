@@ -965,16 +965,16 @@ export default function ExamViewer() {
 
       {/* PDF Modal - Mobile Only */}
       <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
-        <DialogContent className="max-w-[95vw] h-[90vh] p-0">
-          <DialogHeader className="p-4 pb-0">
-            <DialogTitle>
+        <DialogContent className="max-w-[100vw] w-full h-[100dvh] max-h-[100dvh] p-0 m-0 rounded-none border-0 flex flex-col">
+          <DialogHeader className="flex-shrink-0 p-3 border-b border-border flex flex-row items-center justify-between">
+            <DialogTitle className="text-base">
               {language === 'fr' ? 'Version PDF' : 'PDF Version'}
             </DialogTitle>
           </DialogHeader>
           {exam.file_url && (
             <iframe 
               src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
-              className="w-full h-full rounded-b-lg" 
+              className="flex-1 w-full min-h-0" 
               title="Exam PDF" 
             />
           )}
