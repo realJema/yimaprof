@@ -7,13 +7,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Link } from 'react-router-dom';
 
 // Import admin components
 import { AdminStats } from '@/components/admin/AdminStats';
 import { UserManagement } from '@/components/admin/UserManagement';
-import { ExamManagement } from '@/components/admin/ExamManagement';
 import { ClassManagement } from '@/components/admin/ClassManagement';
 import { EstablishmentManagement } from '@/components/admin/EstablishmentManagement';
 import { SubjectManagement } from '@/components/admin/SubjectManagement';
@@ -130,7 +130,6 @@ export default function Admin() {
   const navItems = [
     { id: 'overview', label: t('overview'), icon: BarChart3 },
     { id: 'users', label: t('users'), icon: Shield },
-    { id: 'exams', label: t('exams'), icon: Shield },
     { id: 'config', label: t('system_configuration'), icon: Shield },
     { id: 'plans', label: t('plans'), icon: Shield },
     { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
@@ -262,12 +261,16 @@ export default function Admin() {
                         <p className="text-muted-foreground">{t('quick_nav_desc')}</p>
                         <ul className="space-y-1 text-muted-foreground">
                           <li>• <strong>{t('users')}:</strong> {t('users_manage_desc')}</li>
-                          <li>• <strong>{t('exams')}:</strong> {t('exams_manage_desc')}</li>
                           <li>• <strong>{t('classes')}:</strong> {t('classes_manage_desc')}</li>
                           <li>• <strong>{t('plans')}:</strong> {t('plans_manage_desc')}</li>
                           <li>• <strong>{t('subscriptions')}:</strong> {t('subscriptions_manage_desc')}</li>
                           <li>• <strong>{t('transactions')}:</strong> {t('transactions_manage_desc')}</li>
                         </ul>
+                        
+                        <Link to="/admin/exams" className="inline-flex items-center gap-2 mt-4 text-primary hover:underline font-medium">
+                          <BookOpen className="h-4 w-4" />
+                          {t('exams')} - {t('exams_manage_desc')}
+                        </Link>
                       </div>
                     </CardContent>
                   </Card>
@@ -276,7 +279,7 @@ export default function Admin() {
             )}
 
             {activeTab === 'users' && <UserManagement />}
-            {activeTab === 'exams' && <ExamManagement />}
+            {/* Exams management is now a separate page at /admin/exams */}
             {activeTab === 'config' && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold mb-6">{t('system_configuration')}</h2>
