@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -149,6 +149,19 @@ export default function Header() {
               <Link to="/exams2" className="flex items-center space-x-2">
                 <Search className="h-4 w-4" />
                 <span>{language === 'fr' ? 'Parcourir' : 'Browse'}</span>
+              </Link>
+            </Button>
+            
+            {/* Forum link */}
+            <Button
+              variant={isActive('/forum') ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/forum" className="flex items-center space-x-2">
+                <MessageCircle className="h-4 w-4" />
+                <span>Forum</span>
               </Link>
             </Button>
             
