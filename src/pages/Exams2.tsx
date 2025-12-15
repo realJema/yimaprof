@@ -23,7 +23,7 @@ interface Exam {
   title: string;
   description: string | null;
   is_published: boolean;
-  visibility: string;
+  visibility: string; // 'public' | 'free'
   created_at: string;
   subject: {
     id: string;
@@ -96,6 +96,7 @@ const ITEMS_PER_PAGE = 12;
 const Exams2 = () => {
   const { language } = useLanguage();
   const { hasActiveSubscription, subscription } = useSubscription();
+  const [showFreeOnly, setShowFreeOnly] = useState(false);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,7 +130,7 @@ const Exams2 = () => {
     enabled: !!subscription?.plan_id
   });
 
-  // Fetch all exams
+  // Fetch all exams (public and free)
   const { data: exams, isLoading: examsLoading } = useQuery({
     queryKey: ['all-exams'],
     queryFn: async () => {
@@ -142,7 +143,10 @@ const Exams2 = () => {
           duration:durations(id, minutes, display_label),
           establishment:establishments(id, name),
           class:classes(id, name, display_name, section)
-        `).eq('is_published', true).eq('visibility', 'public').order('created_at', { ascending: false });
+        `)
+        .eq('is_published', true)
+        .in('visibility', ['public', 'free'])
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data as unknown as Exam[];
     }
@@ -268,11 +272,20 @@ const Exams2 = () => {
     }
   }, [availableSystems, hasActiveSubscription]);
 
-  // Filter exams based on subscription access
+  // Filter exams based on subscription access or free visibility
   const accessibleExams = useMemo(() => {
     if (!exams) return [];
-    if (!hasActiveSubscription || !subscriptionPlanClasses) return [];
+    
+    // Free exams are always accessible (visibility = 'free')
+    // For subscribed users, also include exams from their subscribed classes
+    if (!hasActiveSubscription || !subscriptionPlanClasses) {
+      // Only return free exams for non-subscribers
+      return exams.filter(exam => exam.visibility === 'free');
+    }
+    
+    // For subscribers: include free exams + exams from their plan classes
     return exams.filter(exam => {
+      if (exam.visibility === 'free') return true;
       if (!exam.class?.id) return false;
       return subscriptionPlanClasses.includes(exam.class.id);
     });
@@ -684,17 +697,31 @@ const Exams2 = () => {
             })}
               </div>}
 
-            {/* No subscription message */}
-            {!hasActiveSubscription ? (
+            {/* Show content based on subscription status */}
+            {examsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {[...Array(12)].map((_, i) => <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-5 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2 mb-3" />
+                      <div className="flex gap-2 mb-2">
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                      <Skeleton className="h-3 w-2/3" />
+                    </CardContent>
+                  </Card>)}
+              </div>
+            ) : !hasActiveSubscription && filteredExams.length === 0 ? (
               <div className="text-center py-12">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
-                  {language === 'fr' ? 'Abonnement requis' : 'Subscription Required'}
+                  {language === 'fr' ? 'Aucune épreuve gratuite disponible' : 'No Free Exams Available'}
                 </h3>
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                   {language === 'fr' 
-                    ? 'Vous devez avoir un abonnement actif pour accéder aux épreuves. Choisissez un forfait pour commencer.' 
-                    : 'You need an active subscription to access exams. Choose a plan to get started.'}
+                    ? 'Abonnez-vous pour accéder à toutes les épreuves.' 
+                    : 'Subscribe to access all exams.'}
                 </p>
                 <Link to="/subscriptions">
                   <Button>
@@ -702,7 +729,7 @@ const Exams2 = () => {
                   </Button>
                 </Link>
               </div>
-            ) : examsLoading ? (
+            ) : filteredExams.length === 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[...Array(12)].map((_, i) => <Card key={i}>
                     <CardContent className="p-4">

@@ -76,23 +76,29 @@ export default function Auth() {
       preferred_language: formData.preferredLanguage,
     });
     
-    // If signup successful and there's a referral code, store it for later use
-    if (!error && referralCode) {
-      try {
-        // Find the affiliate by username
-        const { data: affiliateProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', referralCode.toLowerCase())
-          .maybeSingle();
-        
-        // Store referral in localStorage to be used when subscription is created
-        if (affiliateProfile) {
-          localStorage.setItem('referral_affiliate_id', affiliateProfile.id);
+    // If signup successful
+    if (!error) {
+      // Handle referral code
+      if (referralCode) {
+        try {
+          // Find the affiliate by username
+          const { data: affiliateProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('username', referralCode.toLowerCase())
+            .maybeSingle();
+          
+          // Store referral in localStorage to be used when subscription is created
+          if (affiliateProfile) {
+            localStorage.setItem('referral_affiliate_id', affiliateProfile.id);
+          }
+        } catch (err) {
+          console.error('Error processing referral:', err);
         }
-      } catch (err) {
-        console.error('Error processing referral:', err);
       }
+      
+      // Navigate to verify email page
+      navigate('/verify-email');
     }
     
     setIsLoading(false);
