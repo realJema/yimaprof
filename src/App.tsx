@@ -14,6 +14,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Exams from "./pages/Exams";
+import Exams2 from "./pages/Exams2";
 import ExamSubjects from "./pages/ExamSubjects";
 import ExamList from "./pages/ExamList";
 import ExamViewer from "./pages/ExamViewer";
@@ -69,7 +70,8 @@ const App = () => {
                     <Route path="/exams" element={<Exams />} />
                     <Route path="/exams/:classId/subjects" element={<ExamSubjects />} />
                     <Route path="/exams/:classId/list" element={<ExamList />} />
-                  <Route path="/exam/:examId" element={<ExamViewer />} />
+                    <Route path="/exam/:examId" element={<ExamViewer />} />
+                    <Route path="/exams2" element={<Exams2 />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
                     <Route path="/affiliate" element={<Affiliate />} />

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2 } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -136,6 +136,19 @@ export default function Header() {
               <Link to="/exams" className="flex items-center space-x-2">
                 <BookOpen className="h-4 w-4" />
                 <span>{t('exams')}</span>
+              </Link>
+            </Button>
+            
+            {/* Browse All Exams link */}
+            <Button
+              variant={isActive('/exams2') ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/exams2" className="flex items-center space-x-2">
+                <Search className="h-4 w-4" />
+                <span>{language === 'fr' ? 'Parcourir' : 'Browse'}</span>
               </Link>
             </Button>
             
