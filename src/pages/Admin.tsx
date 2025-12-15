@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // Import admin components
@@ -26,6 +26,7 @@ import { TransactionViewer } from '@/components/admin/TransactionViewer';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 import { NotificationComposer } from '@/components/admin/NotificationComposer';
 import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
+import ForumModeration from '@/components/admin/ForumModeration';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -136,6 +137,7 @@ export default function Admin() {
     { id: 'transactions', label: t('transactions'), icon: Shield },
     { id: 'notifications', label: t('notifications'), icon: Shield },
     { id: 'feedback', label: t('user_feedback'), icon: MessageSquare },
+    { id: 'forum', label: 'Forum', icon: MessageCircle },
   ];
 
   return (
@@ -313,6 +315,7 @@ export default function Admin() {
             {activeTab === 'transactions' && <TransactionViewer />}
             {activeTab === 'notifications' && <NotificationComposer />}
             {activeTab === 'feedback' && <FeedbackViewer />}
+            {activeTab === 'forum' && <ForumModeration />}
           </div>
         </div>
       </div>
