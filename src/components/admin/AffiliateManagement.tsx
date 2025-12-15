@@ -95,21 +95,30 @@ export function AffiliateManagement() {
 
   const fetchApplications = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch applications first
+      const { data: apps, error: appsError } = await supabase
         .from('affiliate_applications')
-        .select(`
-          *,
-          profile:profiles!affiliate_applications_user_id_fkey(
-            email,
-            first_name,
-            last_name,
-            username
-          )
-        `)
+        .select('*')
         .order('applied_at', { ascending: false });
 
-      if (error) throw error;
-      setApplications((data as unknown as AffiliateApplication[]) || []);
+      if (appsError) throw appsError;
+
+      // Fetch profiles for each application
+      const userIds = apps?.map(app => app.user_id) || [];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, username')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine data
+      const applicationsWithProfiles = (apps || []).map(app => ({
+        ...app,
+        profile: profiles?.find(p => p.id === app.user_id) || null
+      }));
+
+      setApplications(applicationsWithProfiles as AffiliateApplication[]);
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
@@ -120,20 +129,17 @@ export function AffiliateManagement() {
       // Get approved affiliates
       const { data: approvedApps, error: appsError } = await supabase
         .from('affiliate_applications')
-        .select(`
-          id,
-          user_id,
-          applied_at,
-          profile:profiles!affiliate_applications_user_id_fkey(
-            email,
-            first_name,
-            last_name,
-            username
-          )
-        `)
+        .select('id, user_id, applied_at')
         .eq('status', 'approved');
 
       if (appsError) throw appsError;
+
+      // Fetch profiles for approved affiliates
+      const userIds = approvedApps?.map(app => app.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, username')
+        .in('id', userIds);
 
       // Get earnings for each affiliate
       const affiliatesWithEarnings: AffiliateWithEarnings[] = [];
@@ -149,12 +155,15 @@ export function AffiliateManagement() {
         const paid = earnings?.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0) || 0;
 
         affiliatesWithEarnings.push({
-          ...(app as unknown as Omit<AffiliateWithEarnings, 'total_earnings' | 'pending_earnings' | 'paid_earnings' | 'referral_count'>),
+          id: app.id,
+          user_id: app.user_id,
+          applied_at: app.applied_at,
+          profile: profiles?.find(p => p.id === app.user_id) || null,
           total_earnings: total,
           pending_earnings: pending,
           paid_earnings: paid,
           referral_count: earnings?.length || 0,
-        });
+        } as AffiliateWithEarnings);
       }
 
       setAffiliates(affiliatesWithEarnings);
