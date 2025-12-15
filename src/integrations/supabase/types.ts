@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_applications: {
+        Row: {
+          applied_at: string | null
+          created_at: string | null
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string | null
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string | null
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       affiliate_earnings: {
         Row: {
           affiliate_id: string
