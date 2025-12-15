@@ -50,7 +50,7 @@ export default function Subscriptions() {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'trimester' | 'annual'>('monthly');
 
   useEffect(() => {
     fetchPlans();
@@ -257,10 +257,10 @@ export default function Subscriptions() {
           </div>
 
           {/* Billing Cycle Toggle */}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
                 billingCycle === 'monthly'
                   ? 'bg-primary text-primary-foreground shadow-md'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -269,15 +269,28 @@ export default function Subscriptions() {
               {t('monthly')}
             </button>
             <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                billingCycle === 'yearly'
+              onClick={() => setBillingCycle('trimester')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                billingCycle === 'trimester'
                   ? 'bg-primary text-primary-foreground shadow-md'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
-              {t('yearly')}
-              <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600">
+              {t('trimester')}
+              <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600 text-xs">
+                -10%
+              </Badge>
+            </button>
+            <button
+              onClick={() => setBillingCycle('annual')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                billingCycle === 'annual'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {t('annual')}
+              <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600 text-xs">
                 -20%
               </Badge>
             </button>
@@ -407,17 +420,30 @@ export default function Subscriptions() {
                   <div className="pt-4">
                     <span className="text-3xl font-bold text-foreground">
                       {formatPrice(
-                        billingCycle === 'yearly' ? Math.floor(plan.price * 12 * 0.8) : plan.price,
+                        billingCycle === 'trimester' 
+                          ? Math.floor(plan.price * 3 * 0.9) 
+                          : billingCycle === 'annual' 
+                            ? Math.floor(plan.price * 9 * 0.8) 
+                            : plan.price,
                         plan.currency
                       )}
                     </span>
                     <span className="text-muted-foreground">
-                      {billingCycle === 'yearly' ? `/${t('year')}` : `/${t('month')}`}
+                      {billingCycle === 'trimester' 
+                        ? ` / 3 ${t('months')}` 
+                        : billingCycle === 'annual' 
+                          ? ` / 9 ${t('months')}` 
+                          : `/${t('month')}`}
                     </span>
-                    {billingCycle === 'yearly' && (
+                    {billingCycle !== 'monthly' && (
                       <div className="mt-2">
                         <span className="text-sm text-muted-foreground line-through">
-                          {formatPrice(plan.price * 12, plan.currency)}
+                          {formatPrice(
+                            billingCycle === 'trimester' 
+                              ? plan.price * 3 
+                              : plan.price * 9, 
+                            plan.currency
+                          )}
                         </span>
                       </div>
                     )}
