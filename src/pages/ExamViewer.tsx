@@ -11,12 +11,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { FileText, Calendar, Clock, ArrowLeft, X, Play } from 'lucide-react';
+import { FileText, Calendar, Clock, ArrowLeft, X, Play, CheckCircle, BookOpen } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
+import { EvaluationRulesDialog } from '@/components/exam/EvaluationRulesDialog';
+import { EvaluationTimer } from '@/components/exam/EvaluationTimer';
+import { EvaluationControls } from '@/components/exam/EvaluationControls';
+import { EvaluationResultsDialog } from '@/components/exam/EvaluationResultsDialog';
+import { EvaluationExitDialog } from '@/components/exam/EvaluationExitDialog';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+
 interface Exam {
   id: string;
   title: string;
@@ -26,7 +32,6 @@ interface Exam {
   content?: any;
   file_url?: string;
   created_at: string;
-  // Standardized ID fields
   subject_id: string;
   exam_type_id: string;
   period_id: string;
@@ -70,31 +75,26 @@ interface Exam {
     country?: string;
   };
 }
+
 interface SidebarQuestion {
   id: string;
   number: string;
   text: string;
   type: 'heading' | 'question';
 }
-const DEFAULT_DURATION = 3600; // 1 hour in seconds as default
+
+const DEFAULT_DURATION_MINUTES = 60;
 
 export default function ExamViewer() {
-  const {
-    examId
-  } = useParams();
+  const { examId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const {
-    language,
-    t
-  } = useLanguage();
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { language, t } = useLanguage();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const mode = searchParams.get('mode') || 'preview';
+  
+  // Core state
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
@@ -102,56 +102,77 @@ export default function ExamViewer() {
   const [zoom, setZoom] = useState(1);
   const [activeQuestion, setActiveQuestion] = useState<string>('');
   const [sidebarQuestions, setSidebarQuestions] = useState<SidebarQuestion[]>([]);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // Collapsed by default
   const [showPdfSplit, setShowPdfSplit] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
-  // Evaluation mode state
-  const [userAnswers, setUserAnswers] = useState<Array<{
-    questionIndex: number;
-    answer: string;
-  }>>([]);
+  // Evaluation state
+  const [userAnswers, setUserAnswers] = useState<Array<{ questionIndex: number; answer: string }>>([]);
   const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState<{
-    correct: number;
-    total: number;
-  } | null>(null);
+  const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
+  
+  // Enhanced evaluation state
+  const [showRulesDialog, setShowRulesDialog] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [evaluationActive, setEvaluationActive] = useState(false);
+  const [evaluationPaused, setEvaluationPaused] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [currentAttemptNumber, setCurrentAttemptNumber] = useState(1);
+  const [timeSpentSeconds, setTimeSpentSeconds] = useState(0);
+  const [totalEvaluationSeconds, setTotalEvaluationSeconds] = useState(0);
+
+  // Fetch previous attempts count
+  const fetchAttemptCount = useCallback(async () => {
+    if (!user || !examId) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from('user_evaluations')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('exam_id', examId);
+      
+      if (!error && count !== null) {
+        setAttemptCount(count);
+        setCurrentAttemptNumber(count + 1);
+      }
+    } catch (error) {
+      console.error('Error fetching attempt count:', error);
+    }
+  }, [user, examId]);
+
   const checkAccess = useCallback(async () => {
     if (!user) {
-      setHasAccess(true); // Allow public access for preview
-      setIsFreeUser(true); // Not logged in = free user
+      setHasAccess(true);
+      setIsFreeUser(true);
       return;
     }
     try {
-      // Check if user is admin using the secure is_admin function
-      const {
-        data: isAdminUser,
-        error: adminError
-      } = await supabase.rpc('is_admin', {
-        user_id: user.id
-      });
+      const { data: isAdminUser, error: adminError } = await supabase.rpc('is_admin', { user_id: user.id });
       if (!adminError && isAdminUser === true) {
         setHasAccess(true);
         setIsFreeUser(false);
         return;
       }
 
-      // Check subscription for other users
-      const {
-        data: subscription
-      } = await supabase.from('subscriptions').select(`
-          *,
-          subscription_plans (name)
-        `).eq('user_id', user.id).eq('status', 'active').single();
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select(`*, subscription_plans (name)`)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+      
       if (subscription) {
         setHasAccess(true);
         setIsFreeUser(false);
       } else {
         setHasAccess(false);
-        setIsFreeUser(true); // Logged in but no subscription = free user
+        setIsFreeUser(true);
       }
     } catch (error) {
       console.error('Error checking access:', error);
@@ -159,54 +180,27 @@ export default function ExamViewer() {
       setIsFreeUser(true);
     }
   }, [user]);
+
   const fetchExam = useCallback(async () => {
     try {
-      const {
-        data: examData,
-        error: examError
-      } = await supabase.from('exams').select(`
+      const { data: examData, error: examError } = await supabase
+        .from('exams')
+        .select(`
           *,
-          classes (
-            id,
-            name,
-            display_name,
-            section,
-            level
-          ),
-          subjects:subject_id (
-            name,
-            name_en,
-            name_fr
-          ),
-          exam_types:exam_type_id (
-            name,
-            name_en,
-            name_fr
-          ),
-          periods:period_id (
-            name,
-            name_en,
-            name_fr
-          ),
-          academic_years:academic_year_id (
-            year_label,
-            start_year,
-            end_year
-          ),
-          durations:duration_id (
-            display_label,
-            minutes
-          ),
-          establishments:establishment_id (
-            name,
-            type,
-            country
-          )
-        `).eq('id', examId).single();
+          classes (id, name, display_name, section, level),
+          subjects:subject_id (name, name_en, name_fr),
+          exam_types:exam_type_id (name, name_en, name_fr),
+          periods:period_id (name, name_en, name_fr),
+          academic_years:academic_year_id (year_label, start_year, end_year),
+          durations:duration_id (display_label, minutes),
+          establishments:establishment_id (name, type, country)
+        `)
+        .eq('id', examId)
+        .single();
+      
       if (examError) throw examError;
       setExam(examData as any);
 
-      // Extract questions for sidebar
       if (examData.content) {
         const questions = extractQuestions(examData.content);
         setSidebarQuestions(questions);
@@ -224,72 +218,89 @@ export default function ExamViewer() {
       setLoading(false);
     }
   }, [examId, language, toast]);
+
   useEffect(() => {
     if (examId) {
       fetchExam();
       checkAccess();
+      fetchAttemptCount();
     }
-  }, [examId, fetchExam, checkAccess]);
+  }, [examId, fetchExam, checkAccess, fetchAttemptCount]);
+
+  // Fullscreen change handler
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      if (!document.fullscreenElement && evaluationActive && !submitted) {
+        // User exited fullscreen manually - pause the evaluation
+        setEvaluationPaused(true);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [evaluationActive, submitted]);
+
   const extractQuestions = (content: any): SidebarQuestion[] => {
     const questions: SidebarQuestion[] = [];
     let questionNumber = 0;
     const items = Array.isArray(content) ? content : content.questions || [];
     items.forEach((item: any) => {
       if (item.item_type === 'heading') {
-        questions.push({
-          id: item.id,
-          number: '',
-          text: item.text || '',
-          type: 'heading'
-        });
+        questions.push({ id: item.id, number: '', text: item.text || '', type: 'heading' });
       } else if (item.item_type === 'question') {
         questionNumber++;
-        questions.push({
-          id: item.id,
-          number: item.paper_number || `Q${questionNumber}`,
-          text: item.text || '',
-          type: 'question'
-        });
+        questions.push({ id: item.id, number: item.paper_number || `Q${questionNumber}`, text: item.text || '', type: 'question' });
       }
     });
     return questions;
   };
+
   const handleQuestionClick = (questionId: string) => {
     setActiveQuestion(questionId);
     const element = document.getElementById(`question-${questionId}`);
     if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
+
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleZoomReset = () => setZoom(1);
+
   const handleAnswerChange = (questionIndex: number, answer: string) => {
     setUserAnswers(prev => {
       const existing = prev.findIndex(a => a.questionIndex === questionIndex);
       if (existing >= 0) {
         const updated = [...prev];
-        updated[existing] = {
-          questionIndex,
-          answer
-        };
+        updated[existing] = { questionIndex, answer };
         return updated;
       }
-      return [...prev, {
-        questionIndex,
-        answer
-      }];
+      return [...prev, { questionIndex, answer }];
     });
   };
-  const calculateScore = () => {
-    if (!exam?.content) return;
+
+  // Check if exam has MCQ questions
+  const hasMcqQuestions = useCallback(() => {
+    if (!exam?.content) return false;
+    const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
+    return items.some((item: any) => 
+      (item.item_type === 'question' && item.question_type === 'multiple_choice') || 
+      item.type === 'multiple_choice'
+    );
+  }, [exam]);
+
+  const calculateScore = useCallback(() => {
+    if (!exam?.content) return { correct: 0, total: 0 };
+    
     let correct = 0;
     let total = 0;
     const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
-    const questions = items.filter((item: any) => item.item_type === 'question' && item.question_type === 'multiple_choice' || item.type === 'multiple_choice');
+    const questions = items.filter((item: any) => 
+      (item.item_type === 'question' && item.question_type === 'multiple_choice') || 
+      item.type === 'multiple_choice'
+    );
+    
     questions.forEach((question: any, index: number) => {
       total++;
       const userAnswer = userAnswers.find(a => a.questionIndex === index);
@@ -298,28 +309,173 @@ export default function ExamViewer() {
         correct++;
       }
     });
-    setScore({
-      correct,
-      total
-    });
-    setSubmitted(true);
-    toast({
-      title: t('evaluation_submitted'),
-      description: t('your_score') + `: ${correct}/${total} (${total > 0 ? Math.round(correct / total * 100) : 0}%)`
-    });
+    
+    return { correct, total };
+  }, [exam, userAnswers]);
+
+  // Save evaluation to database
+  const saveEvaluation = useCallback(async (mcqScore: { correct: number; total: number } | null) => {
+    if (!user || !examId) return;
+
+    try {
+      const { error } = await supabase.from('user_evaluations').insert({
+        user_id: user.id,
+        exam_id: examId,
+        attempt_number: currentAttemptNumber,
+        mcq_score: mcqScore?.correct ?? null,
+        mcq_total: mcqScore?.total ?? null,
+        time_spent_seconds: timeSpentSeconds,
+        answers: userAnswers
+      });
+
+      if (error) {
+        console.error('Error saving evaluation:', error);
+      }
+    } catch (error) {
+      console.error('Error saving evaluation:', error);
+    }
+  }, [user, examId, currentAttemptNumber, timeSpentSeconds, userAnswers]);
+
+  // Start evaluation (after rules dialog)
+  const handleStartEvaluation = async () => {
+    setShowRulesDialog(false);
+    setEvaluationActive(true);
+    setEvaluationPaused(false);
+    setUserAnswers([]);
+    setSubmitted(false);
+    setScore(null);
+    
+    const durationMinutes = exam?.durations?.minutes || DEFAULT_DURATION_MINUTES;
+    setTotalEvaluationSeconds(durationMinutes * 60);
+    setTimeSpentSeconds(0);
+    
+    // Enter fullscreen
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (error) {
+      console.error('Could not enter fullscreen:', error);
+    }
+
+    // Navigate to evaluation mode
+    navigate(`/exam/${examId}?mode=evaluation`, { replace: true });
   };
+
+  // Handle evaluation submission
+  const handleSubmitEvaluation = async () => {
+    const hasMcq = hasMcqQuestions();
+    const mcqScore = hasMcq ? calculateScore() : null;
+    
+    setScore(mcqScore);
+    setSubmitted(true);
+    setEvaluationActive(false);
+    
+    // Exit fullscreen
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (error) {
+        console.error('Could not exit fullscreen:', error);
+      }
+    }
+
+    // Save to database
+    await saveEvaluation(mcqScore);
+    
+    // Show results dialog
+    setShowResultsDialog(true);
+  };
+
+  // Handle time up
+  const handleTimeUp = () => {
+    toast({
+      title: language === 'fr' ? 'Temps écoulé !' : 'Time\'s up!',
+      description: language === 'fr' ? 'Votre évaluation est automatiquement soumise.' : 'Your evaluation is automatically submitted.',
+      variant: 'default'
+    });
+    handleSubmitEvaluation();
+  };
+
+  // Handle timer tick
+  const handleTimerTick = (remainingSeconds: number) => {
+    const durationMinutes = exam?.durations?.minutes || DEFAULT_DURATION_MINUTES;
+    const totalSeconds = durationMinutes * 60;
+    setTimeSpentSeconds(totalSeconds - remainingSeconds);
+  };
+
+  // Handle pause
+  const handlePause = () => setEvaluationPaused(true);
+  const handleResume = async () => {
+    setEvaluationPaused(false);
+    // Re-enter fullscreen if needed
+    if (!document.fullscreenElement) {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (error) {
+        console.error('Could not enter fullscreen:', error);
+      }
+    }
+  };
+
+  // Handle exit confirmation
+  const handleConfirmExit = async () => {
+    setShowExitDialog(false);
+    setEvaluationActive(false);
+    setEvaluationPaused(false);
+    setUserAnswers([]);
+    
+    // Exit fullscreen
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (error) {
+        console.error('Could not exit fullscreen:', error);
+      }
+    }
+    
+    navigate(`/exam/${examId}?mode=preview`, { replace: true });
+  };
+
+  // Handle retry
+  const handleRetry = () => {
+    setShowResultsDialog(false);
+    setAttemptCount(prev => prev + 1);
+    setCurrentAttemptNumber(prev => prev + 1);
+    setShowRulesDialog(true);
+  };
+
+  // Handle close results
+  const handleCloseResults = () => {
+    setShowResultsDialog(false);
+    navigate(`/exam/${examId}?mode=preview`, { replace: true });
+  };
+
+  // Reset evaluation for retry button in old flow
   const resetEvaluation = () => {
     setUserAnswers([]);
     setSubmitted(false);
     setScore(null);
   };
+
+  // Click handler for evaluation button
+  const handleEvaluationButtonClick = () => {
+    if (mode === 'evaluation' && !evaluationActive) {
+      setShowRulesDialog(true);
+    } else if (mode !== 'evaluation') {
+      setShowRulesDialog(true);
+    }
+  };
+
   if (loading) {
-    return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <p className="text-muted-foreground">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
-      </div>;
+      </div>
+    );
   }
+
   if (!exam) {
-    return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">
@@ -330,10 +486,114 @@ export default function ExamViewer() {
             </Button>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  const showAnswers = mode === 'correction' || mode === 'evaluation' && submitted || isFreeUser;
-  return <div className="min-h-screen bg-background">
+
+  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted) || isFreeUser;
+  const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
+
+  // Fullscreen evaluation mode
+  if (evaluationActive && !submitted) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Fullscreen Header */}
+        <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h2 className="font-semibold">{exam.title}</h2>
+                <Badge variant="secondary">
+                  {language === 'fr' ? 'Évaluation' : 'Evaluation'}
+                </Badge>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <EvaluationTimer
+                  totalSeconds={totalEvaluationSeconds}
+                  isPaused={evaluationPaused}
+                  onTimeUp={handleTimeUp}
+                  onTick={handleTimerTick}
+                />
+                <EvaluationControls
+                  isPaused={evaluationPaused}
+                  onPause={handlePause}
+                  onResume={handleResume}
+                  onExit={() => setShowExitDialog(true)}
+                  onSubmit={handleSubmitEvaluation}
+                  canSubmit={userAnswers.length > 0}
+                />
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Pause Overlay */}
+        {evaluationPaused && (
+          <div className="fixed inset-0 z-40 bg-background/95 backdrop-blur flex items-center justify-center">
+            <Card className="max-w-md">
+              <CardHeader className="text-center">
+                <CardTitle>{language === 'fr' ? 'Évaluation en Pause' : 'Evaluation Paused'}</CardTitle>
+                <CardDescription>
+                  {language === 'fr' 
+                    ? 'Cliquez sur "Reprendre" pour continuer votre évaluation.'
+                    : 'Click "Resume" to continue your evaluation.'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center gap-3">
+                <Button onClick={handleResume} className="gap-2">
+                  <Play className="h-4 w-4" />
+                  {language === 'fr' ? 'Reprendre' : 'Resume'}
+                </Button>
+                <Button variant="destructive" onClick={() => setShowExitDialog(true)}>
+                  {language === 'fr' ? 'Quitter' : 'Exit'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto px-4 py-6 max-w-4xl">
+            <div ref={contentRef} style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }} className="transition-transform duration-200">
+              {exam.content ? (
+                <ExamContentRenderer
+                  content={exam.content}
+                  showAnswers={false}
+                  mode="evaluation"
+                  questionIdPrefix="question-"
+                  userAnswers={userAnswers}
+                  onAnswerChange={handleAnswerChange}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">
+                      {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </main>
+
+        <ZoomControls zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onReset={handleZoomReset} />
+        
+        <EvaluationExitDialog
+          open={showExitDialog}
+          onOpenChange={setShowExitDialog}
+          onConfirmExit={handleConfirmExit}
+        />
+      </div>
+    );
+  }
+
+  // Normal view
+  return (
+    <div className="min-h-screen bg-background">
       {/* Exam Details Banner */}
       <div className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-3">
@@ -341,57 +601,96 @@ export default function ExamViewer() {
             <div className="flex flex-col gap-1">
               <h2 className="font-semibold text-lg">{exam.title}</h2>
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                {exam.establishments && <span className="flex items-center gap-1">
+                {exam.establishments && (
+                  <span className="flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5" />
                     {exam.establishments.name}
-                  </span>}
+                  </span>
+                )}
                 {exam.classes && <span>{exam.classes.display_name}</span>}
                 {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
                 {exam.periods && <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>}
                 {exam.academic_years && <span>{exam.academic_years.year_label}</span>}
                 {exam.exam_types && <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>}
-                {exam.durations && <span className="flex items-center gap-1">
+                {exam.durations && (
+                  <span className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" />
                     {exam.durations.display_label}
-                  </span>}
+                  </span>
+                )}
               </div>
             </div>
             
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Mode Switcher Buttons */}
+              {/* Mode Switcher Buttons - More Prominent with Subtle Colors */}
               <div className="flex items-center gap-2">
-                <Button variant={mode === 'correction' ? 'default' : 'outline'} size="sm" className="gap-2" onClick={() => {
-                if (mode === 'correction') {
-                  navigate(`/exam/${examId}?mode=preview`);
-                } else {
-                  setShowCorrectionDialog(true);
-                }
-              }}>
-                  <FileText className="h-4 w-4" />
-                  {mode === 'correction' ? language === 'fr' ? 'Masquer Solutions' : 'Hide Solutions' : language === 'fr' ? 'Voir Correction' : 'View Correction'}
+                <Button 
+                  size="sm" 
+                  className={cn(
+                    "gap-2 font-medium",
+                    mode === 'correction' 
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white" 
+                      : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-400"
+                  )}
+                  onClick={() => {
+                    if (mode === 'correction') {
+                      navigate(`/exam/${examId}?mode=preview`);
+                    } else {
+                      setShowCorrectionDialog(true);
+                    }
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  {mode === 'correction' 
+                    ? (language === 'fr' ? 'Masquer Solutions' : 'Hide Solutions')
+                    : (language === 'fr' ? 'Voir Correction' : 'View Correction')
+                  }
                 </Button>
                 
-                <Button variant={mode === 'evaluation' ? 'default' : 'outline'} size="sm" className="gap-2" onClick={() => navigate(`/exam/${examId}?mode=evaluation`)}>
+                <Button 
+                  size="sm" 
+                  className={cn(
+                    "gap-2 font-medium",
+                    mode === 'evaluation' && submitted
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                  )}
+                  onClick={handleEvaluationButtonClick}
+                >
                   <Play className="h-4 w-4" />
                   {language === 'fr' ? 'Évaluation' : 'Evaluation'}
                 </Button>
               </div>
               
               {/* View PDF Button */}
-              {exam.file_url && <Button variant="outline" size="sm" className="gap-2" onClick={() => {
-              if (isMobile) {
-                setShowPdfModal(true);
-              } else {
-                const newShowPdf = !showPdfSplit;
-                setShowPdfSplit(newShowPdf);
-                if (newShowPdf) {
-                  setSidebarCollapsed(true);
-                }
-              }
-            }}>
-                <FileText className="h-4 w-4" />
-                {!isMobile && showPdfSplit ? language === 'fr' ? 'Masquer PDF' : 'Hide PDF' : language === 'fr' ? 'Version PDF' : 'PDF version'}
-              </Button>}
+              {exam.file_url && (
+                <Button 
+                  size="sm" 
+                  className={cn(
+                    "gap-2 font-medium",
+                    showPdfSplit
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400"
+                  )}
+                  onClick={() => {
+                    if (isMobile) {
+                      setShowPdfModal(true);
+                    } else {
+                      const newShowPdf = !showPdfSplit;
+                      setShowPdfSplit(newShowPdf);
+                      if (newShowPdf) {
+                        setSidebarCollapsed(true);
+                      }
+                    }
+                  }}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  {!isMobile && showPdfSplit 
+                    ? (language === 'fr' ? 'Masquer PDF' : 'Hide PDF')
+                    : (language === 'fr' ? 'Version PDF' : 'PDF version')
+                  }
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -413,14 +712,16 @@ export default function ExamViewer() {
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
-                {exam.classes && <>
+                {exam.classes && (
+                  <>
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
-                  </>}
+                  </>
+                )}
                 <BreadcrumbItem>
                   <BreadcrumbPage>{exam.title}</BreadcrumbPage>
                 </BreadcrumbItem>
@@ -433,18 +734,28 @@ export default function ExamViewer() {
       {/* Main Content */}
       <div className="flex h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <aside className={cn("hidden lg:block border-r border-border bg-card transition-all duration-300", sidebarCollapsed ? "w-0 border-0" : "w-80")}>
-          <ExamSidebar questions={sidebarQuestions} activeQuestion={activeQuestion} onQuestionClick={handleQuestionClick} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <aside className={cn(
+          "hidden lg:block border-r border-border bg-card transition-all duration-300",
+          sidebarCollapsed ? "w-0 border-0" : "w-80"
+        )}>
+          <ExamSidebar
+            questions={sidebarQuestions}
+            activeQuestion={activeQuestion}
+            onQuestionClick={handleQuestionClick}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
         </aside>
 
         {/* Content Area */}
-        <main className={cn("flex-1 overflow-auto transition-all duration-300", showPdfSplit && exam.file_url ? "w-1/2" : "w-full")}>
+        <main className={cn(
+          "flex-1 overflow-auto transition-all duration-300",
+          showPdfSplit && exam.file_url ? "w-1/2" : "w-full"
+        )}>
           <div className="container mx-auto px-4 py-6 max-w-4xl">
-            {/* Title Card */}
-            
-
             {/* Score Card for Evaluation Mode */}
-            {mode === 'evaluation' && submitted && score && <Card className="mb-6 border-primary bg-primary/5">
+            {mode === 'evaluation' && submitted && score && (
+              <Card className="mb-6 border-primary bg-primary/5">
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center gap-2">
                     {t('evaluation_results')}
@@ -463,7 +774,7 @@ export default function ExamViewer() {
                       </div>
                       <div>
                         <p className="text-3xl font-bold">
-                          {Math.round(score.correct / score.total * 100)}%
+                          {score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0}%
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {t('score')}
@@ -475,43 +786,55 @@ export default function ExamViewer() {
                     </Button>
                   </div>
                 </CardContent>
-              </Card>}
+              </Card>
+            )}
 
             {/* Exam Content */}
-            <div ref={contentRef} style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top left'
-          }} className="transition-transform duration-200">
-              {exam.content ? <ExamContentRenderer content={exam.content} showAnswers={showAnswers} mode={mode as 'preview' | 'evaluation' | 'solution'} questionIdPrefix="question-" userAnswers={userAnswers} onAnswerChange={handleAnswerChange} /> : <Card>
+            <div 
+              ref={contentRef} 
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }} 
+              className="transition-transform duration-200"
+            >
+              {exam.content ? (
+                <ExamContentRenderer
+                  content={exam.content}
+                  showAnswers={showAnswers}
+                  mode={mode as 'preview' | 'evaluation' | 'solution'}
+                  questionIdPrefix="question-"
+                  userAnswers={userAnswers}
+                  onAnswerChange={handleAnswerChange}
+                />
+              ) : (
+                <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
                       {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
                     </p>
                   </CardContent>
-                </Card>}
+                </Card>
+              )}
             </div>
-
-            {/* Submit Button for Evaluation Mode */}
-            {mode === 'evaluation' && !submitted && <Card className="mt-6 sticky bottom-4">
-                <CardContent className="pt-6">
-                  <Button onClick={calculateScore} className="w-full" size="lg" disabled={userAnswers.length === 0}>
-                    {t('submit_evaluation')}
-                  </Button>
-                  {userAnswers.length === 0 && <p className="text-sm text-muted-foreground text-center mt-2">
-                      {t('answer_at_least_one')}
-                    </p>}
-                </CardContent>
-              </Card>}
           </div>
         </main>
 
         {/* PDF Split View - Desktop Only */}
-        {!isMobile && showPdfSplit && exam.file_url && <aside className="w-1/2 border-l border-border bg-card relative">
-            <Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10" onClick={() => setShowPdfSplit(false)}>
+        {!isMobile && showPdfSplit && exam.file_url && (
+          <aside className="w-1/2 border-l border-border bg-card relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute right-2 top-2 z-10" 
+              onClick={() => setShowPdfSplit(false)}
+            >
               <X className="h-4 w-4" />
             </Button>
-            <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full" title="Exam PDF" />
-          </aside>}
+            <iframe 
+              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
+              className="w-full h-full" 
+              title="Exam PDF" 
+            />
+          </aside>
+        )}
       </div>
 
       {/* Zoom Controls */}
@@ -526,10 +849,16 @@ export default function ExamViewer() {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                {language === 'fr' ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.' : 'You are about to view the official solutions for this exam.'}
+                {language === 'fr' 
+                  ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.'
+                  : 'You are about to view the official solutions for this exam.'
+                }
               </p>
               <p className="font-semibold text-foreground">
-                {language === 'fr' ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !' : 'We suggest taking the evaluation first to test your knowledge!'}
+                {language === 'fr' 
+                  ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !'
+                  : 'We suggest taking the evaluation first to test your knowledge!'
+                }
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -543,6 +872,27 @@ export default function ExamViewer() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Evaluation Rules Dialog */}
+      <EvaluationRulesDialog
+        open={showRulesDialog}
+        onOpenChange={setShowRulesDialog}
+        onStart={handleStartEvaluation}
+        durationMinutes={durationMinutes}
+        attemptCount={attemptCount}
+      />
+
+      {/* Evaluation Results Dialog */}
+      <EvaluationResultsDialog
+        open={showResultsDialog}
+        onOpenChange={setShowResultsDialog}
+        score={score}
+        hasMcq={hasMcqQuestions()}
+        timeSpentSeconds={timeSpentSeconds}
+        attemptNumber={currentAttemptNumber}
+        onRetry={handleRetry}
+        onClose={handleCloseResults}
+      />
 
       {/* PDF Modal - Mobile Only */}
       <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
@@ -561,5 +911,6 @@ export default function ExamViewer() {
           )}
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  );
 }
