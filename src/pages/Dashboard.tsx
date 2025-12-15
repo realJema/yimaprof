@@ -8,11 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BookOpen, TrendingUp, Calendar, CheckCircle, Crown, Edit, Upload, Mail, Activity, CreditCard } from 'lucide-react';
+import { BookOpen, TrendingUp, Calendar, CheckCircle, Crown, Edit, Upload, Mail, Activity, CreditCard, ClipboardCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 export default function Dashboard() {
   const { t, language } = useLanguage();
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const [recentExams, setRecentExams] = useState<any[]>([]);
+  const [userEvaluations, setUserEvaluations] = useState<any[]>([]);
   const [stats, setStats] = useState({
     examsCompleted: 0,
     totalExams: 0,
@@ -91,11 +92,34 @@ export default function Dashboard() {
       
       setRecentExams(examsData || []);
 
+      // Fetch user evaluations
+      const { data: evaluationsData } = await supabase
+        .from('user_evaluations')
+        .select(`
+          *,
+          exams (
+            title,
+            subjects:subject_id (name, name_en, name_fr),
+            classes (display_name)
+          )
+        `)
+        .eq('user_id', user?.id)
+        .order('completed_at', { ascending: false })
+        .limit(10);
+      
+      setUserEvaluations(evaluationsData || []);
+
+      // Calculate real stats from evaluations
+      const totalEvaluations = evaluationsData?.length || 0;
+      const avgScore = totalEvaluations > 0 
+        ? Math.round(evaluationsData!.reduce((sum, e) => sum + (e.mcq_total > 0 ? (e.mcq_score / e.mcq_total) * 100 : 0), 0) / totalEvaluations)
+        : 0;
+
       setStats({
-        examsCompleted: 12,
+        examsCompleted: totalEvaluations,
         totalExams: examsData?.length || 0,
         studyStreak: 7,
-        avgScore: 85
+        avgScore
       });
 
     } catch (error) {
@@ -467,6 +491,72 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* User Evaluations Section */}
+        <Card className="mt-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              My Evaluations
+            </CardTitle>
+            <CardDescription>Your exam evaluation history</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {userEvaluations.length > 0 ? (
+              <div className="space-y-3">
+                {userEvaluations.map((evaluation) => (
+                  <Link
+                    key={evaluation.id}
+                    to={`/exam/${evaluation.exam_id}`}
+                    className="block p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-foreground">
+                          {evaluation.exams?.title || 'Untitled Exam'}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {evaluation.exams?.classes?.display_name} • {
+                            evaluation.exams?.subjects 
+                              ? (language === 'fr' 
+                                  ? evaluation.exams.subjects.name_fr || evaluation.exams.subjects.name 
+                                  : evaluation.exams.subjects.name_en || evaluation.exams.subjects.name)
+                              : ''
+                          }
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Attempt #{evaluation.attempt_number} • {formatDistanceToNow(new Date(evaluation.completed_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-foreground">
+                          {evaluation.mcq_score}/{evaluation.mcq_total}
+                        </div>
+                        <Badge 
+                          variant={evaluation.mcq_total > 0 && (evaluation.mcq_score / evaluation.mcq_total) >= 0.5 ? "default" : "secondary"}
+                          className="mt-1"
+                        >
+                          {evaluation.mcq_total > 0 
+                            ? `${Math.round((evaluation.mcq_score / evaluation.mcq_total) * 100)}%`
+                            : 'N/A'
+                          }
+                        </Badge>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <ClipboardCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No evaluations yet</p>
+                <Button asChild variant="outline" className="mt-4">
+                  <Link to="/exams">Take an Exam</Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
