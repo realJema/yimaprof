@@ -18,6 +18,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditor, setIsEditor] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,9 +40,11 @@ export default function Header() {
   useEffect(() => {
     if (user) {
       checkAdminStatus();
+      checkEditorStatus();
       fetchProfile();
     } else {
       setIsAdmin(false);
+      setIsEditor(false);
       setProfile(null);
     }
   }, [user]);
@@ -61,6 +64,20 @@ export default function Header() {
       setIsAdmin(data === true);
     } catch (error) {
       setIsAdmin(false);
+    }
+  };
+
+  const checkEditorStatus = async () => {
+    try {
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: user?.id,
+        _role: 'editor'
+      });
+      
+      if (error) throw error;
+      setIsEditor(data === true);
+    } catch (error) {
+      setIsEditor(false);
     }
   };
 
@@ -106,6 +123,10 @@ export default function Header() {
 
   if (isAdmin) {
     navItems.push({ to: '/admin', icon: Shield, label: 'Admin' });
+  }
+
+  if (isEditor && !isAdmin) {
+    navItems.push({ to: '/admin/exams', icon: FileText, label: language === 'fr' ? 'Éditeur' : 'Editor' });
   }
 
   // Mobile navigation links
