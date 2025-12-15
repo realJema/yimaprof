@@ -697,6 +697,8 @@ export type Database = {
           max_downloads: number | null
           name: string
           price: number
+          price_annual: number | null
+          price_trimester: number | null
           updated_at: string
         }
         Insert: {
@@ -710,6 +712,8 @@ export type Database = {
           max_downloads?: number | null
           name: string
           price: number
+          price_annual?: number | null
+          price_trimester?: number | null
           updated_at?: string
         }
         Update: {
@@ -723,6 +727,8 @@ export type Database = {
           max_downloads?: number | null
           name?: string
           price?: number
+          price_annual?: number | null
+          price_trimester?: number | null
           updated_at?: string
         }
         Relationships: []
