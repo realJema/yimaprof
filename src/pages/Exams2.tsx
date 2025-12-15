@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
-import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Lock, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -242,10 +242,45 @@ const Exams2 = () => {
     return item.name;
   };
 
-  // Filter exams
-  const filteredExams = useMemo(() => {
+  // Determine available systems based on subscription
+  const availableSystems = useMemo(() => {
+    if (!hasActiveSubscription || !subscriptionPlanClasses || !classes) {
+      return { francophone: false, anglophone: false, hasMultiple: false };
+    }
+    const accessibleClasses = classes.filter(cls => subscriptionPlanClasses.includes(cls.id));
+    const hasFrancophone = accessibleClasses.some(cls => cls.section === 'francophone');
+    const hasAnglophone = accessibleClasses.some(cls => cls.section === 'anglophone');
+    return {
+      francophone: hasFrancophone,
+      anglophone: hasAnglophone,
+      hasMultiple: hasFrancophone && hasAnglophone
+    };
+  }, [hasActiveSubscription, subscriptionPlanClasses, classes]);
+
+  // Auto-select system if user only has access to one
+  useMemo(() => {
+    if (!hasActiveSubscription) return;
+    if (availableSystems.hasMultiple) return; // User has both, keep current selection
+    if (availableSystems.francophone && selectedSystem !== 'francophone') {
+      setSelectedSystem('francophone');
+    } else if (availableSystems.anglophone && selectedSystem !== 'anglophone') {
+      setSelectedSystem('anglophone');
+    }
+  }, [availableSystems, hasActiveSubscription]);
+
+  // Filter exams based on subscription access
+  const accessibleExams = useMemo(() => {
     if (!exams) return [];
+    if (!hasActiveSubscription || !subscriptionPlanClasses) return [];
     return exams.filter(exam => {
+      if (!exam.class?.id) return false;
+      return subscriptionPlanClasses.includes(exam.class.id);
+    });
+  }, [exams, hasActiveSubscription, subscriptionPlanClasses]);
+
+  // Filter exams with all filters applied
+  const filteredExams = useMemo(() => {
+    return accessibleExams.filter(exam => {
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const matchesSearch = exam.title.toLowerCase().includes(search) || exam.description?.toLowerCase().includes(search) || getLocalizedName(exam.subject)?.toLowerCase().includes(search) || exam.establishment?.name.toLowerCase().includes(search);
@@ -286,7 +321,7 @@ const Exams2 = () => {
           return 0;
       }
     });
-  }, [exams, searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedYear, selectedExamType, selectedPeriod, selectedSystem, sortBy, language]);
+  }, [accessibleExams, searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedYear, selectedExamType, selectedPeriod, selectedSystem, sortBy, language]);
 
   // Pagination
   const totalPages = Math.ceil(filteredExams.length / ITEMS_PER_PAGE);
@@ -300,20 +335,15 @@ const Exams2 = () => {
     setCurrentPage(1);
   }, [searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedYear, selectedExamType, selectedPeriod, selectedSystem]);
 
-  // Count exams per filter option (filtered by selected system)
+  // Count exams per filter option (filtered by selected system and accessible exams)
   const getFilterCounts = useMemo(() => {
-    if (!exams) return {
-      schools: {},
-      classes: {},
-      subjects: {}
-    };
     const counts = {
       schools: {} as Record<string, number>,
       classes: {} as Record<string, number>,
       subjects: {} as Record<string, number>
     };
-    // Only count exams that match the selected system
-    const systemFilteredExams = exams.filter(exam => {
+    // Only count accessible exams that match the selected system
+    const systemFilteredExams = accessibleExams.filter(exam => {
       if (selectedSystem === 'all') return true;
       if (!exam.class) return false;
       return exam.class.section === selectedSystem;
@@ -324,34 +354,33 @@ const Exams2 = () => {
       if (exam.subject) counts.subjects[exam.subject.id] = (counts.subjects[exam.subject.id] || 0) + 1;
     });
     return counts;
-  }, [exams, selectedSystem]);
+  }, [accessibleExams, selectedSystem]);
 
-  // Filter classes and subjects based on selected system
+  // Filter classes based on selected system AND subscription access
   const filteredClasses = useMemo(() => {
-    if (!classes) return [];
-    if (selectedSystem === 'all') return classes;
-    return classes.filter(cls => cls.section === selectedSystem);
-  }, [classes, selectedSystem]);
+    if (!classes || !subscriptionPlanClasses) return [];
+    let accessibleClasses = classes.filter(cls => subscriptionPlanClasses.includes(cls.id));
+    if (selectedSystem !== 'all') {
+      accessibleClasses = accessibleClasses.filter(cls => cls.section === selectedSystem);
+    }
+    return accessibleClasses;
+  }, [classes, subscriptionPlanClasses, selectedSystem]);
 
+  // Filter subjects based on accessible exams and selected system
   const filteredSubjects = useMemo(() => {
-    if (!subjects || !exams) return subjects || [];
-    if (selectedSystem === 'all') return subjects;
-    // Get subjects that have exams in the selected system
+    if (!subjects) return [];
+    // Get subjects that have accessible exams in the selected system
     const subjectIds = new Set(
-      exams
-        .filter(exam => exam.class?.section === selectedSystem && exam.subject)
+      accessibleExams
+        .filter(exam => {
+          if (selectedSystem === 'all') return true;
+          return exam.class?.section === selectedSystem;
+        })
+        .filter(exam => exam.subject)
         .map(exam => exam.subject!.id)
     );
     return subjects.filter(subject => subjectIds.has(subject.id));
-  }, [subjects, exams, selectedSystem]);
-
-  // Check if user has access to a specific exam based on subscription
-  const hasAccessToExam = (exam: Exam) => {
-    if (!hasActiveSubscription) return false;
-    if (!exam.class?.id) return false;
-    if (!subscriptionPlanClasses) return false;
-    return subscriptionPlanClasses.includes(exam.class.id);
-  };
+  }, [subjects, accessibleExams, selectedSystem]);
 
   const activeFiltersCount = selectedSchools.length + selectedClasses.length + selectedSubjects.length + (selectedYear !== 'all' ? 1 : 0) + (selectedExamType !== 'all' ? 1 : 0) + (selectedPeriod !== 'all' ? 1 : 0);
   const clearAllFilters = () => {
@@ -362,7 +391,10 @@ const Exams2 = () => {
     setSelectedYear('all');
     setSelectedExamType('all');
     setSelectedPeriod('all');
-    setSelectedSystem('all');
+    // Don't reset system if user only has one
+    if (availableSystems.hasMultiple) {
+      setSelectedSystem('all');
+    }
     setCurrentPage(1);
   };
   const toggleSchool = (id: string) => setSelectedSchools(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
@@ -501,23 +533,31 @@ const Exams2 = () => {
                 {language === 'fr' ? 'Parcourir les Épreuves' : 'Browse Exams'}
               </h1>
               
-              {/* System Toggle - Prominent */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {language === 'fr' ? 'Système:' : 'System:'}
-                </span>
-                <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setSelectedSystem(value)} className="bg-muted p-1 rounded-lg">
-                  <ToggleGroupItem value="all" className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm">
-                    {language === 'fr' ? 'Tous' : 'All'}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="francophone" className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    Francophone
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="anglophone" className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-                    Anglophone
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
+              {/* System Toggle - Only show available systems */}
+              {hasActiveSubscription && (availableSystems.francophone || availableSystems.anglophone) && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {language === 'fr' ? 'Système:' : 'System:'}
+                  </span>
+                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setSelectedSystem(value)} className="bg-muted p-1 rounded-lg">
+                    {availableSystems.hasMultiple && (
+                      <ToggleGroupItem value="all" className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm">
+                        {language === 'fr' ? 'Tous' : 'All'}
+                      </ToggleGroupItem>
+                    )}
+                    {availableSystems.francophone && (
+                      <ToggleGroupItem value="francophone" className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                        Francophone
+                      </ToggleGroupItem>
+                    )}
+                    {availableSystems.anglophone && (
+                      <ToggleGroupItem value="anglophone" className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                        Anglophone
+                      </ToggleGroupItem>
+                    )}
+                  </ToggleGroup>
+                </div>
+              )}
             </div>
 
             {/* School Selection - Prominent */}
@@ -644,8 +684,26 @@ const Exams2 = () => {
             })}
               </div>}
 
-            {/* Exam Grid */}
-            {examsLoading ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {/* No subscription message */}
+            {!hasActiveSubscription ? (
+              <div className="text-center py-12">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {language === 'fr' ? 'Abonnement requis' : 'Subscription Required'}
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {language === 'fr' 
+                    ? 'Vous devez avoir un abonnement actif pour accéder aux épreuves. Choisissez un forfait pour commencer.' 
+                    : 'You need an active subscription to access exams. Choose a plan to get started.'}
+                </p>
+                <Link to="/subscriptions">
+                  <Button>
+                    {language === 'fr' ? 'Voir les abonnements' : 'View Subscriptions'}
+                  </Button>
+                </Link>
+              </div>
+            ) : examsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[...Array(12)].map((_, i) => <Card key={i}>
                     <CardContent className="p-4">
                       <Skeleton className="h-5 w-3/4 mb-2" />
@@ -657,7 +715,9 @@ const Exams2 = () => {
                       <Skeleton className="h-3 w-2/3" />
                     </CardContent>
                   </Card>)}
-              </div> : filteredExams.length === 0 ? <div className="text-center py-12">
+              </div>
+            ) : filteredExams.length === 0 ? (
+              <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
                   {language === 'fr' ? 'Aucune épreuve trouvée' : 'No exams found'}
@@ -668,10 +728,10 @@ const Exams2 = () => {
                 <Button variant="outline" onClick={clearAllFilters}>
                   {language === 'fr' ? 'Effacer les filtres' : 'Clear filters'}
                 </Button>
-              </div> : <>
+              </div>
+            ) : <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {paginatedExams.map(exam => {
-                    const examAccessible = hasAccessToExam(exam);
                     const subjectName = getLocalizedName(exam.subject);
                     const cardColor = getSubjectColor(subjectName);
                     
@@ -690,7 +750,6 @@ const Exams2 = () => {
                               <h3 className="font-semibold text-foreground line-clamp-2 text-sm group-hover:text-primary transition-colors">
                                 {exam.title}
                               </h3>
-                              {!examAccessible && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
                             
                             <p className="text-xs text-muted-foreground mb-3">
