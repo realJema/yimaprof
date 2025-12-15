@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AdminDataTable } from './AdminDataTable';
-import { Shield, ShieldOff, User } from 'lucide-react';
+import { Shield, ShieldOff, User, Edit, UserX } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UserProfile {
   id: string;
@@ -73,10 +74,8 @@ export function UserManagement() {
     }
   };
 
-  const toggleUserRole = async (user: UserProfile) => {
+  const changeUserRole = async (user: UserProfile, newRole: 'admin' | 'editor' | 'teacher' | 'student') => {
     try {
-      const newRole = user.role === 'admin' ? 'student' : 'admin';
-      
       // Use secure server-side function for role changes with audit logging
       const { data, error } = await supabase.rpc('change_user_role', {
         target_user_id: user.id,
@@ -108,6 +107,15 @@ export function UserManagement() {
     }
   };
 
+  const getRoleBadgeVariant = (role: string): 'destructive' | 'default' | 'secondary' | 'outline' => {
+    switch (role) {
+      case 'admin': return 'destructive';
+      case 'editor': return 'default';
+      case 'teacher': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
   const columns = [
     {
       key: 'email',
@@ -125,7 +133,7 @@ export function UserManagement() {
       key: 'role',
       label: 'Role',
       render: (value: string) => (
-        <Badge variant={value === 'admin' ? 'destructive' : 'secondary'}>
+        <Badge variant={getRoleBadgeVariant(value)}>
           {value}
         </Badge>
       ),
@@ -152,24 +160,40 @@ export function UserManagement() {
   ];
 
   const actions = (user: UserProfile) => (
-    <Button
-      variant={user.role === 'admin' ? 'destructive' : 'default'}
-      size="sm"
-      onClick={() => toggleUserRole(user)}
-      className="flex items-center gap-2"
+    <Select
+      value={user.role || 'student'}
+      onValueChange={(value) => changeUserRole(user, value as 'admin' | 'editor' | 'teacher' | 'student')}
     >
-      {user.role === 'admin' ? (
-        <>
-          <ShieldOff className="h-4 w-4" />
-          Remove Admin
-        </>
-      ) : (
-        <>
-          <Shield className="h-4 w-4" />
-          Make Admin
-        </>
-      )}
-    </Button>
+      <SelectTrigger className="w-[130px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="student">
+          <span className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Student
+          </span>
+        </SelectItem>
+        <SelectItem value="teacher">
+          <span className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Teacher
+          </span>
+        </SelectItem>
+        <SelectItem value="editor">
+          <span className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            Editor
+          </span>
+        </SelectItem>
+        <SelectItem value="admin">
+          <span className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Admin
+          </span>
+        </SelectItem>
+      </SelectContent>
+    </Select>
   );
 
   return (

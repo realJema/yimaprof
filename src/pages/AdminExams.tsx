@@ -114,12 +114,26 @@ export default function AdminExams() {
 
   const checkAdminAccess = async () => {
     try {
-      const { data, error } = await supabase.rpc('is_admin', { user_id: user?.id });
-      if (error || data !== true) {
-        setHasAccess(false);
-      } else {
+      // Check if user is admin
+      const { data: isAdminData } = await supabase.rpc('is_admin', { user_id: user?.id });
+      if (isAdminData === true) {
         setHasAccess(true);
+        setCheckingAccess(false);
+        return;
       }
+      
+      // Check if user is editor
+      const { data: isEditorData } = await supabase.rpc('has_role', { 
+        _user_id: user?.id,
+        _role: 'editor'
+      });
+      if (isEditorData === true) {
+        setHasAccess(true);
+        setCheckingAccess(false);
+        return;
+      }
+      
+      setHasAccess(false);
     } catch (error) {
       setHasAccess(false);
     } finally {
