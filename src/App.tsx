@@ -23,6 +23,7 @@ import Subscriptions from "./pages/Subscriptions";
 import Payment from "./pages/Payment";
 import PaymentProcessing from "./pages/PaymentProcessing";
 import Admin from "./pages/Admin";
+import AdminExams from "./pages/AdminExams";
 import ExamManager from "./pages/ExamManager";
 import Affiliate from "./pages/Affiliate";
 import Notifications from "./pages/Notifications";
@@ -80,6 +81,7 @@ const App = () => {
                     <Route path="/payment" element={<Payment />} />
                     <Route path="/payment-processing" element={<PaymentProcessing />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/admin/exams" element={<AdminExams />} />
                     <Route path="/admin/exam/new" element={<ExamManager />} />
                     <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
                     <Route path="/about" element={<About />} />
