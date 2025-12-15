@@ -621,7 +621,9 @@ const Exams2 = () => {
                             {exam.academic_year && <Badge variant="outline" className="text-xs px-1.5 py-0">
                                 {exam.academic_year.year_label}
                               </Badge>}
-                            {exam.exam_type}
+                            {exam.exam_type && <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                {getLocalizedName(exam.exam_type)}
+                              </Badge>}
                             {exam.duration && <Badge variant="outline" className="text-xs px-1.5 py-0">
                                 <Clock className="h-3 w-3 mr-0.5" />
                                 {exam.duration.display_label}
