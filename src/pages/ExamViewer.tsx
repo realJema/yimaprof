@@ -594,117 +594,15 @@ export default function ExamViewer() {
   // Normal view
   return (
     <div className="min-h-screen bg-background">
-      {/* Exam Details Banner */}
-      <div className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex flex-col gap-1">
-              <h2 className="font-semibold text-lg">{exam.title}</h2>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                {exam.establishments && (
-                  <span className="flex items-center gap-1">
-                    <FileText className="h-3.5 w-3.5" />
-                    {exam.establishments.name}
-                  </span>
-                )}
-                {exam.classes && <span>{exam.classes.display_name}</span>}
-                {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
-                {exam.periods && <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>}
-                {exam.academic_years && <span>{exam.academic_years.year_label}</span>}
-                {exam.exam_types && <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>}
-                {exam.durations && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {exam.durations.display_label}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Mode Switcher Buttons - More Prominent with Subtle Colors */}
-              <div className="flex items-center gap-2">
-                <Button 
-                  size="sm" 
-                  className={cn(
-                    "gap-2 font-medium",
-                    mode === 'correction' 
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white" 
-                      : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-400"
-                  )}
-                  onClick={() => {
-                    if (mode === 'correction') {
-                      navigate(`/exam/${examId}?mode=preview`);
-                    } else {
-                      setShowCorrectionDialog(true);
-                    }
-                  }}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  {mode === 'correction' 
-                    ? (language === 'fr' ? 'Masquer Solutions' : 'Hide Solutions')
-                    : (language === 'fr' ? 'Voir Correction' : 'View Correction')
-                  }
-                </Button>
-                
-                <Button 
-                  size="sm" 
-                  className={cn(
-                    "gap-2 font-medium",
-                    mode === 'evaluation' && submitted
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                      : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                  )}
-                  onClick={handleEvaluationButtonClick}
-                >
-                  <Play className="h-4 w-4" />
-                  {language === 'fr' ? 'Évaluation' : 'Evaluation'}
-                </Button>
-              </div>
-              
-              {/* View PDF Button */}
-              {exam.file_url && (
-                <Button 
-                  size="sm" 
-                  className={cn(
-                    "gap-2 font-medium",
-                    showPdfSplit
-                      ? "bg-amber-600 hover:bg-amber-700 text-white"
-                      : "bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400"
-                  )}
-                  onClick={() => {
-                    if (isMobile) {
-                      setShowPdfModal(true);
-                    } else {
-                      const newShowPdf = !showPdfSplit;
-                      setShowPdfSplit(newShowPdf);
-                      if (newShowPdf) {
-                        setSidebarCollapsed(true);
-                      }
-                    }
-                  }}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  {!isMobile && showPdfSplit 
-                    ? (language === 'fr' ? 'Masquer PDF' : 'Hide PDF')
-                    : (language === 'fr' ? 'Version PDF' : 'PDF version')
-                  }
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Header with Back Button and Breadcrumb */}
+      {/* Mobile-first Header with Back Button */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 sm:gap-2 px-2 sm:px-3">
               <ArrowLeft className="h-4 w-4" />
-              {language === 'fr' ? 'Retour' : 'Back'}
+              <span className="hidden sm:inline">{language === 'fr' ? 'Retour' : 'Back'}</span>
             </Button>
-            <Breadcrumb>
+            <Breadcrumb className="hidden sm:flex">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
@@ -723,16 +621,180 @@ export default function ExamViewer() {
                   </>
                 )}
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{exam.title}</BreadcrumbPage>
+                  <BreadcrumbPage className="max-w-[200px] truncate">{exam.title}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+            {/* Mobile: Show title in header */}
+            <span className="sm:hidden text-sm font-medium truncate flex-1">{exam.title}</span>
           </div>
         </div>
       </header>
 
+      {/* Exam Details Banner - Redesigned for Mobile */}
+      <div className="border-b border-border bg-muted/30">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          {/* Title - Hidden on mobile (shown in header) */}
+          <h2 className="hidden sm:block font-semibold text-lg mb-3">{exam.title}</h2>
+          
+          {/* Mobile: Compact Info Grid */}
+          <div className="grid grid-cols-2 gap-2 sm:hidden mb-3">
+            {exam.subjects && (
+              <div className="bg-background/60 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Matière' : 'Subject'}</p>
+                <p className="text-sm font-medium truncate">
+                  {language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}
+                </p>
+              </div>
+            )}
+            {exam.classes && (
+              <div className="bg-background/60 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Classe' : 'Class'}</p>
+                <p className="text-sm font-medium truncate">{exam.classes.display_name}</p>
+              </div>
+            )}
+            {exam.academic_years && (
+              <div className="bg-background/60 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Année' : 'Year'}</p>
+                <p className="text-sm font-medium">{exam.academic_years.year_label}</p>
+              </div>
+            )}
+            {exam.durations && (
+              <div className="bg-background/60 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Durée' : 'Duration'}</p>
+                <p className="text-sm font-medium flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {exam.durations.display_label}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* Desktop: Inline Info */}
+          <div className="hidden sm:flex items-center gap-3 text-sm text-muted-foreground flex-wrap mb-3">
+            {exam.establishments && (
+              <span className="flex items-center gap-1">
+                <FileText className="h-3.5 w-3.5" />
+                {exam.establishments.name}
+              </span>
+            )}
+            {exam.classes && <span>{exam.classes.display_name}</span>}
+            {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
+            {exam.periods && <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>}
+            {exam.academic_years && <span>{exam.academic_years.year_label}</span>}
+            {exam.exam_types && <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>}
+            {exam.durations && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                {exam.durations.display_label}
+              </span>
+            )}
+          </div>
+          
+          {/* Mobile: Additional Info Badges */}
+          <div className="flex flex-wrap gap-1.5 sm:hidden mb-3">
+            {exam.establishments && (
+              <Badge variant="secondary" className="text-xs">
+                {exam.establishments.name}
+              </Badge>
+            )}
+            {exam.periods && (
+              <Badge variant="outline" className="text-xs">
+                {language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}
+              </Badge>
+            )}
+            {exam.exam_types && (
+              <Badge variant="outline" className="text-xs">
+                {language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}
+              </Badge>
+            )}
+          </div>
+            
+          {/* Action Buttons - Full width on mobile */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Mode Switcher Buttons */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                size="sm" 
+                className={cn(
+                  "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
+                  mode === 'correction' 
+                    ? "bg-indigo-600 hover:bg-indigo-700 text-white" 
+                    : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-400"
+                )}
+                onClick={() => {
+                  if (mode === 'correction') {
+                    navigate(`/exam/${examId}?mode=preview`);
+                  } else {
+                    setShowCorrectionDialog(true);
+                  }
+                }}
+              >
+                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">
+                  {mode === 'correction' 
+                    ? (language === 'fr' ? 'Masquer' : 'Hide')
+                    : (language === 'fr' ? 'Correction' : 'Correction')
+                  }
+                </span>
+                <span className="xs:hidden">
+                  {language === 'fr' ? 'Corrigé' : 'Solution'}
+                </span>
+              </Button>
+              
+              <Button 
+                size="sm" 
+                className={cn(
+                  "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
+                  mode === 'evaluation' && submitted
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                )}
+                onClick={handleEvaluationButtonClick}
+              >
+                <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                {language === 'fr' ? 'Évaluation' : 'Evaluate'}
+              </Button>
+              
+              {/* View PDF Button */}
+              {exam.file_url && (
+                <Button 
+                  size="sm" 
+                  className={cn(
+                    "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
+                    showPdfSplit
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400"
+                  )}
+                  onClick={() => {
+                    if (isMobile) {
+                      setShowPdfModal(true);
+                    } else {
+                      const newShowPdf = !showPdfSplit;
+                      setShowPdfSplit(newShowPdf);
+                      if (newShowPdf) {
+                        setSidebarCollapsed(true);
+                      }
+                    }
+                  }}
+                >
+                  <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">
+                    {!isMobile && showPdfSplit 
+                      ? (language === 'fr' ? 'Masquer PDF' : 'Hide PDF')
+                      : (language === 'fr' ? 'PDF' : 'PDF')
+                    }
+                  </span>
+                  <span className="xs:hidden">PDF</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="flex min-h-[calc(100vh-200px)] sm:h-[calc(100vh-64px)]">
         {/* Sidebar */}
         <aside className={cn(
           "hidden lg:block border-r border-border bg-card transition-all duration-300",
@@ -752,7 +814,7 @@ export default function ExamViewer() {
           "flex-1 overflow-auto transition-all duration-300",
           showPdfSplit && exam.file_url ? "w-1/2" : "w-full"
         )}>
-          <div className="container mx-auto px-4 py-6 max-w-4xl">
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
             {/* Score Card for Evaluation Mode */}
             {mode === 'evaluation' && submitted && score && (
               <Card className="mb-6 border-primary bg-primary/5">
