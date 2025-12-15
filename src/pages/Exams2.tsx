@@ -5,9 +5,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
 import { 
-  Search, X, Clock, Calendar, FileText, 
+  Search, X, Clock, FileText, 
   Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight,
-  Lock, Filter, SlidersHorizontal
+  Lock, Filter, SlidersHorizontal, Check
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface Exam {
   id: string;
@@ -238,8 +239,7 @@ const Exams2 = () => {
     selectedSubjects.length + 
     (selectedYear !== 'all' ? 1 : 0) + 
     (selectedExamType !== 'all' ? 1 : 0) + 
-    (selectedPeriod !== 'all' ? 1 : 0) + 
-    (selectedSystem !== 'all' ? 1 : 0);
+    (selectedPeriod !== 'all' ? 1 : 0);
 
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -312,7 +312,7 @@ const Exams2 = () => {
     </Popover>
   );
 
-  // Sidebar filters content
+  // Sidebar filters content (without system and school)
   const FiltersContent = () => (
     <div className="space-y-4">
       {/* Search */}
@@ -327,35 +327,6 @@ const Exams2 = () => {
       </div>
 
       <Separator />
-
-      {/* System */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Système' : 'System'}</label>
-        <Select value={selectedSystem} onValueChange={setSelectedSystem}>
-          <SelectTrigger className="h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
-            <SelectItem value="francophone">Francophone</SelectItem>
-            <SelectItem value="anglophone">Anglophone</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Schools */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Établissements' : 'Schools'}</label>
-        <MultiSelectPopover
-          label={language === 'fr' ? 'Sélectionner' : 'Select'}
-          icon={Building2}
-          items={schools}
-          selectedItems={selectedSchools}
-          onToggle={toggleSchool}
-          counts={getFilterCounts.schools}
-          getItemName={(item) => item.name}
-        />
-      </div>
 
       {/* Classes */}
       <div className="space-y-2">
@@ -449,11 +420,118 @@ const Exams2 = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Top Header with System and School */}
+      <div className="border-b bg-card sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col gap-4">
+            {/* Title and System Toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h1 className="text-xl font-bold text-foreground">
+                {language === 'fr' ? 'Parcourir les Épreuves' : 'Browse Exams'}
+              </h1>
+              
+              {/* System Toggle - Prominent */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {language === 'fr' ? 'Système:' : 'System:'}
+                </span>
+                <ToggleGroup 
+                  type="single" 
+                  value={selectedSystem} 
+                  onValueChange={(value) => value && setSelectedSystem(value)}
+                  className="bg-muted p-1 rounded-lg"
+                >
+                  <ToggleGroupItem 
+                    value="all" 
+                    className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                  >
+                    {language === 'fr' ? 'Tous' : 'All'}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="francophone" 
+                    className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    Francophone
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="anglophone" 
+                    className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    Anglophone
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
+
+            {/* School Selection - Prominent */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="justify-between min-w-[200px] sm:min-w-[300px]">
+                    <span className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      {selectedSchools.length === 0 
+                        ? (language === 'fr' ? 'Tous les établissements' : 'All schools')
+                        : selectedSchools.length === 1
+                          ? schools?.find(s => s.id === selectedSchools[0])?.name
+                          : `${selectedSchools.length} ${language === 'fr' ? 'établissements' : 'schools'}`
+                      }
+                    </span>
+                    {selectedSchools.length > 0 && (
+                      <Badge variant="secondary">{selectedSchools.length}</Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="p-3 border-b">
+                    <p className="font-medium text-sm">
+                      {language === 'fr' ? 'Sélectionner les établissements' : 'Select schools'}
+                    </p>
+                  </div>
+                  <ScrollArea className="h-[300px]">
+                    <div className="p-2 space-y-1">
+                      {schools?.map(school => (
+                        <label key={school.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md">
+                          <Checkbox 
+                            checked={selectedSchools.includes(school.id)} 
+                            onCheckedChange={() => toggleSchool(school.id)} 
+                          />
+                          <span className="text-sm flex-1">{school.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {getFilterCounts.schools[school.id] || 0}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  {selectedSchools.length > 0 && (
+                    <div className="border-t p-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full" 
+                        onClick={() => setSelectedSchools([])}
+                      >
+                        {language === 'fr' ? 'Effacer la sélection' : 'Clear selection'}
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+
+              <p className="text-sm text-muted-foreground self-center">
+                {filteredExams.length} {language === 'fr' ? 'épreuve(s) trouvée(s)' : 'exam(s) found'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-6">
         <div className="flex gap-6">
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-64 shrink-0">
-            <div className="sticky top-4 bg-card rounded-lg border p-4">
+            <div className="sticky top-32 bg-card rounded-lg border p-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold flex items-center gap-2">
                   <Filter className="h-4 w-4" />
@@ -492,18 +570,9 @@ const Exams2 = () => {
                     </div>
                   </SheetContent>
                 </Sheet>
-
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">
-                    {language === 'fr' ? 'Parcourir les Épreuves' : 'Browse Exams'}
-                  </h1>
-                  <p className="text-muted-foreground text-sm">
-                    {filteredExams.length} {language === 'fr' ? 'épreuve(s)' : 'exam(s)'}
-                  </p>
-                </div>
               </div>
 
-              {/* Sort (stays at top) */}
+              {/* Sort */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-[130px] h-9">
                   <SelectValue />
@@ -517,7 +586,7 @@ const Exams2 = () => {
             </div>
 
             {/* Active filters badges */}
-            {activeFiltersCount > 0 && (
+            {(activeFiltersCount > 0 || selectedSchools.length > 0) && (
               <div className="flex items-center gap-1.5 flex-wrap mb-4">
                 {selectedSchools.map(id => {
                   const school = schools?.find(s => s.id === id);
