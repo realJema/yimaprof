@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
-import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { Separator } from '@/components/ui/separator';
 
 // Header component for YIMA platform
 export default function Header() {
@@ -19,6 +20,7 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Check for saved theme preference or default to light mode
@@ -43,6 +45,11 @@ export default function Header() {
       setProfile(null);
     }
   }, [user]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const checkAdminStatus = async () => {
     try {
@@ -73,6 +80,7 @@ export default function Header() {
 
   const handleSignOut = async () => {
     await signOut();
+    setMobileMenuOpen(false);
     navigate('/');
   };
 
@@ -100,6 +108,16 @@ export default function Header() {
     navItems.push({ to: '/admin', icon: Shield, label: 'Admin' });
   }
 
+  // Mobile navigation links
+  const mobileNavLinks = [
+    { to: '/exams', icon: BookOpen, label: t('exams') },
+    { to: '/exams2', icon: Search, label: language === 'fr' ? 'Parcourir' : 'Browse' },
+    { to: '/forum', icon: MessageCircle, label: 'Forum' },
+    { to: '/write-to-us', icon: Mail, label: t('write_to_us') },
+    { to: '/about', icon: Info, label: t('about') },
+    { to: '/contact', icon: Mail, label: t('contact_us') },
+  ];
+
   const getUserInitials = () => {
     if (profile?.first_name && profile?.last_name) {
       return `${profile.first_name[0]}${profile.last_name[0]}`;
@@ -121,6 +139,148 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-6">
+            {/* Mobile Menu Trigger */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 bg-card">
+                <SheetHeader className="text-left">
+                  <SheetTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    YIMA
+                  </SheetTitle>
+                </SheetHeader>
+                
+                <div className="mt-6 space-y-1">
+                  {/* Main Navigation */}
+                  {mobileNavLinks.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                        isActive(item.to) 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="font-medium">{item.label}</span>
+                    </Link>
+                  ))}
+                  
+                  <Separator className="my-4" />
+                  
+                  {/* User Navigation (if logged in) */}
+                  {user && (
+                    <>
+                      <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                        {language === 'fr' ? 'Mon Compte' : 'My Account'}
+                      </p>
+                      {navItems.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                            isActive(item.to) 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      ))}
+                      <Separator className="my-4" />
+                    </>
+                  )}
+                  
+                  {/* Settings Section */}
+                  <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    {t('settings')}
+                  </p>
+                  
+                  {/* Theme Toggle */}
+                  <button
+                    onClick={toggleDarkMode}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    <span className="font-medium">
+                      {isDarkMode 
+                        ? (language === 'fr' ? 'Mode clair' : 'Light Mode') 
+                        : (language === 'fr' ? 'Mode sombre' : 'Dark Mode')
+                      }
+                    </span>
+                  </button>
+                  
+                  {/* Language Toggle */}
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-language'))}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <span className="h-4 w-4 flex items-center justify-center text-sm">
+                      {language === 'fr' ? '🇬🇧' : '🇫🇷'}
+                    </span>
+                    <span className="font-medium">{language === 'fr' ? 'English' : 'Français'}</span>
+                  </button>
+                  
+                  <Separator className="my-4" />
+                  
+                  {/* Legal Links */}
+                  <Link
+                    to="/privacy"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {t('privacy_policy')}
+                  </Link>
+                  <Link
+                    to="/terms"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {t('terms_of_service')}
+                  </Link>
+                  
+                  {/* Auth Actions */}
+                  {user ? (
+                    <>
+                      <Separator className="my-4" />
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span className="font-medium">{t('logout')}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Separator className="my-4" />
+                      <div className="space-y-2 px-3">
+                        <Button 
+                          className="w-full" 
+                          onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
+                        >
+                          {t('login')}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
+                        >
+                          {t('register')}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+            
             <Link to="/" className="flex items-center space-x-2">
               <BookOpen className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold text-foreground">YIMA</span>
@@ -230,7 +390,7 @@ export default function Header() {
                     <span className="hidden md:inline text-sm font-medium">
                       {getUserDisplayName()}
                     </span>
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 hidden md:block" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-card border-border z-50" align="end">
@@ -264,8 +424,6 @@ export default function Header() {
                   {/* Language Toggle */}
                   <DropdownMenuItem 
                     onClick={() => {
-                      const newLang = language === 'fr' ? 'en' : 'fr';
-                      // Access setLanguage from context - we need to import it
                       window.dispatchEvent(new CustomEvent('toggle-language'));
                     }} 
                     className="flex items-center space-x-2 cursor-pointer"
@@ -286,10 +444,10 @@ export default function Header() {
             </div>
           ) : (
             <div className="flex items-center space-x-3">
-              {/* Settings Dropdown for non-logged in users */}
+              {/* Settings Dropdown for non-logged in users - hidden on mobile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 hidden md:flex">
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -322,11 +480,13 @@ export default function Header() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/auth')}
+                className="hidden md:inline-flex"
               >
                 {t('login')}
               </Button>
               <Button
                 onClick={() => navigate('/auth')}
+                className="hidden md:inline-flex"
               >
                 {t('register')}
               </Button>
