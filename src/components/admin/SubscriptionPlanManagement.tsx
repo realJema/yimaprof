@@ -37,6 +37,8 @@ export function SubscriptionPlanManagement() {
     name: '',
     description: '',
     price: 0,
+    price_trimester: 0,
+    price_annual: 0,
     currency: 'XOF',
     duration_days: 30,
     features: '',
@@ -113,6 +115,8 @@ export function SubscriptionPlanManagement() {
         name: '',
         description: '',
         price: 0,
+        price_trimester: 0,
+        price_annual: 0,
         currency: 'XOF',
         duration_days: 30,
         features: '',
@@ -132,10 +136,13 @@ export function SubscriptionPlanManagement() {
 
   const handleEdit = (plan: SubscriptionPlan) => {
     setEditingPlan(plan);
+    const planAny = plan as any;
     setFormData({
       name: plan.name,
       description: plan.description,
       price: plan.price,
+      price_trimester: planAny.price_trimester || Math.floor(plan.price * 3 * 0.9),
+      price_annual: planAny.price_annual || Math.floor(plan.price * 9 * 0.8),
       currency: plan.currency,
       duration_days: plan.duration_days,
       features: Array.isArray(plan.features) ? plan.features.join('\n') : '',
@@ -205,9 +212,27 @@ export function SubscriptionPlanManagement() {
     },
     {
       key: 'price',
-      label: 'Price',
+      label: 'Monthly',
       render: (value: number, plan: SubscriptionPlan) => 
         `${value.toLocaleString()} ${plan.currency}`,
+    },
+    {
+      key: 'price_trimester',
+      label: 'Trimester',
+      render: (value: number, plan: SubscriptionPlan) => {
+        const planAny = plan as any;
+        const price = planAny.price_trimester || Math.floor(plan.price * 3 * 0.9);
+        return `${price.toLocaleString()} ${plan.currency}`;
+      },
+    },
+    {
+      key: 'price_annual',
+      label: 'Annual',
+      render: (value: number, plan: SubscriptionPlan) => {
+        const planAny = plan as any;
+        const price = planAny.price_annual || Math.floor(plan.price * 9 * 0.8);
+        return `${price.toLocaleString()} ${plan.currency}`;
+      },
     },
     {
       key: 'duration_days',
@@ -316,40 +341,67 @@ export function SubscriptionPlanManagement() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="price">Price</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: parseInt(e.target.value) }))}
-                      required
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="currency">Currency</Label>
+                      <Select value={formData.currency} onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="XOF">XOF</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="duration_days">Base Duration (days)</Label>
+                      <Input
+                        id="duration_days"
+                        type="number"
+                        value={formData.duration_days}
+                        onChange={(e) => setFormData(prev => ({ ...prev, duration_days: parseInt(e.target.value) }))}
+                        required
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="currency">Currency</Label>
-                    <Select value={formData.currency} onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="XOF">XOF</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="price">Monthly Price</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price_trimester">Trimester Price (3 mo)</Label>
+                      <Input
+                        id="price_trimester"
+                        type="number"
+                        value={formData.price_trimester}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price_trimester: parseInt(e.target.value) || 0 }))}
+                        placeholder="Auto: -10%"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price_annual">Annual Price (9 mo)</Label>
+                      <Input
+                        id="price_annual"
+                        type="number"
+                        value={formData.price_annual}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price_annual: parseInt(e.target.value) || 0 }))}
+                        placeholder="Auto: -20%"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="duration_days">Duration (days)</Label>
-                    <Input
-                      id="duration_days"
-                      type="number"
-                      value={formData.duration_days}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration_days: parseInt(e.target.value) }))}
-                      required
-                    />
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Leave trimester/annual empty to auto-calculate: Trimester = monthly × 3 × 0.9, Annual = monthly × 9 × 0.8
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="max_downloads">Max Downloads (999999 for unlimited)</Label>
