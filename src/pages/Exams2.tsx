@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
-import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Lock, Filter, SlidersHorizontal, Check } from 'lucide-react';
+import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Lock, Filter, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
 interface Exam {
   id: string;
   title: string;
@@ -62,14 +63,39 @@ interface Exam {
     section: string;
   } | null;
 }
+
+// Subject colors for visual variety
+const SUBJECT_COLORS: Record<string, string> = {
+  'Mathématiques': 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+  'Mathematics': 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+  'Physique': 'bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800',
+  'Physics': 'bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800',
+  'Chimie': 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
+  'Chemistry': 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
+  'Français': 'bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800',
+  'French': 'bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800',
+  'Anglais': 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
+  'English': 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
+  'Histoire': 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800',
+  'History': 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800',
+  'Géographie': 'bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800',
+  'Geography': 'bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800',
+  'Philosophie': 'bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800',
+  'Philosophy': 'bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800',
+  'SVT': 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800',
+  'Biology': 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800',
+};
+
+const getSubjectColor = (subjectName: string | undefined) => {
+  if (!subjectName) return 'bg-card border-border';
+  return SUBJECT_COLORS[subjectName] || 'bg-card border-border';
+};
+
 const ITEMS_PER_PAGE = 12;
+
 const Exams2 = () => {
-  const {
-    language
-  } = useLanguage();
-  const {
-    hasActiveSubscription
-  } = useSubscription();
+  const { language } = useLanguage();
+  const { hasActiveSubscription, subscription } = useSubscription();
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,17 +114,26 @@ const Exams2 = () => {
   // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Fetch subscription plan classes to determine accessible content
+  const { data: subscriptionPlanClasses } = useQuery({
+    queryKey: ['subscription-plan-classes', subscription?.plan_id],
+    queryFn: async () => {
+      if (!subscription?.plan_id) return [];
+      const { data, error } = await supabase
+        .from('subscription_plan_classes')
+        .select('class_id')
+        .eq('subscription_plan_id', subscription.plan_id);
+      if (error) throw error;
+      return data.map(item => item.class_id);
+    },
+    enabled: !!subscription?.plan_id
+  });
+
   // Fetch all exams
-  const {
-    data: exams,
-    isLoading: examsLoading
-  } = useQuery({
+  const { data: exams, isLoading: examsLoading } = useQuery({
     queryKey: ['all-exams'],
     queryFn: async () => {
-      const {
-        data,
-        error
-      } = await supabase.from('exams').select(`
+      const { data, error } = await supabase.from('exams').select(`
           id, title, description, is_published, visibility, created_at,
           subject:subjects(id, name, name_en, name_fr),
           academic_year:academic_years(id, year_label),
@@ -107,9 +142,7 @@ const Exams2 = () => {
           duration:durations(id, minutes, display_label),
           establishment:establishments(id, name),
           class:classes(id, name, display_name, section)
-        `).eq('is_published', true).eq('visibility', 'public').order('created_at', {
-        ascending: false
-      });
+        `).eq('is_published', true).eq('visibility', 'public').order('created_at', { ascending: false });
       if (error) throw error;
       return data as unknown as Exam[];
     }
@@ -267,7 +300,7 @@ const Exams2 = () => {
     setCurrentPage(1);
   }, [searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedYear, selectedExamType, selectedPeriod, selectedSystem]);
 
-  // Count exams per filter option
+  // Count exams per filter option (filtered by selected system)
   const getFilterCounts = useMemo(() => {
     if (!exams) return {
       schools: {},
@@ -279,13 +312,47 @@ const Exams2 = () => {
       classes: {} as Record<string, number>,
       subjects: {} as Record<string, number>
     };
-    exams.forEach(exam => {
+    // Only count exams that match the selected system
+    const systemFilteredExams = exams.filter(exam => {
+      if (selectedSystem === 'all') return true;
+      if (!exam.class) return false;
+      return exam.class.section === selectedSystem;
+    });
+    systemFilteredExams.forEach(exam => {
       if (exam.establishment) counts.schools[exam.establishment.id] = (counts.schools[exam.establishment.id] || 0) + 1;
       if (exam.class) counts.classes[exam.class.id] = (counts.classes[exam.class.id] || 0) + 1;
       if (exam.subject) counts.subjects[exam.subject.id] = (counts.subjects[exam.subject.id] || 0) + 1;
     });
     return counts;
-  }, [exams]);
+  }, [exams, selectedSystem]);
+
+  // Filter classes and subjects based on selected system
+  const filteredClasses = useMemo(() => {
+    if (!classes) return [];
+    if (selectedSystem === 'all') return classes;
+    return classes.filter(cls => cls.section === selectedSystem);
+  }, [classes, selectedSystem]);
+
+  const filteredSubjects = useMemo(() => {
+    if (!subjects || !exams) return subjects || [];
+    if (selectedSystem === 'all') return subjects;
+    // Get subjects that have exams in the selected system
+    const subjectIds = new Set(
+      exams
+        .filter(exam => exam.class?.section === selectedSystem && exam.subject)
+        .map(exam => exam.subject!.id)
+    );
+    return subjects.filter(subject => subjectIds.has(subject.id));
+  }, [subjects, exams, selectedSystem]);
+
+  // Check if user has access to a specific exam based on subscription
+  const hasAccessToExam = (exam: Exam) => {
+    if (!hasActiveSubscription) return false;
+    if (!exam.class?.id) return false;
+    if (!subscriptionPlanClasses) return false;
+    return subscriptionPlanClasses.includes(exam.class.id);
+  };
+
   const activeFiltersCount = selectedSchools.length + selectedClasses.length + selectedSubjects.length + (selectedYear !== 'all' ? 1 : 0) + (selectedExamType !== 'all' ? 1 : 0) + (selectedPeriod !== 'all' ? 1 : 0);
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -359,16 +426,16 @@ const Exams2 = () => {
 
       <Separator />
 
-      {/* Classes */}
+      {/* Classes - filtered by system */}
       <div className="space-y-2">
         <label className="text-sm font-medium">{language === 'fr' ? 'Classes' : 'Classes'}</label>
-        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={GraduationCap} items={classes} selectedItems={selectedClasses} onToggle={toggleClass} counts={getFilterCounts.classes} getItemName={item => item.display_name} />
+        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={GraduationCap} items={filteredClasses} selectedItems={selectedClasses} onToggle={toggleClass} counts={getFilterCounts.classes} getItemName={item => item.display_name} />
       </div>
 
-      {/* Subjects */}
+      {/* Subjects - filtered by system */}
       <div className="space-y-2">
         <label className="text-sm font-medium">{language === 'fr' ? 'Matières' : 'Subjects'}</label>
-        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={BookOpen} items={subjects} selectedItems={selectedSubjects} onToggle={toggleSubject} counts={getFilterCounts.subjects} getItemName={item => getLocalizedName(item)} />
+        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={BookOpen} items={filteredSubjects} selectedItems={selectedSubjects} onToggle={toggleSubject} counts={getFilterCounts.subjects} getItemName={item => getLocalizedName(item)} />
       </div>
 
       <Separator />
@@ -603,39 +670,57 @@ const Exams2 = () => {
                 </Button>
               </div> : <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {paginatedExams.map(exam => <Link key={exam.id} to={`/exam/${exam.id}`}>
-                      <Card className="h-full hover:shadow-md transition-shadow cursor-pointer group">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h3 className="font-semibold text-foreground line-clamp-2 text-sm group-hover:text-primary transition-colors">
-                              {exam.title}
-                            </h3>
-                            {!hasActiveSubscription && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
-                          </div>
-                          
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {exam.class?.display_name} • {getLocalizedName(exam.subject)}
-                          </p>
+                  {paginatedExams.map(exam => {
+                    const examAccessible = hasAccessToExam(exam);
+                    const subjectName = getLocalizedName(exam.subject);
+                    const cardColor = getSubjectColor(subjectName);
+                    
+                    return (
+                      <Link key={exam.id} to={`/exam/${exam.id}`}>
+                        <Card className={`h-full min-h-[160px] hover:shadow-lg transition-all cursor-pointer group border-2 ${cardColor}`}>
+                          <CardContent className="p-4 flex flex-col h-full">
+                            {/* Subject badge at top */}
+                            {exam.subject && (
+                              <Badge variant="secondary" className="self-start mb-2 text-xs font-medium">
+                                {subjectName}
+                              </Badge>
+                            )}
+                            
+                            <div className="flex items-start justify-between gap-2 mb-2 flex-1">
+                              <h3 className="font-semibold text-foreground line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                                {exam.title}
+                              </h3>
+                              {!examAccessible && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
+                            </div>
+                            
+                            <p className="text-xs text-muted-foreground mb-3">
+                              {exam.class?.display_name}
+                            </p>
 
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {exam.academic_year && <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                {exam.academic_year.year_label}
-                              </Badge>}
-                            {exam.exam_type && <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                {getLocalizedName(exam.exam_type)}
-                              </Badge>}
-                            {exam.duration && <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                <Clock className="h-3 w-3 mr-0.5" />
-                                {exam.duration.display_label}
-                              </Badge>}
-                          </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-auto">
+                              {exam.academic_year && (
+                                <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                  {exam.academic_year.year_label}
+                                </Badge>
+                              )}
+                              {exam.duration && (
+                                <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                  <Clock className="h-3 w-3 mr-0.5" />
+                                  {exam.duration.display_label}
+                                </Badge>
+                              )}
+                            </div>
 
-                          {exam.establishment && <p className="text-xs text-muted-foreground truncate">
-                              {exam.establishment.name}
-                            </p>}
-                        </CardContent>
-                      </Card>
-                    </Link>)}
+                            {exam.establishment && (
+                              <p className="text-xs text-muted-foreground truncate mt-2 pt-2 border-t border-border/50">
+                                {exam.establishment.name}
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
                 </div>
 
                 {/* Pagination */}
