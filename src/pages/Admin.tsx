@@ -232,6 +232,30 @@ export default function Admin() {
           <div className="flex-1 space-y-6 min-w-0">
             {activeTab === 'overview' && (
               <>
+                {/* Prominent Manage Exams Card */}
+                <Link to="/admin/exams" className="block">
+                  <Card className="border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                    <CardContent className="py-6 flex items-center gap-4">
+                      <div className="p-4 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <BookOpen className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                          {t('manage_exams')}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {t('exams_manage_desc')}
+                        </p>
+                      </div>
+                      <div className="text-muted-foreground group-hover:text-primary transition-colors">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
                 <AdminStats />
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -266,11 +290,6 @@ export default function Admin() {
                           <li>• <strong>{t('subscriptions')}:</strong> {t('subscriptions_manage_desc')}</li>
                           <li>• <strong>{t('transactions')}:</strong> {t('transactions_manage_desc')}</li>
                         </ul>
-                        
-                        <Link to="/admin/exams" className="inline-flex items-center gap-2 mt-4 text-primary hover:underline font-medium">
-                          <BookOpen className="h-4 w-4" />
-                          {t('exams')} - {t('exams_manage_desc')}
-                        </Link>
                       </div>
                     </CardContent>
                   </Card>
