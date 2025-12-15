@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AdminDataTable } from './AdminDataTable';
-import { Shield, ShieldOff, User, Edit, UserX } from 'lucide-react';
+import { Shield, User, Edit } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatDistanceToNow } from 'date-fns';
 
 interface UserProfile {
   id: string;
@@ -120,6 +120,11 @@ export function UserManagement() {
     {
       key: 'email',
       label: 'Email',
+      render: (value: string) => (
+        <span className="max-w-[180px] truncate block" title={value}>
+          {value}
+        </span>
+      ),
     },
     {
       key: 'first_name',
@@ -139,23 +144,9 @@ export function UserManagement() {
       ),
     },
     {
-      key: 'class_level',
-      label: 'Class Level',
-      render: (value: string) => value || 'N/A',
-    },
-    {
-      key: 'preferred_language',
-      label: 'Language',
-      render: (value: string) => (
-        <Badge variant="outline">
-          {value?.toUpperCase() || 'EN'}
-        </Badge>
-      ),
-    },
-    {
       key: 'created_at',
       label: 'Joined',
-      render: (value: string) => new Date(value).toLocaleDateString(),
+      render: (value: string) => formatDistanceToNow(new Date(value), { addSuffix: true }),
     },
   ];
 
