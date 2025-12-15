@@ -981,6 +981,53 @@ export type Database = {
           },
         ]
       }
+      user_evaluations: {
+        Row: {
+          answers: Json | null
+          attempt_number: number
+          completed_at: string | null
+          created_at: string | null
+          exam_id: string
+          id: string
+          mcq_score: number | null
+          mcq_total: number | null
+          time_spent_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          attempt_number?: number
+          completed_at?: string | null
+          created_at?: string | null
+          exam_id: string
+          id?: string
+          mcq_score?: number | null
+          mcq_total?: number | null
+          time_spent_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          attempt_number?: number
+          completed_at?: string | null
+          created_at?: string | null
+          exam_id?: string
+          id?: string
+          mcq_score?: number | null
+          mcq_total?: number | null
+          time_spent_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_evaluations_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
