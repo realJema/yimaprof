@@ -170,9 +170,9 @@ export function FeedbackViewer() {
 
   const columns = [
     {
-      key: 'user',
+      key: 'user_id',
       label: t('user'),
-      render: (feedback: Feedback) => (
+      render: (_value: any, feedback: Feedback) => (
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">{getUserName(feedback)}</span>
@@ -180,9 +180,9 @@ export function FeedbackViewer() {
       ),
     },
     {
-      key: 'email',
+      key: 'user_id',
       label: t('email'),
-      render: (feedback: Feedback) => (
+      render: (_value: any, feedback: Feedback) => (
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
@@ -192,13 +192,13 @@ export function FeedbackViewer() {
       ),
     },
     {
-      key: 'feedback_preview',
+      key: 'feedback_text',
       label: t('feedback'),
-      render: (feedback: Feedback) => (
+      render: (_value: any, feedback: Feedback) => (
         <div className="max-w-md">
           <p className="text-sm text-muted-foreground truncate">
-            {feedback.feedback_text.substring(0, 100)}
-            {feedback.feedback_text.length > 100 && '...'}
+            {feedback?.feedback_text?.substring(0, 100) || ''}
+            {(feedback?.feedback_text?.length || 0) > 100 && '...'}
           </p>
         </div>
       ),
@@ -206,15 +206,17 @@ export function FeedbackViewer() {
     {
       key: 'status',
       label: t('status'),
-      render: (feedback: Feedback) => getStatusBadge(feedback.status),
+      render: (_value: any, feedback: Feedback) => getStatusBadge(feedback?.status || 'new'),
     },
     {
       key: 'created_at',
       label: t('date'),
-      render: (feedback: Feedback) => (
+      render: (_value: any, feedback: Feedback) => (
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">{format(new Date(feedback.created_at), 'MMM dd, yyyy')}</span>
+          <span className="text-sm">
+            {feedback?.created_at ? format(new Date(feedback.created_at), 'MMM dd, yyyy') : '-'}
+          </span>
         </div>
       ),
     },
