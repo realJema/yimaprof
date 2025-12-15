@@ -7,8 +7,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, DollarSign, Users, TrendingUp, Check, Loader2 } from 'lucide-react';
+import { Copy, DollarSign, Users, TrendingUp, Check, Loader2, Clock, XCircle, Send } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatDistanceToNow } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
 
 interface AffiliateEarning {
   id: string;
@@ -24,6 +26,14 @@ interface AffiliateEarning {
   };
 }
 
+interface AffiliateApplication {
+  id: string;
+  status: string;
+  rejection_reason: string | null;
+  applied_at: string;
+  reviewed_at: string | null;
+}
+
 export default function Affiliate() {
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -37,14 +47,45 @@ export default function Affiliate() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [referredByUsername, setReferredByUsername] = useState<string | null>(null);
+  const [application, setApplication] = useState<AffiliateApplication | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchEarnings();
-      fetchReferredBy();
+      fetchData();
     }
   }, [user]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchApplication(),
+      fetchProfile(),
+      fetchReferredBy(),
+    ]);
+    setLoading(false);
+  };
+
+  const fetchApplication = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('affiliate_applications')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      setApplication(data);
+      
+      // If approved, fetch earnings
+      if (data?.status === 'approved') {
+        await fetchEarnings();
+      }
+    } catch (error) {
+      console.error('Error fetching application:', error);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -59,13 +100,9 @@ export default function Affiliate() {
       if (data?.username) {
         setCurrentUsername(data.username);
         setUsername(data.username);
-      } else {
-        setIsEditing(true);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -123,6 +160,37 @@ export default function Affiliate() {
     }
   };
 
+  const handleApply = async () => {
+    setIsApplying(true);
+    try {
+      const { error } = await supabase
+        .from('affiliate_applications')
+        .insert({
+          user_id: user?.id,
+          status: 'pending',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: language === 'fr' ? 'Candidature envoyée!' : 'Application submitted!',
+        description: language === 'fr' 
+          ? 'Votre candidature est en cours d\'examen. Nous vous contacterons bientôt.'
+          : 'Your application is under review. We will contact you soon.',
+      });
+
+      fetchApplication();
+    } catch (error: any) {
+      toast({
+        title: language === 'fr' ? 'Erreur' : 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   const handleSaveUsername = async () => {
     if (!username.trim()) {
       toast({
@@ -133,7 +201,6 @@ export default function Affiliate() {
       return;
     }
 
-    // Validate username format (alphanumeric, dashes, underscores only)
     const usernameRegex = /^[a-zA-Z0-9_-]+$/;
     if (!usernameRegex.test(username)) {
       toast({
@@ -191,6 +258,13 @@ export default function Affiliate() {
     });
   };
 
+  const formatDate = (dateString: string) => {
+    return formatDistanceToNow(new Date(dateString), {
+      addSuffix: true,
+      locale: language === 'fr' ? fr : enUS,
+    });
+  };
+
   if (!user) {
     return (
       <div className="container mx-auto py-12 px-4">
@@ -213,6 +287,132 @@ export default function Affiliate() {
     );
   }
 
+  // No application yet - show apply form
+  if (!application) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-2xl">
+        <Card className="border-border/50">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Users className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">
+              {language === 'fr' ? 'Programme d\'Affiliation' : 'Affiliate Program'}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {language === 'fr' 
+                ? 'Gagnez 10% de commission sur chaque premier abonnement de vos filleuls!'
+                : 'Earn 10% commission on each first subscription from your referrals!'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold">{language === 'fr' ? 'Comment ça marche:' : 'How it works:'}</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">1.</span>
+                  {language === 'fr' ? 'Postulez pour devenir affilié' : 'Apply to become an affiliate'}
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">2.</span>
+                  {language === 'fr' ? 'Attendez l\'approbation de votre candidature' : 'Wait for your application to be approved'}
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">3.</span>
+                  {language === 'fr' ? 'Partagez votre lien unique' : 'Share your unique link'}
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">4.</span>
+                  {language === 'fr' ? 'Gagnez 10% sur chaque premier abonnement' : 'Earn 10% on each first subscription'}
+                </li>
+              </ul>
+            </div>
+
+            <Button 
+              className="w-full gap-2" 
+              size="lg"
+              onClick={handleApply}
+              disabled={isApplying}
+            >
+              {isApplying ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {language === 'fr' ? 'Postuler Maintenant' : 'Apply Now'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Application pending
+  if (application.status === 'pending') {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-2xl">
+        <Card className="border-amber-500/20 bg-amber-500/5">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
+              <Clock className="h-8 w-8 text-amber-600" />
+            </div>
+            <CardTitle className="text-2xl">
+              {language === 'fr' ? 'Candidature en cours d\'examen' : 'Application Under Review'}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {language === 'fr' 
+                ? 'Votre candidature est en cours de traitement. Nous vous informerons dès qu\'elle sera examinée.'
+                : 'Your application is being processed. We will notify you once it has been reviewed.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              {language === 'fr' ? 'Soumis' : 'Submitted'} {formatDate(application.applied_at)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Application rejected
+  if (application.status === 'rejected') {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-2xl">
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <XCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl">
+              {language === 'fr' ? 'Candidature Rejetée' : 'Application Rejected'}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {language === 'fr' 
+                ? 'Malheureusement, votre candidature n\'a pas été approuvée.'
+                : 'Unfortunately, your application was not approved.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {application.rejection_reason && (
+              <div className="bg-background rounded-lg p-4 border">
+                <p className="text-sm font-medium mb-1">{language === 'fr' ? 'Raison:' : 'Reason:'}</p>
+                <p className="text-sm text-muted-foreground">{application.rejection_reason}</p>
+              </div>
+            )}
+            <p className="text-sm text-center text-muted-foreground">
+              {language === 'fr' 
+                ? 'Si vous pensez qu\'il s\'agit d\'une erreur, veuillez nous contacter.'
+                : 'If you believe this is a mistake, please contact us.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Approved - show full affiliate dashboard
   const paidEarnings = earnings.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0);
   const pendingEarnings = earnings.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0);
   const referralCount = earnings.length;
@@ -220,9 +420,14 @@ export default function Affiliate() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-primary mb-2">
-          {language === 'fr' ? 'Programme d\'Affiliation' : 'Affiliate Program'}
-        </h1>
+        <div className="flex items-center gap-2 mb-2">
+          <h1 className="text-4xl font-bold text-primary">
+            {language === 'fr' ? 'Programme d\'Affiliation' : 'Affiliate Program'}
+          </h1>
+          <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+            {language === 'fr' ? 'Approuvé' : 'Approved'}
+          </Badge>
+        </div>
         <p className="text-muted-foreground text-lg">
           {language === 'fr' 
             ? 'Gagnez 10% de commission sur chaque premier abonnement de vos filleuls' 
@@ -319,7 +524,7 @@ export default function Affiliate() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isEditing ? (
+          {!currentUsername || isEditing ? (
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">

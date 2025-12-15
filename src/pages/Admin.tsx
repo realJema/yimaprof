@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 
@@ -27,6 +27,7 @@ import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 import { NotificationComposer } from '@/components/admin/NotificationComposer';
 import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
 import ForumModeration from '@/components/admin/ForumModeration';
+import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -51,7 +52,7 @@ function ConfigSection({ title, children, defaultOpen = false }: { title: string
 }
 
 export default function Admin() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState(false);
@@ -130,6 +131,7 @@ export default function Admin() {
   const navItems = [
     { id: 'overview', label: t('overview'), icon: BarChart3 },
     { id: 'users', label: t('users'), icon: Shield },
+    { id: 'affiliates', label: language === 'fr' ? 'Affiliés' : 'Affiliates', icon: Users },
     { id: 'config', label: t('system_configuration'), icon: Shield },
     { id: 'plans', label: t('plans'), icon: Shield },
     { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
@@ -282,7 +284,7 @@ export default function Admin() {
             )}
 
             {activeTab === 'users' && <UserManagement />}
-            {/* Exams management is now a separate page at /admin/exams */}
+            {activeTab === 'affiliates' && <AffiliateManagement />}
             {activeTab === 'config' && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold mb-6">{t('system_configuration')}</h2>
