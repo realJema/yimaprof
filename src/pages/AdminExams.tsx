@@ -287,11 +287,8 @@ export default function AdminExams() {
     return (
       <Card key={exam.id} className={`group relative overflow-hidden ${cardBgColor} hover:shadow-lg transition-all duration-300 h-full flex flex-col`}>
         <CardContent className="p-4 flex flex-col h-full gap-3">
-          {/* Header: Language text + Published icon */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {exam.language === 'fr' ? 'Français' : 'English'}
-            </span>
+        {/* Header: Published icon */}
+          <div className="flex items-center justify-end">
             {exam.is_published ? (
               <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
             ) : (
