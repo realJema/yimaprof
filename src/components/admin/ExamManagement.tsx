@@ -93,6 +93,7 @@ export function ExamManagement() {
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedEstablishment, setSelectedEstablishment] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   const [previewExam, setPreviewExam] = useState<Exam | null>(null);
@@ -184,7 +185,10 @@ export function ExamManagement() {
       const matchesSubject = selectedSubject === 'all' || subjectName === selectedSubject;
       const matchesClass = selectedClass === 'all' || exam.class_id === selectedClass;
       const matchesStatus = selectedStatus === 'all' || selectedStatus === 'published' && exam.is_published || selectedStatus === 'draft' && !exam.is_published;
-      return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus;
+      const matchesEstablishment = selectedEstablishment === 'all' || 
+                                   (selectedEstablishment === 'none' && !exam.establishment_id) ||
+                                   exam.establishment_id === selectedEstablishment;
+      return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus && matchesEstablishment;
     });
   };
 
@@ -472,7 +476,7 @@ export function ExamManagement() {
       {/* Collapsible Filters */}
       {showFilters && <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search exams..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
@@ -505,6 +509,17 @@ export function ExamManagement() {
                 <SelectContent>
                   <SelectItem value="all">All Classes</SelectItem>
                   {classes.map(cls => <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedEstablishment} onValueChange={setSelectedEstablishment}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="All Schools" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Schools</SelectItem>
+                  <SelectItem value="none">No School Set</SelectItem>
+                  {formOptions.establishments?.map(est => <SelectItem key={est.id} value={est.id}>{est.name}</SelectItem>)}
                 </SelectContent>
               </Select>
 
