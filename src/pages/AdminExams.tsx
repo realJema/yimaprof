@@ -318,9 +318,9 @@ export default function AdminExams() {
               </div>
             )}
             {examTypeName && (
-              <div className="flex items-center justify-between">
-                <span>Type:</span>
-                <span className="font-medium text-foreground">{examTypeName}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex-shrink-0">Type:</span>
+                <span className="font-medium text-foreground truncate" title={examTypeName}>{examTypeName}</span>
               </div>
             )}
             {periodName && (
