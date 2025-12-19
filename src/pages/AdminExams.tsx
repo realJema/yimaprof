@@ -372,7 +372,7 @@ export default function AdminExams() {
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search exams..."
+            placeholder={t('search_exams')}
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             className="pl-9"
@@ -382,14 +382,14 @@ export default function AdminExams() {
 
       {/* Language */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Language</Label>
+        <Label className="text-sm font-medium">{t('language_filter')}</Label>
         <ToggleGroup 
           type="single" 
           value={selectedLanguage} 
           onValueChange={(v) => { if (v) { setSelectedLanguage(v as typeof selectedLanguage); setCurrentPage(1); } }}
           className="flex w-full"
         >
-          <ToggleGroupItem value="all" className="flex-1 text-xs">All</ToggleGroupItem>
+          <ToggleGroupItem value="all" className="flex-1 text-xs">{t('all')}</ToggleGroupItem>
           <ToggleGroupItem value="fr" className="flex-1 text-xs gap-1">
             <Globe2 className="h-3 w-3" /> FR
           </ToggleGroupItem>
@@ -401,13 +401,13 @@ export default function AdminExams() {
 
       {/* Year */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Year</Label>
+        <Label className="text-sm font-medium">{t('year_filter')}</Label>
         <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setCurrentPage(1); }}>
           <SelectTrigger>
-            <SelectValue placeholder="All Years" />
+            <SelectValue placeholder={t('all_years')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
+            <SelectItem value="all">{t('all_years')}</SelectItem>
             {uniqueYears.map(year => (
               <SelectItem key={year} value={year!.toString()}>{year}</SelectItem>
             ))}
@@ -417,13 +417,13 @@ export default function AdminExams() {
 
       {/* Subject */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Subject</Label>
+        <Label className="text-sm font-medium">{t('subject_filter')}</Label>
         <Select value={selectedSubject} onValueChange={(v) => { setSelectedSubject(v); setCurrentPage(1); }}>
           <SelectTrigger>
-            <SelectValue placeholder="All Subjects" />
+            <SelectValue placeholder={t('all_subjects')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Subjects</SelectItem>
+            <SelectItem value="all">{t('all_subjects')}</SelectItem>
             {uniqueSubjects.map(subject => (
               <SelectItem key={subject} value={subject}>{subject}</SelectItem>
             ))}
@@ -433,13 +433,13 @@ export default function AdminExams() {
 
       {/* Class */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Class</Label>
+        <Label className="text-sm font-medium">{t('class_filter')}</Label>
         <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setCurrentPage(1); }}>
           <SelectTrigger>
-            <SelectValue placeholder="All Classes" />
+            <SelectValue placeholder={t('all_classes')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Classes</SelectItem>
+            <SelectItem value="all">{t('all_classes')}</SelectItem>
             {classes.map(cls => (
               <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>
             ))}
@@ -449,14 +449,14 @@ export default function AdminExams() {
 
       {/* School */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">School</Label>
+        <Label className="text-sm font-medium">{t('school_filter')}</Label>
         <Select value={selectedEstablishment} onValueChange={(v) => { setSelectedEstablishment(v); setCurrentPage(1); }}>
           <SelectTrigger>
-            <SelectValue placeholder="All Schools" />
+            <SelectValue placeholder={t('all_schools')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Schools</SelectItem>
-            <SelectItem value="none">No School Set</SelectItem>
+            <SelectItem value="all">{t('all_schools')}</SelectItem>
+            <SelectItem value="none">{t('no_school_set')}</SelectItem>
             {formOptions.establishments?.map(est => (
               <SelectItem key={est.id} value={est.id}>{est.name}</SelectItem>
             ))}
@@ -466,22 +466,22 @@ export default function AdminExams() {
 
       {/* Status */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Status</Label>
+        <Label className="text-sm font-medium">{t('status_filter')}</Label>
         <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}>
           <SelectTrigger>
-            <SelectValue placeholder="All Status" />
+            <SelectValue placeholder={t('all_status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="all">{t('all_status')}</SelectItem>
+            <SelectItem value="published">{t('published')}</SelectItem>
+            <SelectItem value="draft">{t('draft')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Clear Filters */}
       <Button variant="outline" className="w-full" onClick={clearFilters}>
-        Clear Filters
+        {t('clear_filters')}
       </Button>
     </div>
   );
@@ -491,7 +491,7 @@ export default function AdminExams() {
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Please sign in to access this page.</p>
+            <p className="text-center text-muted-foreground">{t('please_sign_in_page')}</p>
           </CardContent>
         </Card>
       </div>
@@ -501,7 +501,7 @@ export default function AdminExams() {
   if (checkingAccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t('loading')}</p>
       </div>
     );
   }
@@ -540,16 +540,16 @@ export default function AdminExams() {
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/admin">
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Admin
+                    {t('back_to_admin')}
                   </Link>
                 </Button>
                 <div>
                   <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
                     <BookOpen className="h-5 w-5 text-primary" />
-                    Exam Management
+                    {t('exam_management')}
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    {filteredExams.length} exams • {francophones.length} FR • {anglophones.length} EN
+                    {filteredExams.length} {t('exams')} • {francophones.length} FR • {anglophones.length} EN
                   </p>
                 </div>
               </div>
@@ -561,12 +561,12 @@ export default function AdminExams() {
                     <SheetTrigger asChild>
                       <Button variant="outline" size="sm">
                         <Search className="h-4 w-4 mr-2" />
-                        Filters
+                        {t('filters')}
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-80">
                       <SheetHeader>
-                        <SheetTitle>Filters</SheetTitle>
+                        <SheetTitle>{t('filters')}</SheetTitle>
                       </SheetHeader>
                       <div className="mt-6">
                         <FiltersContent />
@@ -578,7 +578,7 @@ export default function AdminExams() {
                 <Link to="/admin/exam/new">
                   <Button className="gap-2">
                     <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add Exam</span>
+                    <span className="hidden sm:inline">{t('add_exam')}</span>
                   </Button>
                 </Link>
               </div>
@@ -599,12 +599,12 @@ export default function AdminExams() {
               {sidebarVisible ? (
                 <>
                   <PanelLeftClose className="h-4 w-4" />
-                  <span className="text-xs font-medium">Hide</span>
+                  <span className="text-xs font-medium">{t('hide_filters')}</span>
                 </>
               ) : (
                 <>
                   <PanelLeftOpen className="h-4 w-4" />
-                  <span className="text-xs font-medium">Filters</span>
+                  <span className="text-xs font-medium">{t('filters')}</span>
                 </>
               )}
             </Button>
@@ -616,7 +616,7 @@ export default function AdminExams() {
               <div className="hidden lg:block w-64 shrink-0">
                 <Card className="sticky top-24 border-border/50">
                   <CardContent className="p-4">
-                    <h3 className="font-semibold mb-4">Filters</h3>
+                    <h3 className="font-semibold mb-4">{t('filters')}</h3>
                     <FiltersContent />
                   </CardContent>
                 </Card>
@@ -645,9 +645,9 @@ export default function AdminExams() {
                 <Card>
                   <CardContent className="p-12 text-center">
                     <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No exams found matching your criteria</p>
+                    <p className="text-muted-foreground">{t('no_exams_found')}</p>
                     <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                      Clear Filters
+                      {t('clear_filters')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -666,7 +666,7 @@ export default function AdminExams() {
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                         disabled={currentPage === 1}
                       >
-                        Previous
+                        {t('previous')}
                       </Button>
                       
                       <div className="flex items-center gap-1">
@@ -696,13 +696,13 @@ export default function AdminExams() {
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
                         disabled={currentPage === totalPages}
                       >
-                        Next
+                        {t('next')}
                       </Button>
                     </div>
                   )}
 
                   <p className="text-sm text-muted-foreground text-center">
-                    Showing {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredExams.length)} of {filteredExams.length} exams
+                    {t('showing_exams')} {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredExams.length)} {t('of_exams')} {filteredExams.length} {t('exams')}
                   </p>
                 </div>
               )}
