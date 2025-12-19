@@ -87,6 +87,7 @@ export default function AdminExams() {
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedLanguage, setSelectedLanguage] = useState<'all' | 'fr' | 'en'>('all');
+  const [selectedEstablishment, setSelectedEstablishment] = useState<string>('all');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   
   // Pagination
@@ -192,8 +193,11 @@ export default function AdminExams() {
                            (selectedStatus === 'published' && exam.is_published) || 
                            (selectedStatus === 'draft' && !exam.is_published);
       const matchesLang = selectedLanguage === 'all' || exam.language === selectedLanguage;
+      const matchesEstablishment = selectedEstablishment === 'all' || 
+                                   (selectedEstablishment === 'none' && !exam.establishment_id) ||
+                                   exam.establishment_id === selectedEstablishment;
       
-      return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus && matchesLang;
+      return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus && matchesLang && matchesEstablishment;
     });
   };
 
@@ -243,6 +247,7 @@ export default function AdminExams() {
     setSelectedClass('all');
     setSelectedStatus('all');
     setSelectedLanguage('all');
+    setSelectedEstablishment('all');
     setCurrentPage(1);
   };
 
@@ -437,6 +442,23 @@ export default function AdminExams() {
             <SelectItem value="all">All Classes</SelectItem>
             {classes.map(cls => (
               <SelectItem key={cls.id} value={cls.id}>{cls.display_name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* School */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">School</Label>
+        <Select value={selectedEstablishment} onValueChange={(v) => { setSelectedEstablishment(v); setCurrentPage(1); }}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Schools" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Schools</SelectItem>
+            <SelectItem value="none">No School Set</SelectItem>
+            {formOptions.establishments?.map(est => (
+              <SelectItem key={est.id} value={est.id}>{est.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
