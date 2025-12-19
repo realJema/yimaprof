@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Plus, Edit, Trash2, Eye, Search, Globe2, Languages, Shield, ArrowLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Eye, Search, Globe2, Languages, Shield, ArrowLeft, PanelLeftClose, PanelLeftOpen, CheckCircle2, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -264,99 +264,108 @@ export default function AdminExams() {
     const examTypeName = language === 'fr' ? exam.exam_types?.name_fr : exam.exam_types?.name_en;
     const periodName = language === 'fr' ? exam.periods?.name_fr : exam.periods?.name_en;
     const yearLabel = exam.academic_years?.year_label;
-    const subjectColor = getSubjectColor(subjectName || '');
+    
+    // Generate background color based on subject
+    const getCardBgColor = (subject: string) => {
+      const s = subject?.toLowerCase() || '';
+      if (s.includes('math') || s.includes('mathématiques')) return 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800';
+      if (s.includes('physics') || s.includes('physique')) return 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800';
+      if (s.includes('chemistry') || s.includes('chimie')) return 'bg-pink-50 dark:bg-pink-950/30 border-pink-200 dark:border-pink-800';
+      if (s.includes('biology') || s.includes('biologie') || s.includes('svt')) return 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800';
+      if (s.includes('english') || s.includes('anglais')) return 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800';
+      if (s.includes('french') || s.includes('français')) return 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800';
+      if (s.includes('history') || s.includes('histoire')) return 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800';
+      if (s.includes('geography') || s.includes('géographie')) return 'bg-teal-50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800';
+      if (s.includes('computer') || s.includes('informatique') || s.includes('ict')) return 'bg-cyan-50 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-800';
+      if (s.includes('economics') || s.includes('économie')) return 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800';
+      if (s.includes('science')) return 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800';
+      return 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800';
+    };
+
+    const cardBgColor = getCardBgColor(subjectName || '');
     
     return (
-      <Card key={exam.id} className={`group relative overflow-hidden border-${subjectColor}/30 bg-${subjectColor}/5 hover:bg-${subjectColor}/10 hover:border-${subjectColor}/40 hover:shadow-lg transition-all duration-300 h-full flex flex-col`}>
-        <div className={`absolute top-0 left-0 right-0 h-1.5 bg-${subjectColor}`} />
-        
-        <CardContent className="p-4 flex flex-col h-full gap-3.5">
+      <Card key={exam.id} className={`group relative overflow-hidden ${cardBgColor} hover:shadow-lg transition-all duration-300 h-full flex flex-col`}>
+        <CardContent className="p-4 flex flex-col h-full gap-3">
+          {/* Header: Language text + Published icon */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {exam.language === 'fr' ? 'Français' : 'English'}
+            </span>
+            {exam.is_published ? (
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            ) : (
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            )}
+          </div>
+
+          {/* Title */}
+          <h3 className="font-semibold text-sm line-clamp-2 leading-tight text-foreground group-hover:text-primary transition-colors">
+            {exam.title}
+          </h3>
+
+          {/* Subject & Year */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-${subjectColor}/10 flex items-center justify-center`}>
-                <BookOpen className={`h-4 w-4 text-${subjectColor}`} />
-              </div>
-              <Badge variant="outline" className="text-[10px] font-semibold px-2 flex-shrink-0">
-                {exam.language === 'fr' ? 'FR' : 'EN'}
-              </Badge>
-            </div>
-            <Badge variant={exam.is_published ? 'default' : 'secondary'} className="text-[10px] px-2 flex-shrink-0">
-              {exam.is_published ? 'Published' : 'Draft'}
-            </Badge>
-          </div>
-
-          <div className="min-w-0">
-            <h3 className="font-semibold text-sm line-clamp-2 leading-tight text-foreground group-hover:text-primary transition-colors">
-              {exam.title}
-            </h3>
-          </div>
-
-          <div className={`flex items-center justify-between gap-2 p-2.5 rounded-lg bg-${subjectColor}/10 border border-${subjectColor}/20 min-w-0`}>
-            <span className={`font-semibold text-sm text-${subjectColor} truncate`}>
+            <span className="font-medium text-sm text-foreground truncate">
               {subjectName || 'No subject'}
             </span>
-            <span className="text-xs text-muted-foreground font-medium flex-shrink-0 bg-background px-2 py-0.5 rounded">
+            <span className="text-xs text-muted-foreground flex-shrink-0">
               {yearLabel || 'N/A'}
             </span>
           </div>
 
-          <div className="flex-1 space-y-2 text-xs min-w-0">
+          {/* Details */}
+          <div className="flex-1 space-y-1.5 text-xs text-muted-foreground">
             {exam.classes && (
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-muted-foreground flex-shrink-0 w-14">Class:</span>
-                <span className="font-medium text-foreground truncate">{exam.classes.display_name}</span>
+              <div className="flex items-center justify-between">
+                <span>{t('class_filter')}:</span>
+                <span className="font-medium text-foreground">{exam.classes.display_name}</span>
               </div>
             )}
-            
             {examTypeName && (
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-muted-foreground flex-shrink-0 w-14">Type:</span>
-                <Badge variant="secondary" className="text-[10px] font-normal px-2 py-0.5 truncate">
-                  {examTypeName}
-                </Badge>
+              <div className="flex items-center justify-between">
+                <span>Type:</span>
+                <span className="font-medium text-foreground">{examTypeName}</span>
               </div>
             )}
-            
             {periodName && (
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-muted-foreground flex-shrink-0 w-14">Period:</span>
-                <Badge variant="outline" className="text-[10px] font-normal px-2 py-0.5 truncate">
-                  {periodName}
-                </Badge>
+              <div className="flex items-center justify-between">
+                <span>{t('periods')}:</span>
+                <span className="font-medium text-foreground">{periodName}</span>
               </div>
             )}
-            
             {exam.establishments && (
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-muted-foreground flex-shrink-0 w-14">School:</span>
-                <span className="font-medium text-foreground text-xs truncate" title={exam.establishments.name}>
+              <div className="flex items-center justify-between">
+                <span>{t('school_filter')}:</span>
+                <span className="font-medium text-foreground truncate max-w-[120px]" title={exam.establishments.name}>
                   {exam.establishments.name}
                 </span>
               </div>
             )}
           </div>
 
+          {/* Actions */}
           <div className="grid grid-cols-3 gap-1.5 pt-3 border-t border-border/30">
             <Link to={`/admin/exam/edit/${exam.id}`} className="block">
-              <Button variant="outline" size="sm" className="w-full h-9 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 dark:hover:text-blue-400 transition-colors">
-                <Edit className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="w-full h-8 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 dark:hover:text-blue-400 transition-colors">
+                <Edit className="h-3.5 w-3.5" />
               </Button>
             </Link>
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-9 hover:bg-green-500/10 hover:text-green-600 hover:border-green-500/30 dark:hover:text-green-400 transition-colors"
+              className="h-8 hover:bg-green-500/10 hover:text-green-600 hover:border-green-500/30 dark:hover:text-green-400 transition-colors"
               onClick={() => { setPreviewExam(exam); setShowPreview(true); }}
             >
-              <Eye className="h-4 w-4" />
+              <Eye className="h-3.5 w-3.5" />
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => handleDelete(exam)} 
-              className="h-9 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 dark:hover:text-red-400 transition-colors"
+              className="h-8 hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 dark:hover:text-red-400 transition-colors"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </CardContent>
