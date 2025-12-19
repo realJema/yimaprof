@@ -287,19 +287,17 @@ export default function AdminExams() {
     return (
       <Card key={exam.id} className={`group relative overflow-hidden ${cardBgColor} hover:shadow-lg transition-all duration-300 h-full flex flex-col`}>
         <CardContent className="p-4 flex flex-col h-full gap-3">
-        {/* Header: Published icon */}
-          <div className="flex items-center justify-end">
+        {/* Title with Published icon */}
+          <div className="flex items-start gap-2">
+            <h3 className="font-semibold text-sm line-clamp-2 leading-tight text-foreground group-hover:text-primary transition-colors flex-1">
+              {exam.title}
+            </h3>
             {exam.is_published ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
             ) : (
-              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             )}
           </div>
-
-          {/* Title */}
-          <h3 className="font-semibold text-sm line-clamp-2 leading-tight text-foreground group-hover:text-primary transition-colors">
-            {exam.title}
-          </h3>
 
           {/* Subject & Year */}
           <div className="flex items-center justify-between gap-2">
