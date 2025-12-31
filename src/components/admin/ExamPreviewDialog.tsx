@@ -11,7 +11,7 @@ import { useExamFormData } from '@/hooks/useExamFormData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Save, Eye, FileText, Loader2 } from 'lucide-react';
+import { Save, Eye, FileText, Loader2, FileType } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useQuery } from '@tanstack/react-query';
 
@@ -36,6 +36,7 @@ interface ExamPreviewDialogProps {
     establishment_id?: string;
     duration_id?: string;
     content?: any;
+    file_url?: string;
     classes?: { display_name: string; section: string };
     subjects?: { name: string; name_en: string; name_fr: string };
     exam_types?: { name: string; name_en: string; name_fr: string };
@@ -152,7 +153,7 @@ export function ExamPreviewDialog({ exam, open, onOpenChange, onUpdated }: ExamP
         </DialogHeader>
         
         <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+          <TabsList className={`grid w-full flex-shrink-0 ${exam.file_url ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="details" className="gap-2">
               <FileText className="h-4 w-4" />
               {t('details') || 'Details'}
@@ -161,6 +162,12 @@ export function ExamPreviewDialog({ exam, open, onOpenChange, onUpdated }: ExamP
               <Eye className="h-4 w-4" />
               {t('content') || 'Content'}
             </TabsTrigger>
+            {exam.file_url && (
+              <TabsTrigger value="pdf" className="gap-2">
+                <FileType className="h-4 w-4" />
+                PDF
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="details" className="flex-1 overflow-y-auto mt-4 pr-2">
@@ -350,6 +357,16 @@ export function ExamPreviewDialog({ exam, open, onOpenChange, onUpdated }: ExamP
               </div>
             )}
           </TabsContent>
+          
+          {exam.file_url && (
+            <TabsContent value="pdf" className="flex-1 overflow-hidden mt-4">
+              <iframe
+                src={exam.file_url}
+                className="w-full h-full min-h-[500px] rounded-lg border"
+                title="PDF Preview"
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
