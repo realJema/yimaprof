@@ -11,8 +11,7 @@ import { BookOpen, Plus, Edit, Trash2, Eye, Search, Globe2, Languages, Shield, A
 import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { ExamPreviewDialog } from '@/components/admin/ExamPreviewDialog';
 import { useExamFormData } from '@/hooks/useExamFormData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -526,14 +525,15 @@ export default function AdminExams() {
 
   return (
     <>
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{previewExam?.title}</DialogTitle>
-          </DialogHeader>
-          {previewExam?.content && <ExamContentRenderer content={previewExam.content} showAnswers={true} />}
-        </DialogContent>
-      </Dialog>
+      <ExamPreviewDialog 
+        exam={previewExam} 
+        open={showPreview} 
+        onOpenChange={setShowPreview}
+        onUpdated={() => {
+          fetchExams();
+          setShowPreview(false);
+        }}
+      />
 
       <div className="min-h-screen bg-background">
         {/* Header */}
