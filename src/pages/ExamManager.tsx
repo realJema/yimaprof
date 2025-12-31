@@ -1018,7 +1018,7 @@ export default function ExamManager() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/admin?tab=exams')}
+              onClick={() => navigate('/admin-exams')}
               className="gap-2"
             >
               <ChevronDown className="h-4 w-4 rotate-90" />
