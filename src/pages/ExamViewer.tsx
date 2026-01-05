@@ -160,16 +160,30 @@ export default function ExamViewer() {
         return;
       }
 
+      // Check for active AND non-expired subscription
+      const now = new Date().toISOString();
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select(`*, subscription_plans (name)`)
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .gte('expires_at', now)
+        .maybeSingle();
       
-      if (subscription) {
-        setHasAccess(true);
-        setIsFreeUser(false);
+      if (subscription && subscription.expires_at) {
+        // Double-check expiration on client side (defense in depth)
+        const expirationDate = new Date(subscription.expires_at);
+        const currentDate = new Date();
+        
+        if (expirationDate.getTime() > currentDate.getTime()) {
+          setHasAccess(true);
+          setIsFreeUser(false);
+        } else {
+          // Subscription exists but is expired
+          console.log('Subscription expired, restricting access');
+          setHasAccess(false);
+          setIsFreeUser(true);
+        }
       } else {
         setHasAccess(false);
         setIsFreeUser(true);
