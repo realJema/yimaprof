@@ -39,7 +39,8 @@ export default function Auth() {
     firstName: "",
     lastName: "",
     role: "student",
-    preferredLanguage: "fr",
+    age: "",
+    phone: "",
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -73,7 +74,8 @@ export default function Auth() {
       first_name: formData.firstName,
       last_name: formData.lastName,
       role: formData.role,
-      preferred_language: formData.preferredLanguage,
+      age: formData.age ? parseInt(formData.age) : null,
+      phone: formData.phone || null,
     });
     
     // If signup successful
@@ -123,7 +125,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 mb-4">
             <ArrowLeft className="h-4 w-4" />
@@ -248,17 +250,29 @@ export default function Auth() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Langue préférée</Label>
-                    <Select value={formData.preferredLanguage} onValueChange={(value) => handleInputChange("preferredLanguage", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choisissez votre langue" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fr">Français</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Âge <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
+                      <Input
+                        id="age"
+                        type="number"
+                        placeholder="Votre âge"
+                        min="10"
+                        max="100"
+                        value={formData.age}
+                        onChange={(e) => handleInputChange("age", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Téléphone <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+237 6XX XXX XXX"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
