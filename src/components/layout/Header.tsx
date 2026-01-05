@@ -13,8 +13,14 @@ import { Separator } from '@/components/ui/separator';
 
 // Header component for YIMA platform
 export default function Header() {
-  const { user, signOut } = useAuth();
-  const { t, language } = useLanguage();
+  const {
+    user,
+    signOut
+  } = useAuth();
+  const {
+    t,
+    language
+  } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -22,13 +28,11 @@ export default function Header() {
   const [profile, setProfile] = useState<any>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   useEffect(() => {
     // Check for saved theme preference or default to light mode
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-    
+    const shouldBeDark = savedTheme === 'dark' || !savedTheme && prefersDark;
     setIsDarkMode(shouldBeDark);
     if (shouldBeDark) {
       document.documentElement.classList.add('dark');
@@ -36,7 +40,6 @@ export default function Header() {
       document.documentElement.classList.remove('dark');
     }
   }, []);
-
   useEffect(() => {
     if (user) {
       checkAdminStatus();
@@ -53,58 +56,53 @@ export default function Header() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
-
   const checkAdminStatus = async () => {
     try {
-      const { data, error } = await supabase.rpc('is_admin', {
+      const {
+        data,
+        error
+      } = await supabase.rpc('is_admin', {
         user_id: user?.id
       });
-      
       if (error) throw error;
       setIsAdmin(data === true);
     } catch (error) {
       setIsAdmin(false);
     }
   };
-
   const checkEditorStatus = async () => {
     try {
-      const { data, error } = await supabase.rpc('has_role', {
+      const {
+        data,
+        error
+      } = await supabase.rpc('has_role', {
         _user_id: user?.id,
         _role: 'editor'
       });
-      
       if (error) throw error;
       setIsEditor(data === true);
     } catch (error) {
       setIsEditor(false);
     }
   };
-
   const fetchProfile = async () => {
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, profile_photo_url')
-        .eq('id', user?.id)
-        .single();
-      
+      const {
+        data
+      } = await supabase.from('profiles').select('first_name, last_name, profile_photo_url').eq('id', user?.id).single();
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
   };
-
   const handleSignOut = async () => {
     await signOut();
     setMobileMenuOpen(false);
     navigate('/');
   };
-
   const toggleDarkMode = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
-    
     if (newDarkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
@@ -113,50 +111,78 @@ export default function Header() {
       localStorage.setItem('theme', 'light');
     }
   };
-
-  const navItems = [
-    { to: '/dashboard', icon: BarChart3, label: t('dashboard') },
-    { to: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
-    { to: '/affiliate', icon: Share2, label: language === 'fr' ? 'Affiliation' : 'Affiliate' },
-    { to: '/settings', icon: Settings, label: t('settings') },
-  ];
-
+  const navItems = [{
+    to: '/dashboard',
+    icon: BarChart3,
+    label: t('dashboard')
+  }, {
+    to: '/subscriptions',
+    icon: CreditCard,
+    label: 'Subscriptions'
+  }, {
+    to: '/affiliate',
+    icon: Share2,
+    label: language === 'fr' ? 'Affiliation' : 'Affiliate'
+  }, {
+    to: '/settings',
+    icon: Settings,
+    label: t('settings')
+  }];
   if (isAdmin) {
-    navItems.push({ to: '/admin', icon: Shield, label: 'Admin' });
+    navItems.push({
+      to: '/admin',
+      icon: Shield,
+      label: 'Admin'
+    });
   }
-
   if (isEditor && !isAdmin) {
-    navItems.push({ to: '/admin/exams', icon: FileText, label: language === 'fr' ? 'Éditeur' : 'Editor' });
+    navItems.push({
+      to: '/admin/exams',
+      icon: FileText,
+      label: language === 'fr' ? 'Éditeur' : 'Editor'
+    });
   }
 
   // Mobile navigation links
-  const mobileNavLinks = [
-    { to: '/exams', icon: BookOpen, label: t('exams') },
-    { to: '/exams2', icon: Search, label: language === 'fr' ? 'Parcourir' : 'Browse' },
-    { to: '/forum', icon: MessageCircle, label: 'Forum' },
-    { to: '/write-to-us', icon: Mail, label: t('write_to_us') },
-    { to: '/about', icon: Info, label: t('about') },
-    { to: '/contact', icon: Mail, label: t('contact_us') },
-  ];
-
+  const mobileNavLinks = [{
+    to: '/exams',
+    icon: BookOpen,
+    label: t('exams')
+  }, {
+    to: '/exams2',
+    icon: Search,
+    label: language === 'fr' ? 'Parcourir' : 'Browse'
+  }, {
+    to: '/forum',
+    icon: MessageCircle,
+    label: 'Forum'
+  }, {
+    to: '/write-to-us',
+    icon: Mail,
+    label: t('write_to_us')
+  }, {
+    to: '/about',
+    icon: Info,
+    label: t('about')
+  }, {
+    to: '/contact',
+    icon: Mail,
+    label: t('contact_us')
+  }];
   const getUserInitials = () => {
     if (profile?.first_name && profile?.last_name) {
       return `${profile.first_name[0]}${profile.last_name[0]}`;
     }
     return user?.email?.[0]?.toUpperCase() || 'U';
   };
-
   const getUserDisplayName = () => {
     if (profile?.first_name && profile?.last_name) {
       return `${profile.first_name} ${profile.last_name}`;
     }
     return user?.email || 'User';
   };
-
   const isActive = (path: string) => location.pathname === path;
-
-  return (
-    <header className="border-b border-border/50 bg-primary/10 shadow-sm backdrop-blur-md">
+  return <header className="border-b border-border/50 bg-primary/10 shadow-sm backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-6">
@@ -177,46 +203,24 @@ export default function Header() {
                 
                 <div className="mt-6 space-y-1">
                   {/* Main Navigation */}
-                  {mobileNavLinks.map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                        isActive(item.to) 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'hover:bg-muted'
-                      }`}
-                    >
+                  {mobileNavLinks.map(item => <Link key={item.to} to={item.to} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive(item.to) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
                       <item.icon className="h-4 w-4" />
                       <span className="font-medium">{item.label}</span>
-                    </Link>
-                  ))}
+                    </Link>)}
                   
                   <Separator className="my-4" />
                   
                   {/* User Navigation (if logged in) */}
-                  {user && (
-                    <>
+                  {user && <>
                       <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                         {language === 'fr' ? 'Mon Compte' : 'My Account'}
                       </p>
-                      {navItems.map((item) => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                            isActive(item.to) 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'hover:bg-muted'
-                          }`}
-                        >
+                      {navItems.map(item => <Link key={item.to} to={item.to} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive(item.to) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
                           <item.icon className="h-4 w-4" />
                           <span className="font-medium">{item.label}</span>
-                        </Link>
-                      ))}
+                        </Link>)}
                       <Separator className="my-4" />
-                    </>
-                  )}
+                    </>}
                   
                   {/* Settings Section */}
                   <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -224,24 +228,15 @@ export default function Header() {
                   </p>
                   
                   {/* Theme Toggle */}
-                  <button
-                    onClick={toggleDarkMode}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
-                  >
+                  <button onClick={toggleDarkMode} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors">
                     {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     <span className="font-medium">
-                      {isDarkMode 
-                        ? (language === 'fr' ? 'Mode clair' : 'Light Mode') 
-                        : (language === 'fr' ? 'Mode sombre' : 'Dark Mode')
-                      }
+                      {isDarkMode ? language === 'fr' ? 'Mode clair' : 'Light Mode' : language === 'fr' ? 'Mode sombre' : 'Dark Mode'}
                     </span>
                   </button>
                   
                   {/* Language Toggle */}
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-language'))}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors"
-                  >
+                  <button onClick={() => window.dispatchEvent(new CustomEvent('toggle-language'))} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors">
                     <span className="h-4 w-4 flex items-center justify-center text-sm">
                       {language === 'fr' ? '🇬🇧' : '🇫🇷'}
                     </span>
@@ -251,53 +246,39 @@ export default function Header() {
                   <Separator className="my-4" />
                   
                   {/* Legal Links */}
-                  <Link
-                    to="/privacy"
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm"
-                  >
+                  <Link to="/privacy" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm">
                     <FileText className="h-4 w-4" />
                     {t('privacy_policy')}
                   </Link>
-                  <Link
-                    to="/terms"
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm"
-                  >
+                  <Link to="/terms" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground text-sm">
                     <FileText className="h-4 w-4" />
                     {t('terms_of_service')}
                   </Link>
                   
                   {/* Auth Actions */}
-                  {user ? (
-                    <>
+                  {user ? <>
                       <Separator className="my-4" />
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-                      >
+                      <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors">
                         <LogOut className="h-4 w-4" />
                         <span className="font-medium">{t('logout')}</span>
                       </button>
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Separator className="my-4" />
                       <div className="space-y-2 px-3">
-                        <Button 
-                          className="w-full" 
-                          onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
-                        >
+                        <Button className="w-full" onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/auth');
+                    }}>
                           {t('login')}
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
-                        >
+                        <Button variant="outline" className="w-full" onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate('/auth');
+                    }}>
                           {t('register')}
                         </Button>
                       </div>
-                    </>
-                  )}
+                    </>}
                 </div>
               </SheetContent>
             </Sheet>
@@ -308,25 +289,12 @@ export default function Header() {
             </Link>
             
             {/* Prominent Exams link - always visible */}
-            <Button
-              variant={isActive('/exams') ? "default" : "ghost"}
-              size="sm"
-              asChild
-              className="hidden md:flex"
-            >
-              <Link to="/exams" className="flex items-center space-x-2">
-                <BookOpen className="h-4 w-4" />
-                <span>{t('exams')}</span>
-              </Link>
+            <Button variant={isActive('/exams') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
+              
             </Button>
             
             {/* Browse All Exams link */}
-            <Button
-              variant={isActive('/exams2') ? "default" : "ghost"}
-              size="sm"
-              asChild
-              className="hidden md:flex"
-            >
+            <Button variant={isActive('/exams2') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
               <Link to="/exams2" className="flex items-center space-x-2">
                 <Search className="h-4 w-4" />
                 <span>{language === 'fr' ? 'Parcourir' : 'Browse'}</span>
@@ -334,12 +302,7 @@ export default function Header() {
             </Button>
             
             {/* Forum link */}
-            <Button
-              variant={isActive('/forum') ? "default" : "ghost"}
-              size="sm"
-              asChild
-              className="hidden md:flex"
-            >
+            <Button variant={isActive('/forum') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
               <Link to="/forum" className="flex items-center space-x-2">
                 <MessageCircle className="h-4 w-4" />
                 <span>Forum</span>
@@ -347,12 +310,7 @@ export default function Header() {
             </Button>
             
             {/* Write to Us link */}
-            <Button
-              variant={isActive('/write-to-us') ? "default" : "ghost"}
-              size="sm"
-              asChild
-              className="hidden md:flex"
-            >
+            <Button variant={isActive('/write-to-us') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
               <Link to="/write-to-us">
                 <span>{t('write_to_us')}</span>
               </Link>
@@ -393,8 +351,7 @@ export default function Header() {
             </DropdownMenu>
           </div>
 
-          {user ? (
-            <div className="flex items-center space-x-3">
+          {user ? <div className="flex items-center space-x-3">
               {/* Notification Bell */}
               <NotificationBell />
               
@@ -421,34 +378,25 @@ export default function Header() {
                   </div>
                   <DropdownMenuSeparator />
                   
-                  {navItems.map((item) => (
-                    <DropdownMenuItem key={item.to} asChild>
+                  {navItems.map(item => <DropdownMenuItem key={item.to} asChild>
                       <Link to={item.to} className="flex items-center space-x-2 cursor-pointer">
                         <item.icon className="h-4 w-4" />
                         <span>{item.label}</span>
                       </Link>
-                    </DropdownMenuItem>
-                  ))}
+                    </DropdownMenuItem>)}
                   
                   <DropdownMenuSeparator />
                   
                   {/* Theme Toggle */}
                   <DropdownMenuItem onClick={toggleDarkMode} className="flex items-center space-x-2 cursor-pointer">
-                    {isDarkMode ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                    <span>{isDarkMode ? (language === 'fr' ? 'Mode clair' : 'Light Mode') : (language === 'fr' ? 'Mode sombre' : 'Dark Mode')}</span>
+                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    <span>{isDarkMode ? language === 'fr' ? 'Mode clair' : 'Light Mode' : language === 'fr' ? 'Mode sombre' : 'Dark Mode'}</span>
                   </DropdownMenuItem>
                   
                   {/* Language Toggle */}
-                  <DropdownMenuItem 
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('toggle-language'));
-                    }} 
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => {
+                window.dispatchEvent(new CustomEvent('toggle-language'));
+              }} className="flex items-center space-x-2 cursor-pointer">
                     <span className="h-4 w-4 flex items-center justify-center text-xs font-medium">
                       {language === 'fr' ? '🇬🇧' : '🇫🇷'}
                     </span>
@@ -462,9 +410,7 @@ export default function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-3">
+            </div> : <div className="flex items-center space-x-3">
               {/* Settings Dropdown for non-logged in users - hidden on mobile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -475,21 +421,14 @@ export default function Header() {
                 <DropdownMenuContent className="w-48 bg-card border-border z-50" align="end">
                   {/* Theme Toggle */}
                   <DropdownMenuItem onClick={toggleDarkMode} className="flex items-center space-x-2 cursor-pointer">
-                    {isDarkMode ? (
-                      <Sun className="h-4 w-4" />
-                    ) : (
-                      <Moon className="h-4 w-4" />
-                    )}
-                    <span>{isDarkMode ? (language === 'fr' ? 'Mode clair' : 'Light Mode') : (language === 'fr' ? 'Mode sombre' : 'Dark Mode')}</span>
+                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    <span>{isDarkMode ? language === 'fr' ? 'Mode clair' : 'Light Mode' : language === 'fr' ? 'Mode sombre' : 'Dark Mode'}</span>
                   </DropdownMenuItem>
                   
                   {/* Language Toggle */}
-                  <DropdownMenuItem 
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('toggle-language'));
-                    }} 
-                    className="flex items-center space-x-2 cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={() => {
+                window.dispatchEvent(new CustomEvent('toggle-language'));
+              }} className="flex items-center space-x-2 cursor-pointer">
                     <span className="h-4 w-4 flex items-center justify-center text-xs font-medium">
                       {language === 'fr' ? '🇬🇧' : '🇫🇷'}
                     </span>
@@ -498,23 +437,14 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/auth')}
-                className="hidden md:inline-flex"
-              >
+              <Button variant="ghost" onClick={() => navigate('/auth')} className="hidden md:inline-flex">
                 {t('login')}
               </Button>
-              <Button
-                onClick={() => navigate('/auth')}
-                className="hidden md:inline-flex"
-              >
+              <Button onClick={() => navigate('/auth')} className="hidden md:inline-flex">
                 {t('register')}
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
       </div>
-    </header>
-  );
+    </header>;
 }
