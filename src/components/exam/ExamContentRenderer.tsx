@@ -175,26 +175,18 @@ export function ExamContentRenderer({
               <div key={item.id} id={`${questionIdPrefix}${item.id}`} className="border border-border rounded-lg p-3 md:p-4 bg-card scroll-mt-24">
                 <div className="space-y-3 md:space-y-4">
                   {/* Question Header */}
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 md:gap-3">
-                      <Badge variant="outline" className="text-xs md:text-sm font-semibold shrink-0 mt-0.5">
-                        {question.paper_number || questionNumber}
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <Badge variant="outline" className="text-xs md:text-sm font-semibold shrink-0 mt-0.5">
+                      {question.paper_number || questionNumber}
+                    </Badge>
+                    <p className="text-sm md:text-base font-medium text-foreground whitespace-pre-wrap flex-1">
+                      {question.text}
+                    </p>
+                    {question.marks && (
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {question.marks} {language === 'fr' ? 'pts' : 'marks'}
                       </Badge>
-                      <p className="text-sm md:text-base font-medium text-foreground whitespace-pre-wrap flex-1">
-                        {question.text}
-                      </p>
-                    </div>
-                    {/* Badges below question text on mobile */}
-                    <div className="flex items-center gap-2 ml-7 md:ml-9">
-                      {question.marks && (
-                        <Badge variant="secondary" className="text-xs">
-                          {question.marks} {language === 'fr' ? 'pts' : 'marks'}
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-xs">
-                        {question.question_type === 'multiple_choice' ? 'QCM' : (language === 'fr' ? 'Dissertation' : 'Essay')}
-                      </Badge>
-                    </div>
+                    )}
                   </div>
 
                   {/* Context Reference */}
@@ -372,18 +364,18 @@ export function ExamContentRenderer({
           return (
             <div key={question.id || index} id={`${questionIdPrefix}${question.id || index}`} className="border border-border rounded-lg p-4 bg-card scroll-mt-24">
               <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <Badge variant="outline" className="text-sm font-semibold">
-                      {index + 1}
-                    </Badge>
-                    <p className="text-base font-medium text-foreground flex-1">
-                      {question.text}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {question.type === 'multiple_choice' ? 'QCM' : (language === 'fr' ? 'Dissertation' : 'Essay')}
+                <div className="flex items-start gap-3">
+                  <Badge variant="outline" className="text-sm font-semibold shrink-0">
+                    {index + 1}
                   </Badge>
+                  <p className="text-base font-medium text-foreground flex-1">
+                    {question.text}
+                  </p>
+                  {question.marks && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      {question.marks} {language === 'fr' ? 'pts' : 'marks'}
+                    </Badge>
+                  )}
                 </div>
 
                 {question.type === 'multiple_choice' && question.answers && (
