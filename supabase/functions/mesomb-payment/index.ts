@@ -46,7 +46,7 @@ async function hmacSha1(key: string, message: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Generate MeSomb signature
+// Generate MeSomb signature according to their docs
 async function signRequest(
   service: string,
   method: string,
@@ -64,6 +64,7 @@ async function signRequest(
   
   const timestamp = date.getTime();
   
+  // Set required headers
   headers['host'] = `${urlObj.protocol}//${urlObj.host}`;
   headers['x-mesomb-date'] = String(timestamp);
   headers['x-mesomb-nonce'] = nonce;
@@ -77,7 +78,11 @@ async function signRequest(
   
   const canonicalRequest = `${method}\n${path}\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
   
-  const scope = `${date.getFullYear()}${date.getMonth()}${date.getDate()}/${service}/mesomb_request`;
+  // Fix: Use proper date format with padded month (0-indexed needs +1) and day
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const scope = `${year}${month}${day}/${service}/mesomb_request`;
   
   const canonicalRequestHash = await sha1(canonicalRequest);
   const stringToSign = `${algorithm}\n${timestamp}\n${scope}\n${canonicalRequestHash}`;
@@ -291,6 +296,7 @@ serve(async (req) => {
     const url = `${MESOMB_HOST}/api/${MESOMB_API_VERSION}/${endpoint}`;
     
     const mesombBody = {
+      nonce: nonce,  // Required field according to API docs
       amount: amount,
       service: service,
       payer: phoneNumber,
@@ -298,6 +304,7 @@ serve(async (req) => {
       currency: 'XAF',
       fees: true,
       conversion: false,
+      trxID: pendingTransaction.id,  // Our transaction ID for reconciliation
     };
     
     console.log('MeSomb request body:', mesombBody);
