@@ -44,7 +44,7 @@ async function hmacSha1(key: string, message: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Generate MeSomb authorization header (based on their SDK implementation)
+// Generate MeSomb authorization header
 async function generateAuthorization(
   method: string,
   url: string,
@@ -59,7 +59,6 @@ async function generateAuthorization(
   const urlObj = new URL(url);
   const timestamp = date.getTime();
   
-  // Required headers for signature
   const signHeaders: Record<string, string> = {
     'host': urlObj.host,
     'x-mesomb-date': String(timestamp),
@@ -76,7 +75,6 @@ async function generateAuthorization(
   
   const canonicalRequest = `${method}\n${path}\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
   
-  // Format: YYYYMMDD
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
@@ -107,7 +105,6 @@ function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
   
   const prefix = cleaned.substring(0, 2);
   
-  // MTN Cameroon prefixes: 67, 68, 650-654
   if (['67', '68'].includes(prefix)) {
     return 'MTN';
   }
@@ -121,7 +118,6 @@ function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
     }
   }
   
-  // Orange Cameroon prefixes: 69, 655-659
   if (prefix === '69') {
     return 'ORANGE';
   }
@@ -129,11 +125,10 @@ function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
   return null;
 }
 
-// Validate phone number is a valid Cameroon mobile number
+// Validate phone number
 function validatePhoneNumber(phoneNumber: string): { valid: boolean; cleaned: string; error?: string } {
   let cleaned = phoneNumber.replace(/\D/g, '');
   
-  // Remove country code if present
   if (cleaned.startsWith('237')) {
     cleaned = cleaned.substring(3);
   }
@@ -158,11 +153,15 @@ serve(async (req) => {
   }
 
   try {
-    // Log environment variables status
-    console.log('Environment check:');
-    console.log('MESOMB_APP_KEY exists:', !!Deno.env.get('MESOMB_APP_KEY'));
-    console.log('MESOMB_ACCESS_KEY exists:', !!Deno.env.get('MESOMB_ACCESS_KEY'));
-    console.log('MESOMB_SECRET_KEY exists:', !!Deno.env.get('MESOMB_SECRET_KEY'));
+    const applicationKey = Deno.env.get('MESOMB_APP_KEY');
+    const accessKey = Deno.env.get('MESOMB_ACCESS_KEY');
+    const secretKey = Deno.env.get('MESOMB_SECRET_KEY');
+    
+    console.log('Environment check:', {
+      hasAppKey: !!applicationKey,
+      hasAccessKey: !!accessKey,
+      hasSecretKey: !!secretKey
+    });
 
     const requestBody = await req.json();
     console.log('Request body:', requestBody);
@@ -170,17 +169,14 @@ serve(async (req) => {
     const { planId, phoneNumber, amount, referredBy } = requestBody;
     
     if (!planId || !phoneNumber || !amount) {
-      console.error('Missing required fields:', { planId, phoneNumber, amount });
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    // Validate phone number
     const phoneValidation = validatePhoneNumber(phoneNumber);
     if (!phoneValidation.valid) {
-      console.error('Invalid phone number:', phoneValidation.error);
       return new Response(JSON.stringify({ error: phoneValidation.error }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -189,12 +185,10 @@ serve(async (req) => {
     
     const cleanedPhone = phoneValidation.cleaned;
     const service = detectService(cleanedPhone)!;
-    console.log('Phone number validated:', cleanedPhone, 'Service:', service);
+    console.log('Phone validated:', cleanedPhone, 'Service:', service);
     
-    // Get user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header');
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -205,7 +199,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase environment variables');
       return new Response(JSON.stringify({ error: 'Missing Supabase configuration' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -214,13 +207,11 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from token
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      console.error('Invalid user:', userError);
-      return new Response(JSON.stringify({ error: 'Invalid user', details: userError?.message }), {
+      return new Response(JSON.stringify({ error: 'Invalid user' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -228,92 +219,55 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Special test case - auto-activate plan for test number
+    // Test case - auto-activate for test number
     if (cleanedPhone === '670000000') {
-      console.log('Test number detected, auto-activating plan');
+      console.log('Test number detected, auto-activating');
       
-      try {
-        // Activate subscription directly with referral info
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
-          p_user_id: user.id,
-          p_new_plan_id: planId,
-          p_referred_by: referredBy || null
-        });
-        
-        console.log('Subscription transition result:', rpcResult);
-        
-        if (rpcError) {
-          console.error('RPC error:', rpcError);
-          return new Response(JSON.stringify({ error: 'Failed to activate subscription', details: rpcError.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Create a completed transaction record
-        const subscriptionId = rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult 
-          ? rpcResult.new_subscription_id 
-          : null;
-          
-        const { data: transactionData, error: transactionError } = await supabase
-          .from('transactions')
-          .insert({
-            user_id: user.id,
-            subscription_id: subscriptionId,
-            amount: amount,
-            currency: 'XAF',
-            provider: 'mesomb',
-            status: 'completed',
-            provider_reference: 'TEST_' + Date.now(),
-            metadata: {
-              phone_number: cleanedPhone,
-              plan_id: planId,
-              test_payment: true
-            }
-          })
-          .select()
-          .single();
-
-        if (transactionError) {
-          console.error('Transaction creation error:', transactionError);
-          return new Response(JSON.stringify({ error: 'Failed to create transaction record', details: transactionError.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        console.log('Test payment completed successfully');
-        return new Response(JSON.stringify({
-          success: true,
-          transactionId: transactionData.id,
-          message: 'Test payment completed successfully',
-          testPayment: true
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (error) {
-        console.error('Error in test payment:', error);
-        return new Response(JSON.stringify({ error: 'Failed to process test payment', details: error.message }), {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
+        p_user_id: user.id,
+        p_new_plan_id: planId,
+        p_referred_by: referredBy || null
+      });
+      
+      if (rpcError) {
+        return new Response(JSON.stringify({ error: 'Failed to activate subscription', details: rpcError.message }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      const subscriptionId = rpcResult?.new_subscription_id || null;
+        
+      await supabase.from('transactions').insert({
+        user_id: user.id,
+        subscription_id: subscriptionId,
+        amount: amount,
+        currency: 'XAF',
+        provider: 'mesomb',
+        status: 'completed',
+        provider_reference: 'TEST_' + Date.now(),
+        metadata: { phone_number: cleanedPhone, plan_id: planId, test_payment: true }
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        transactionId: 'test_' + Date.now(),
+        message: 'Test payment completed',
+        testPayment: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Real MeSomb payment processing
-    const applicationKey = Deno.env.get('MESOMB_APP_KEY');
-    const accessKey = Deno.env.get('MESOMB_ACCESS_KEY');
-    const secretKey = Deno.env.get('MESOMB_SECRET_KEY');
-    
+    // Real payment
     if (!applicationKey || !accessKey || !secretKey) {
-      console.error('Missing MeSomb API keys');
-      return new Response(JSON.stringify({ error: 'MeSomb payment gateway is not configured. Please contact support.' }), {
+      return new Response(JSON.stringify({ error: 'MeSomb not configured' }), {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Create a pending transaction first
+    // Create pending transaction
     const { data: pendingTransaction, error: pendingError } = await supabase
       .from('transactions')
       .insert({
@@ -322,19 +276,13 @@ serve(async (req) => {
         currency: 'XAF',
         provider: 'mesomb',
         status: 'pending',
-        metadata: {
-          phone_number: cleanedPhone,
-          plan_id: planId,
-          referred_by: referredBy,
-          service: service
-        }
+        metadata: { phone_number: cleanedPhone, plan_id: planId, referred_by: referredBy, service }
       })
       .select()
       .single();
 
     if (pendingError) {
-      console.error('Failed to create pending transaction:', pendingError);
-      return new Response(JSON.stringify({ error: 'Failed to create transaction', details: pendingError.message }), {
+      return new Response(JSON.stringify({ error: 'Failed to create transaction' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -347,7 +295,6 @@ serve(async (req) => {
       const date = new Date();
       const url = `${MESOMB_HOST}/en/api/v1.1/payment/collect/`;
       
-      // Build request body according to MeSomb API docs
       const mesombBody = {
         amount: amount,
         service: service,
@@ -356,135 +303,78 @@ serve(async (req) => {
         currency: 'XAF',
         country: 'CM',
         fees: true,
+        mode: 'asynchronous', // Use async mode to avoid timeout
         message: 'Subscription payment',
         reference: `sub_${pendingTransaction.id.substring(0, 8)}`,
         trxID: pendingTransaction.id,
       };
       
-      console.log('MeSomb request body:', mesombBody);
+      console.log('MeSomb request:', mesombBody);
       
-      // Generate authorization
       const { authorization, headers: signHeaders } = await generateAuthorization(
-        'POST',
-        url,
-        date,
-        nonce,
-        { accessKey, secretKey },
-        mesombBody
+        'POST', url, date, nonce, { accessKey, secretKey }, mesombBody
       );
       
-      // Build request headers
-      const requestHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': authorization,
-        'X-MeSomb-Application': applicationKey,
-        ...signHeaders,
-      };
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
       
-      console.log('Making MeSomb API call to:', url);
-      console.log('Authorization header generated');
+      console.log('Making MeSomb API call...');
       
-      // Make the API call
       const mesombResponse = await fetch(url, {
         method: 'POST',
-        headers: requestHeaders,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authorization,
+          'X-MeSomb-Application': applicationKey,
+          ...signHeaders,
+        },
         body: JSON.stringify(mesombBody),
+        signal: controller.signal,
       });
       
+      clearTimeout(timeoutId);
+      
       const responseText = await mesombResponse.text();
-      console.log('MeSomb response status:', mesombResponse.status);
-      console.log('MeSomb response body:', responseText);
+      console.log('MeSomb response:', mesombResponse.status, responseText);
       
       let mesombResult;
       try {
         mesombResult = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse MeSomb response:', e);
-        throw new Error(`Invalid response from MeSomb: ${responseText.substring(0, 200)}`);
+      } catch {
+        throw new Error(`Invalid MeSomb response: ${responseText.substring(0, 200)}`);
       }
 
-      if (mesombResponse.ok && mesombResult.success) {
-        // Payment successful - activate subscription
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
-          p_user_id: user.id,
-          p_new_plan_id: planId,
-          p_referred_by: referredBy || null
-        });
+      if (mesombResponse.ok && (mesombResult.success || mesombResult.status === 'PENDING')) {
+        // In async mode, payment is pending - user needs to confirm on phone
+        const providerRef = mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id || null;
         
-        if (rpcError) {
-          console.error('Failed to activate subscription after payment:', rpcError);
-          await supabase
-            .from('transactions')
-            .update({
-              status: 'completed',
-              provider_reference: mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id,
-              metadata: {
-                ...pendingTransaction.metadata,
-                mesomb_response: mesombResult,
-                subscription_activation_error: rpcError.message
-              }
-            })
-            .eq('id', pendingTransaction.id);
-          
-          return new Response(JSON.stringify({ 
-            error: 'Payment succeeded but subscription activation failed',
-            details: rpcError.message,
-            transactionId: pendingTransaction.id
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
+        await supabase.from('transactions').update({
+          status: 'processing',
+          provider_reference: providerRef,
+          metadata: { ...pendingTransaction.metadata, mesomb_response: mesombResult }
+        }).eq('id', pendingTransaction.id);
         
-        // Get subscription ID from RPC result
-        const subscriptionId = rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult 
-          ? rpcResult.new_subscription_id 
-          : null;
-        
-        // Update transaction with success
-        await supabase
-          .from('transactions')
-          .update({
-            status: 'completed',
-            subscription_id: subscriptionId,
-            provider_reference: mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id,
-            metadata: {
-              ...pendingTransaction.metadata,
-              mesomb_response: mesombResult
-            }
-          })
-          .eq('id', pendingTransaction.id);
-        
-        console.log('Payment completed successfully, subscription activated');
+        console.log('Payment initiated, waiting for user confirmation');
         
         return new Response(JSON.stringify({
           success: true,
           transactionId: pendingTransaction.id,
-          message: 'Payment completed successfully',
-          testPayment: false
+          providerReference: providerRef,
+          message: 'Payment initiated. Please confirm on your phone.',
+          status: 'processing'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else {
-        // Payment failed
         const errorMessage = mesombResult.message || mesombResult.detail || 'Payment failed';
         
-        await supabase
-          .from('transactions')
-          .update({
-            status: 'failed',
-            metadata: {
-              ...pendingTransaction.metadata,
-              mesomb_response: mesombResult,
-              error: errorMessage
-            }
-          })
-          .eq('id', pendingTransaction.id);
+        await supabase.from('transactions').update({
+          status: 'failed',
+          metadata: { ...pendingTransaction.metadata, mesomb_response: mesombResult, error: errorMessage }
+        }).eq('id', pendingTransaction.id);
         
-        console.error('MeSomb payment failed:', errorMessage);
         return new Response(JSON.stringify({ 
           error: errorMessage,
-          status: mesombResult.status,
           transactionId: pendingTransaction.id
         }), {
           status: 400,
@@ -494,33 +384,41 @@ serve(async (req) => {
     } catch (error) {
       console.error('MeSomb API error:', error);
       
-      // Update transaction to failed
-      await supabase
-        .from('transactions')
-        .update({
-          status: 'failed',
-          metadata: {
-            ...pendingTransaction.metadata,
-            error: error.message || 'Payment request failed'
-          }
-        })
-        .eq('id', pendingTransaction.id);
+      const isTimeout = error.name === 'AbortError' || error.message?.includes('timeout');
+      
+      if (isTimeout) {
+        // Mark as processing - payment might still go through
+        await supabase.from('transactions').update({
+          status: 'processing',
+          metadata: { ...pendingTransaction.metadata, timeout: true }
+        }).eq('id', pendingTransaction.id);
+        
+        return new Response(JSON.stringify({
+          success: true,
+          transactionId: pendingTransaction.id,
+          message: 'Payment request sent. Please confirm on your phone and check your subscription status.',
+          status: 'processing'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      await supabase.from('transactions').update({
+        status: 'failed',
+        metadata: { ...pendingTransaction.metadata, error: error.message }
+      }).eq('id', pendingTransaction.id);
       
       return new Response(JSON.stringify({ 
-        error: error.message || 'Payment request failed',
-        transactionId: pendingTransaction.id
+        error: 'Payment request failed. Please try again.',
+        details: error.message
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
   } catch (error) {
-    console.error('Error in mesomb-payment function:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error.message,
-    }), {
+    console.error('Unhandled error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
