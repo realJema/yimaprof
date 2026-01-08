@@ -8,13 +8,42 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Phone, CreditCard, UserCheck } from 'lucide-react';
+import { ArrowLeft, Phone, CreditCard, UserCheck, Smartphone } from 'lucide-react';
 
 interface SubscriptionPlan {
   id: string;
   name: string;
   price: number;
   currency: string;
+}
+
+// Detect carrier from phone number
+function detectCarrier(phone: string): 'MTN' | 'ORANGE' | null {
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length < 2) return null;
+  
+  const prefix = cleaned.substring(0, 2);
+  
+  // MTN Cameroon prefixes: 67, 68, 650-654
+  if (['67', '68'].includes(prefix)) {
+    return 'MTN';
+  }
+  if (prefix === '65' && cleaned.length >= 3) {
+    const thirdDigit = cleaned.charAt(2);
+    if (['0', '1', '2', '3', '4'].includes(thirdDigit)) {
+      return 'MTN';
+    }
+    if (['5', '6', '7', '8', '9'].includes(thirdDigit)) {
+      return 'ORANGE';
+    }
+  }
+  
+  // Orange Cameroon prefixes: 69, 655-659
+  if (prefix === '69') {
+    return 'ORANGE';
+  }
+  
+  return null;
 }
 
 export default function Payment() {
@@ -27,7 +56,7 @@ export default function Payment() {
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [referrerUsername, setReferrerUsername] = useState<string | null>(null);
-
+  const [detectedCarrier, setDetectedCarrier] = useState<'MTN' | 'ORANGE' | null>(null);
   const planId = searchParams.get('planId');
 
   useEffect(() => {
@@ -102,9 +131,18 @@ export default function Payment() {
   };
 
   const validatePhoneNumber = (phone: string) => {
-    // Simple validation for 9-digit numbers (no country code needed)
-    const phoneRegex = /^[6-9]\d{8}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
+    // Validation for 9-digit Cameroon mobile numbers (MTN or Orange)
+    const cleaned = phone.replace(/\s/g, '');
+    if (!/^\d{9}$/.test(cleaned)) return false;
+    
+    const carrier = detectCarrier(cleaned);
+    return carrier !== null;
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    const carrier = detectCarrier(value.replace(/\s/g, ''));
+    setDetectedCarrier(carrier);
   };
 
   const handlePayment = async () => {
@@ -121,8 +159,8 @@ export default function Payment() {
 
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
-        title: 'Error',
-        description: 'Please enter a valid 9-digit phone number starting with 6, 7, 8, or 9',
+        title: 'Invalid Phone Number',
+        description: 'Please enter a valid 9-digit Cameroon MTN or Orange number (starting with 67, 68, 69, or 65)',
         variant: 'destructive',
       });
       return;
@@ -263,14 +301,35 @@ export default function Payment() {
                   type="tel"
                   placeholder="6XX XXX XXX"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
                   className="pl-10"
                   maxLength={9}
                 />
+                {detectedCarrier && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Badge 
+                      variant="secondary" 
+                      className={detectedCarrier === 'MTN' ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' : 'bg-orange-500/20 text-orange-600 border-orange-500/30'}
+                    >
+                      {detectedCarrier}
+                    </Badge>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Enter your 9-digit phone number (without country code)
-                <br />
+                🇨🇲 Only Cameroon numbers accepted
+              </p>
+              <div className="flex gap-2 text-xs">
+                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                  <Smartphone className="h-3 w-3 mr-1" />
+                  MTN: 67, 68, 650-654
+                </Badge>
+                <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/30">
+                  <Smartphone className="h-3 w-3 mr-1" />
+                  Orange: 69, 655-659
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
                 <span className="text-green-600">Use 670000000 for testing</span>
               </p>
             </div>

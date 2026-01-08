@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -8,10 +7,9 @@ const corsHeaders = {
 };
 
 const MESOMB_HOST = 'https://mesomb.hachther.com';
-const MESOMB_API_VERSION = 'v1.1';
 
 // Generate a random nonce
-function generateNonce(length = 32): string {
+function generateNonce(length = 40): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   const randomValues = crypto.getRandomValues(new Uint8Array(length));
@@ -46,65 +44,110 @@ async function hmacSha1(key: string, message: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Generate MeSomb signature according to their docs
-async function signRequest(
-  service: string,
+// Generate MeSomb authorization header (based on their SDK implementation)
+async function generateAuthorization(
   method: string,
   url: string,
   date: Date,
   nonce: string,
   credentials: { accessKey: string; secretKey: string },
-  headers: Record<string, string> = {},
-  body?: Record<string, any>
-): Promise<string> {
+  body?: Record<string, unknown>
+): Promise<{ authorization: string; headers: Record<string, string> }> {
   const algorithm = 'HMAC-SHA1';
+  const service = 'payment';
   
   const urlObj = new URL(url);
-  const canonicalQuery = urlObj.search ? urlObj.search.substring(1) : '';
-  
   const timestamp = date.getTime();
   
-  // Set required headers
-  headers['host'] = `${urlObj.protocol}//${urlObj.host}`;
-  headers['x-mesomb-date'] = String(timestamp);
-  headers['x-mesomb-nonce'] = nonce;
+  // Required headers for signature
+  const signHeaders: Record<string, string> = {
+    'host': urlObj.host,
+    'x-mesomb-date': String(timestamp),
+    'x-mesomb-nonce': nonce,
+  };
   
-  const headersKeys = Object.keys(headers).sort();
-  const canonicalHeaders = headersKeys.map(key => `${key}:${headers[key]}`).join('\n');
+  const headersKeys = Object.keys(signHeaders).sort();
+  const canonicalHeaders = headersKeys.map(key => `${key}:${signHeaders[key]}`).join('\n');
+  const signedHeaders = headersKeys.join(';');
   
   const payloadHash = await sha1(body ? JSON.stringify(body) : '{}');
-  const signedHeaders = headersKeys.join(';');
-  const path = encodeURI(urlObj.pathname);
+  const canonicalQuery = urlObj.search ? urlObj.search.substring(1) : '';
+  const path = urlObj.pathname;
   
   const canonicalRequest = `${method}\n${path}\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
   
-  // Fix: Use proper date format with padded month (0-indexed needs +1) and day
+  // Format: YYYYMMDD
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
-  const scope = `${year}${month}${day}/${service}/mesomb_request`;
+  const dateStamp = `${year}${month}${day}`;
+  
+  const scope = `${dateStamp}/${service}/mesomb_request`;
   
   const canonicalRequestHash = await sha1(canonicalRequest);
   const stringToSign = `${algorithm}\n${timestamp}\n${scope}\n${canonicalRequestHash}`;
   
   const signature = await hmacSha1(credentials.secretKey, stringToSign);
   
-  return `${algorithm} Credential=${credentials.accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  const authorization = `${algorithm} Credential=${credentials.accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  
+  return {
+    authorization,
+    headers: {
+      'x-mesomb-date': String(timestamp),
+      'x-mesomb-nonce': nonce,
+    }
+  };
 }
 
-// Determine service type from phone number
-function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | 'AIRTEL' {
-  const prefix = phoneNumber.substring(0, 2);
-  // MTN Cameroon prefixes: 67, 68, 65, 66
-  if (['67', '68', '65', '66'].includes(prefix)) {
+// Determine service type from phone number (Cameroon)
+function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  if (cleaned.length !== 9) return null;
+  
+  const prefix = cleaned.substring(0, 2);
+  
+  // MTN Cameroon prefixes: 67, 68, 650-654
+  if (['67', '68'].includes(prefix)) {
     return 'MTN';
   }
-  // Orange Cameroon prefixes: 69, 65, 66, 69
-  if (['69', '55', '56', '59'].includes(prefix)) {
+  if (prefix === '65') {
+    const thirdDigit = cleaned.charAt(2);
+    if (['0', '1', '2', '3', '4'].includes(thirdDigit)) {
+      return 'MTN';
+    }
+    if (['5', '6', '7', '8', '9'].includes(thirdDigit)) {
+      return 'ORANGE';
+    }
+  }
+  
+  // Orange Cameroon prefixes: 69, 655-659
+  if (prefix === '69') {
     return 'ORANGE';
   }
-  // Default to MTN if cannot determine
-  return 'MTN';
+  
+  return null;
+}
+
+// Validate phone number is a valid Cameroon mobile number
+function validatePhoneNumber(phoneNumber: string): { valid: boolean; cleaned: string; error?: string } {
+  let cleaned = phoneNumber.replace(/\D/g, '');
+  
+  // Remove country code if present
+  if (cleaned.startsWith('237')) {
+    cleaned = cleaned.substring(3);
+  }
+  
+  if (cleaned.length !== 9) {
+    return { valid: false, cleaned, error: `Phone number must be 9 digits, got ${cleaned.length}` };
+  }
+  
+  const service = detectService(cleaned);
+  if (!service) {
+    return { valid: false, cleaned, error: 'Only Cameroon MTN and Orange numbers are accepted' };
+  }
+  
+  return { valid: true, cleaned };
 }
 
 serve(async (req) => {
@@ -117,8 +160,6 @@ serve(async (req) => {
   try {
     // Log environment variables status
     console.log('Environment check:');
-    console.log('SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
-    console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     console.log('MESOMB_APP_KEY exists:', !!Deno.env.get('MESOMB_APP_KEY'));
     console.log('MESOMB_ACCESS_KEY exists:', !!Deno.env.get('MESOMB_ACCESS_KEY'));
     console.log('MESOMB_SECRET_KEY exists:', !!Deno.env.get('MESOMB_SECRET_KEY'));
@@ -136,10 +177,22 @@ serve(async (req) => {
       });
     }
     
+    // Validate phone number
+    const phoneValidation = validatePhoneNumber(phoneNumber);
+    if (!phoneValidation.valid) {
+      console.error('Invalid phone number:', phoneValidation.error);
+      return new Response(JSON.stringify({ error: phoneValidation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const cleanedPhone = phoneValidation.cleaned;
+    const service = detectService(cleanedPhone)!;
+    console.log('Phone number validated:', cleanedPhone, 'Service:', service);
+    
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
-    console.log('Auth header exists:', !!authHeader);
-    
     if (!authHeader) {
       console.error('No authorization header');
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
@@ -176,7 +229,7 @@ serve(async (req) => {
     console.log('User authenticated:', user.id);
 
     // Special test case - auto-activate plan for test number
-    if (phoneNumber === '670000000') {
+    if (cleanedPhone === '670000000') {
       console.log('Test number detected, auto-activating plan');
       
       try {
@@ -213,7 +266,7 @@ serve(async (req) => {
             status: 'completed',
             provider_reference: 'TEST_' + Date.now(),
             metadata: {
-              phone_number: phoneNumber,
+              phone_number: cleanedPhone,
               plan_id: planId,
               test_payment: true
             }
@@ -254,8 +307,8 @@ serve(async (req) => {
     
     if (!applicationKey || !accessKey || !secretKey) {
       console.error('Missing MeSomb API keys');
-      return new Response(JSON.stringify({ error: 'Missing MeSomb configuration' }), {
-        status: 500,
+      return new Response(JSON.stringify({ error: 'MeSomb payment gateway is not configured. Please contact support.' }), {
+        status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -270,9 +323,10 @@ serve(async (req) => {
         provider: 'mesomb',
         status: 'pending',
         metadata: {
-          phone_number: phoneNumber,
+          phone_number: cleanedPhone,
           plan_id: planId,
-          referred_by: referredBy
+          referred_by: referredBy,
+          service: service
         }
       })
       .select()
@@ -288,67 +342,158 @@ serve(async (req) => {
 
     console.log('Pending transaction created:', pendingTransaction.id);
 
-    // Prepare MeSomb API call
-    const date = new Date();
-    const nonce = generateNonce();
-    const service = detectService(phoneNumber);
-    const endpoint = 'payment/collect/';
-    const url = `${MESOMB_HOST}/api/${MESOMB_API_VERSION}/${endpoint}`;
-    
-    const mesombBody = {
-      nonce: nonce,  // Required field according to API docs
-      amount: amount,
-      service: service,
-      payer: phoneNumber,
-      country: 'CM',
-      currency: 'XAF',
-      fees: true,
-      conversion: false,
-      trxID: pendingTransaction.id,  // Our transaction ID for reconciliation
-    };
-    
-    console.log('MeSomb request body:', mesombBody);
-    console.log('Service detected:', service);
-    
-    // Build headers
-    const mesombHeaders: Record<string, string> = {
-      'x-mesomb-date': String(date.getTime()),
-      'x-mesomb-nonce': nonce,
-      'Content-Type': 'application/json',
-      'X-MeSomb-OperationMode': 'synchronous',
-      'X-MeSomb-Application': applicationKey,
-      'X-MeSomb-TrxID': pendingTransaction.id,
-      'Accept-Language': 'en',
-    };
-    
-    // Generate authorization signature
-    const authorization = await signRequest(
-      'payment',
-      'POST',
-      url,
-      date,
-      nonce,
-      { accessKey, secretKey },
-      { 'content-type': 'application/json' },
-      mesombBody
-    );
-    
-    mesombHeaders['Authorization'] = authorization;
-    
-    console.log('Making MeSomb API call to:', url);
-    
-    // Make the actual MeSomb API call
-    const mesombResponse = await fetch(url, {
-      method: 'POST',
-      headers: mesombHeaders,
-      body: JSON.stringify(mesombBody),
-    });
-    
-    const mesombResult = await mesombResponse.json();
-    console.log('MeSomb response status:', mesombResponse.status);
-    console.log('MeSomb response:', JSON.stringify(mesombResult));
-    
-    if (!mesombResponse.ok || !mesombResult.success) {
+    try {
+      const nonce = generateNonce();
+      const date = new Date();
+      const url = `${MESOMB_HOST}/en/api/v1.1/payment/collect/`;
+      
+      // Build request body according to MeSomb API docs
+      const mesombBody = {
+        amount: amount,
+        service: service,
+        payer: cleanedPhone,
+        nonce: nonce,
+        currency: 'XAF',
+        country: 'CM',
+        fees: true,
+        message: 'Subscription payment',
+        reference: `sub_${pendingTransaction.id.substring(0, 8)}`,
+        trxID: pendingTransaction.id,
+      };
+      
+      console.log('MeSomb request body:', mesombBody);
+      
+      // Generate authorization
+      const { authorization, headers: signHeaders } = await generateAuthorization(
+        'POST',
+        url,
+        date,
+        nonce,
+        { accessKey, secretKey },
+        mesombBody
+      );
+      
+      // Build request headers
+      const requestHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': authorization,
+        'X-MeSomb-Application': applicationKey,
+        ...signHeaders,
+      };
+      
+      console.log('Making MeSomb API call to:', url);
+      console.log('Authorization header generated');
+      
+      // Make the API call
+      const mesombResponse = await fetch(url, {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(mesombBody),
+      });
+      
+      const responseText = await mesombResponse.text();
+      console.log('MeSomb response status:', mesombResponse.status);
+      console.log('MeSomb response body:', responseText);
+      
+      let mesombResult;
+      try {
+        mesombResult = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse MeSomb response:', e);
+        throw new Error(`Invalid response from MeSomb: ${responseText.substring(0, 200)}`);
+      }
+
+      if (mesombResponse.ok && mesombResult.success) {
+        // Payment successful - activate subscription
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
+          p_user_id: user.id,
+          p_new_plan_id: planId,
+          p_referred_by: referredBy || null
+        });
+        
+        if (rpcError) {
+          console.error('Failed to activate subscription after payment:', rpcError);
+          await supabase
+            .from('transactions')
+            .update({
+              status: 'completed',
+              provider_reference: mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id,
+              metadata: {
+                ...pendingTransaction.metadata,
+                mesomb_response: mesombResult,
+                subscription_activation_error: rpcError.message
+              }
+            })
+            .eq('id', pendingTransaction.id);
+          
+          return new Response(JSON.stringify({ 
+            error: 'Payment succeeded but subscription activation failed',
+            details: rpcError.message,
+            transactionId: pendingTransaction.id
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        // Get subscription ID from RPC result
+        const subscriptionId = rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult 
+          ? rpcResult.new_subscription_id 
+          : null;
+        
+        // Update transaction with success
+        await supabase
+          .from('transactions')
+          .update({
+            status: 'completed',
+            subscription_id: subscriptionId,
+            provider_reference: mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id,
+            metadata: {
+              ...pendingTransaction.metadata,
+              mesomb_response: mesombResult
+            }
+          })
+          .eq('id', pendingTransaction.id);
+        
+        console.log('Payment completed successfully, subscription activated');
+        
+        return new Response(JSON.stringify({
+          success: true,
+          transactionId: pendingTransaction.id,
+          message: 'Payment completed successfully',
+          testPayment: false
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        // Payment failed
+        const errorMessage = mesombResult.message || mesombResult.detail || 'Payment failed';
+        
+        await supabase
+          .from('transactions')
+          .update({
+            status: 'failed',
+            metadata: {
+              ...pendingTransaction.metadata,
+              mesomb_response: mesombResult,
+              error: errorMessage
+            }
+          })
+          .eq('id', pendingTransaction.id);
+        
+        console.error('MeSomb payment failed:', errorMessage);
+        return new Response(JSON.stringify({ 
+          error: errorMessage,
+          status: mesombResult.status,
+          transactionId: pendingTransaction.id
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (error) {
+      console.error('MeSomb API error:', error);
+      
       // Update transaction to failed
       await supabase
         .from('transactions')
@@ -356,92 +501,25 @@ serve(async (req) => {
           status: 'failed',
           metadata: {
             ...pendingTransaction.metadata,
-            mesomb_response: mesombResult,
-            error: mesombResult.message || mesombResult.detail || 'Payment failed'
-          }
-        })
-        .eq('id', pendingTransaction.id);
-      
-      console.error('MeSomb payment failed:', mesombResult);
-      return new Response(JSON.stringify({ 
-        error: 'Payment failed', 
-        details: mesombResult.message || mesombResult.detail || 'Unknown error',
-        transactionId: pendingTransaction.id
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Payment successful - activate subscription
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
-      p_user_id: user.id,
-      p_new_plan_id: planId,
-      p_referred_by: referredBy || null
-    });
-    
-    if (rpcError) {
-      console.error('Failed to activate subscription after payment:', rpcError);
-      // Still update transaction as completed since payment went through
-      await supabase
-        .from('transactions')
-        .update({
-          status: 'completed',
-          provider_reference: mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id,
-          metadata: {
-            ...pendingTransaction.metadata,
-            mesomb_response: mesombResult,
-            subscription_activation_error: rpcError.message
+            error: error.message || 'Payment request failed'
           }
         })
         .eq('id', pendingTransaction.id);
       
       return new Response(JSON.stringify({ 
-        error: 'Payment succeeded but subscription activation failed',
-        details: rpcError.message,
+        error: error.message || 'Payment request failed',
         transactionId: pendingTransaction.id
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    // Get subscription ID from RPC result
-    const subscriptionId = rpcResult && typeof rpcResult === 'object' && 'new_subscription_id' in rpcResult 
-      ? rpcResult.new_subscription_id 
-      : null;
-    
-    // Update transaction with success
-    await supabase
-      .from('transactions')
-      .update({
-        status: 'completed',
-        subscription_id: subscriptionId,
-        provider_reference: mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id,
-        metadata: {
-          ...pendingTransaction.metadata,
-          mesomb_response: mesombResult
-        }
-      })
-      .eq('id', pendingTransaction.id);
-    
-    console.log('Payment completed successfully, subscription activated');
-    
-    return new Response(JSON.stringify({
-      success: true,
-      transactionId: pendingTransaction.id,
-      message: 'Payment completed successfully',
-      testPayment: false
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
     console.error('Error in mesomb-payment function:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
       details: error.message,
-      stack: error.stack
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
