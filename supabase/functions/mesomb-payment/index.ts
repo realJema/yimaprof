@@ -1,102 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { PaymentOperation, RandomGenerator } from 'https://esm.sh/@hachther/mesomb@2.0.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const MESOMB_HOST = 'https://mesomb.hachther.com';
-
-// Generate a random nonce
-function generateNonce(length = 40): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  const randomValues = crypto.getRandomValues(new Uint8Array(length));
-  for (let i = 0; i < length; i++) {
-    result += chars[randomValues[i] % chars.length];
-  }
-  return result;
-}
-
-// SHA1 hash function
-async function sha1(message: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// HMAC-SHA1 function
-async function hmacSha1(key: string, message: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(key);
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-1' },
-    false,
-    ['sign']
-  );
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
-  const hashArray = Array.from(new Uint8Array(signature));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Generate MeSomb authorization header
-async function generateAuthorization(
-  method: string,
-  url: string,
-  date: Date,
-  nonce: string,
-  credentials: { accessKey: string; secretKey: string },
-  body?: Record<string, unknown>
-): Promise<{ authorization: string; headers: Record<string, string> }> {
-  const algorithm = 'HMAC-SHA1';
-  const service = 'payment';
-  
-  const urlObj = new URL(url);
-  const timestamp = date.getTime();
-  
-  const signHeaders: Record<string, string> = {
-    'host': urlObj.host,
-    'x-mesomb-date': String(timestamp),
-    'x-mesomb-nonce': nonce,
-  };
-  
-  const headersKeys = Object.keys(signHeaders).sort();
-  const canonicalHeaders = headersKeys.map(key => `${key}:${signHeaders[key]}`).join('\n');
-  const signedHeaders = headersKeys.join(';');
-  
-  const payloadHash = await sha1(body ? JSON.stringify(body) : '{}');
-  const canonicalQuery = urlObj.search ? urlObj.search.substring(1) : '';
-  const path = urlObj.pathname;
-  
-  const canonicalRequest = `${method}\n${path}\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
-  
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const dateStamp = `${year}${month}${day}`;
-  
-  const scope = `${dateStamp}/${service}/mesomb_request`;
-  
-  const canonicalRequestHash = await sha1(canonicalRequest);
-  const stringToSign = `${algorithm}\n${timestamp}\n${scope}\n${canonicalRequestHash}`;
-  
-  const signature = await hmacSha1(credentials.secretKey, stringToSign);
-  
-  const authorization = `${algorithm} Credential=${credentials.accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-  
-  return {
-    authorization,
-    headers: {
-      'x-mesomb-date': String(timestamp),
-      'x-mesomb-nonce': nonce,
-    }
-  };
-}
 
 // Determine service type from phone number (Cameroon)
 function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
@@ -291,86 +200,74 @@ serve(async (req) => {
     console.log('Pending transaction created:', pendingTransaction.id);
 
     try {
-      const nonce = generateNonce();
-      const date = new Date();
-      const url = `${MESOMB_HOST}/en/api/v1.1/payment/collect/`;
-      
-      const mesombBody = {
+      // Initialize PaymentOperation with credentials - exactly like the working Next.js version
+      const paymentOperation = new PaymentOperation({
+        applicationKey: applicationKey,
+        accessKey: accessKey,
+        secretKey: secretKey,
+      });
+
+      const collectRequest = {
         amount: amount,
         service: service,
         payer: cleanedPhone,
-        nonce: nonce,
+        nonce: RandomGenerator.nonce(),
         currency: 'XAF',
         country: 'CM',
         fees: true,
-        mode: 'asynchronous', // Use async mode to avoid timeout
         message: 'Subscription payment',
-        reference: `sub_${pendingTransaction.id.substring(0, 8)}`,
-        trxID: pendingTransaction.id,
+        reference: `sub_${pendingTransaction.id.substring(0, 8)}`
       };
-      
-      console.log('MeSomb request:', mesombBody);
-      
-      const { authorization, headers: signHeaders } = await generateAuthorization(
-        'POST', url, date, nonce, { accessKey, secretKey }, mesombBody
-      );
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
-      
-      console.log('Making MeSomb API call...');
-      
-      const mesombResponse = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authorization,
-          'X-MeSomb-Application': applicationKey,
-          ...signHeaders,
-        },
-        body: JSON.stringify(mesombBody),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      const responseText = await mesombResponse.text();
-      console.log('MeSomb response:', mesombResponse.status, responseText);
-      
-      let mesombResult;
-      try {
-        mesombResult = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Invalid MeSomb response: ${responseText.substring(0, 200)}`);
-      }
 
-      if (mesombResponse.ok && (mesombResult.success || mesombResult.status === 'PENDING')) {
-        // In async mode, payment is pending - user needs to confirm on phone
-        const providerRef = mesombResult.transaction?.pk || mesombResult.transaction?.fin_trx_id || null;
+      console.log('MeSomb collect request:', collectRequest);
+      console.log('Making MeSomb API call via SDK...');
+      
+      const response = await paymentOperation.makeCollect(collectRequest);
+
+      console.log('MeSomb SDK response:', {
+        success: response.isOperationSuccess(),
+        transactionSuccess: response.isTransactionSuccess(),
+        status: response.status,
+        message: response.message,
+        reference: response.reference
+      });
+
+      if (response.isOperationSuccess()) {
+        const providerRef = response.reference || response.transaction?.pk || null;
         
+        // Update transaction to processing
         await supabase.from('transactions').update({
           status: 'processing',
           provider_reference: providerRef,
-          metadata: { ...pendingTransaction.metadata, mesomb_response: mesombResult }
+          metadata: { 
+            ...pendingTransaction.metadata, 
+            mesomb_status: response.status,
+            mesomb_message: response.message 
+          }
         }).eq('id', pendingTransaction.id);
         
-        console.log('Payment initiated, waiting for user confirmation');
+        console.log('Payment initiated successfully');
         
         return new Response(JSON.stringify({
           success: true,
           transactionId: pendingTransaction.id,
           providerReference: providerRef,
-          message: 'Payment initiated. Please confirm on your phone.',
+          message: response.message || 'Payment initiated. Please confirm on your phone.',
           status: 'processing'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else {
-        const errorMessage = mesombResult.message || mesombResult.detail || 'Payment failed';
+        const errorMessage = response.message || 'Payment failed';
         
         await supabase.from('transactions').update({
           status: 'failed',
-          metadata: { ...pendingTransaction.metadata, mesomb_response: mesombResult, error: errorMessage }
+          metadata: { 
+            ...pendingTransaction.metadata, 
+            mesomb_status: response.status,
+            mesomb_message: response.message,
+            error: errorMessage 
+          }
         }).eq('id', pendingTransaction.id);
         
         return new Response(JSON.stringify({ 
@@ -382,35 +279,17 @@ serve(async (req) => {
         });
       }
     } catch (error) {
-      console.error('MeSomb API error:', error);
-      
-      const isTimeout = error.name === 'AbortError' || error.message?.includes('timeout');
-      
-      if (isTimeout) {
-        // Mark as processing - payment might still go through
-        await supabase.from('transactions').update({
-          status: 'processing',
-          metadata: { ...pendingTransaction.metadata, timeout: true }
-        }).eq('id', pendingTransaction.id);
-        
-        return new Response(JSON.stringify({
-          success: true,
-          transactionId: pendingTransaction.id,
-          message: 'Payment request sent. Please confirm on your phone and check your subscription status.',
-          status: 'processing'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      console.error('MeSomb SDK error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment request failed';
       
       await supabase.from('transactions').update({
         status: 'failed',
-        metadata: { ...pendingTransaction.metadata, error: error.message }
+        metadata: { ...pendingTransaction.metadata, error: errorMessage }
       }).eq('id', pendingTransaction.id);
       
       return new Response(JSON.stringify({ 
-        error: 'Payment request failed. Please try again.',
-        details: error.message
+        error: errorMessage,
+        transactionId: pendingTransaction.id
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -418,7 +297,8 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('Unhandled error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: 'Internal server error', details: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
