@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Phone, Smartphone } from 'lucide-react';
 
 export default function PaymentProcessing() {
   const [searchParams] = useSearchParams();
@@ -19,6 +20,8 @@ export default function PaymentProcessing() {
   const maxChecks = 30; // Check for 5 minutes (30 checks * 10 seconds)
 
   const transactionId = searchParams.get('transactionId');
+  const phoneNumber = searchParams.get('phone') || '';
+  const carrier = searchParams.get('carrier') as 'MTN' | 'ORANGE' | null;
 
   useEffect(() => {
     if (!user) {
@@ -91,6 +94,14 @@ export default function PaymentProcessing() {
     navigate('/exams');
   };
 
+  // Format phone number for display
+  const formatPhone = (phone: string) => {
+    if (phone.length === 9) {
+      return `${phone.slice(0, 3)} ${phone.slice(3, 6)} ${phone.slice(6)}`;
+    }
+    return phone;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
       <div className="max-w-md mx-auto">
@@ -119,7 +130,9 @@ export default function PaymentProcessing() {
                 <>
                   {t('payment_processing_desc')}
                   <br />
-                  {t('check')} #{checkCount + 1} {t('of')} {maxChecks}
+                  <span className="text-xs text-muted-foreground">
+                    {t('check')} #{checkCount + 1} {t('of')} {maxChecks}
+                  </span>
                 </>
               )}
               {status === 'completed' && t('payment_success_desc')}
@@ -130,19 +143,61 @@ export default function PaymentProcessing() {
           <CardContent className="space-y-6">
             {status === 'processing' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  {t('check_phone_payment')}
+                {/* Prominent phone confirmation message */}
+                <div className="bg-primary/10 border-2 border-primary/30 p-4 rounded-lg animate-pulse">
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <Smartphone className="h-6 w-6 text-primary" />
+                    <span className="font-bold text-lg text-primary">
+                      Confirmez sur votre téléphone
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Une demande de paiement a été envoyée
+                  </p>
                 </div>
+                
+                {/* Phone number and carrier info */}
+                {phoneNumber && (
+                  <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
+                    {carrier && (
+                      <Badge 
+                        variant="secondary" 
+                        className={carrier === 'MTN' 
+                          ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
+                          : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
+                        }
+                      >
+                        {carrier}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+
+                {/* Instructions */}
                 <div className="bg-muted/50 p-4 rounded-lg text-sm">
                   <p className="font-medium mb-2">{t('what_to_do_next')}</p>
-                  <ol className="text-left space-y-1 list-decimal list-inside">
-                    <li>{t('check_phone_notification')}</li>
-                    <li>{t('enter_pin')}</li>
-                    <li>{t('confirm_amount')}</li>
-                    <li>{t('wait_confirmation')}</li>
+                  <ol className="text-left space-y-2 list-decimal list-inside">
+                    <li className="flex items-start gap-2">
+                      <span className="shrink-0">1.</span>
+                      <span>{t('check_phone_notification')}</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="shrink-0">2.</span>
+                      <span>{t('enter_pin')}</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="shrink-0">3.</span>
+                      <span>{t('confirm_amount')}</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="shrink-0">4.</span>
+                      <span>{t('wait_confirmation')}</span>
+                    </li>
                   </ol>
                 </div>
+                
                 <Button
                   variant="outline"
                   onClick={() => navigate('/subscriptions')}
