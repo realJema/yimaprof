@@ -200,7 +200,7 @@ serve(async (req) => {
     console.log('Pending transaction created:', pendingTransaction.id);
 
     try {
-      // Initialize PaymentOperation with credentials - exactly like the working Next.js version
+      // Initialize PaymentOperation with credentials
       const paymentOperation = new PaymentOperation({
         applicationKey: applicationKey,
         accessKey: accessKey,
@@ -232,66 +232,62 @@ serve(async (req) => {
         reference: response.reference
       });
 
-      if (response.isOperationSuccess()) {
-        const providerRef = response.reference || response.transaction?.pk || null;
-        
-        // Update transaction to processing
-        await supabase.from('transactions').update({
-          status: 'processing',
-          provider_reference: providerRef,
-          metadata: { 
-            ...pendingTransaction.metadata, 
-            mesomb_status: response.status,
-            mesomb_message: response.message 
-          }
-        }).eq('id', pendingTransaction.id);
-        
-        console.log('Payment initiated successfully');
-        
-        return new Response(JSON.stringify({
-          success: true,
-          transactionId: pendingTransaction.id,
-          providerReference: providerRef,
-          message: response.message || 'Payment initiated. Please confirm on your phone.',
-          status: 'processing'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } else {
-        const errorMessage = response.message || 'Payment failed';
-        
-        await supabase.from('transactions').update({
-          status: 'failed',
-          metadata: { 
-            ...pendingTransaction.metadata, 
-            mesomb_status: response.status,
-            mesomb_message: response.message,
-            error: errorMessage 
-          }
-        }).eq('id', pendingTransaction.id);
-        
-        return new Response(JSON.stringify({ 
-          error: errorMessage,
-          transactionId: pendingTransaction.id
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      // Handle ANY response from MeSomb (success or timeout) as "processing"
+      // The payment was sent to user's phone - we need to poll for final status
+      const providerRef = response.reference || response.transaction?.pk || null;
+      const isSuccess = response.isOperationSuccess();
+      const mesombStatus = response.status;
+      const mesombMessage = response.message || '';
+      
+      // Update transaction to processing - payment request was sent
+      await supabase.from('transactions').update({
+        status: 'processing',
+        provider_reference: providerRef,
+        metadata: { 
+          ...pendingTransaction.metadata, 
+          mesomb_status: mesombStatus,
+          mesomb_message: mesombMessage,
+          mesomb_success: isSuccess
+        }
+      }).eq('id', pendingTransaction.id);
+      
+      console.log('Transaction updated to processing, returning success to frontend');
+      
+      // Always return success with transactionId so user goes to processing page
+      return new Response(JSON.stringify({
+        success: true,
+        transactionId: pendingTransaction.id,
+        providerReference: providerRef,
+        phoneNumber: cleanedPhone,
+        service: service,
+        message: isSuccess 
+          ? 'Payment initiated. Please confirm on your phone.'
+          : mesombMessage || 'Please confirm the payment on your phone.',
+        status: 'processing'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
     } catch (error) {
       console.error('MeSomb SDK error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment request failed';
       
+      // Even on SDK error, if transaction was created, set to processing
+      // User may still receive the payment prompt on their phone
       await supabase.from('transactions').update({
-        status: 'failed',
-        metadata: { ...pendingTransaction.metadata, error: errorMessage }
+        status: 'processing',
+        metadata: { ...pendingTransaction.metadata, sdk_error: errorMessage }
       }).eq('id', pendingTransaction.id);
       
+      // Return success with transactionId so user can still wait for confirmation
       return new Response(JSON.stringify({ 
-        error: errorMessage,
-        transactionId: pendingTransaction.id
+        success: true,
+        transactionId: pendingTransaction.id,
+        phoneNumber: cleanedPhone,
+        service: service,
+        message: 'Please check your phone for a payment prompt.',
+        status: 'processing'
       }), {
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

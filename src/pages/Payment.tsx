@@ -191,33 +191,44 @@ export default function Payment() {
 
       console.log('Function response:', { data, error });
 
-      if (error) {
-        console.error('Function error:', error);
-        throw error;
-      }
-
-      if (data && data.success) {
-        // Clear referral from localStorage (will be used by edge function)
+      // Check if we got a transactionId - navigate to processing page regardless of error status
+      if (data?.transactionId && !data?.testPayment) {
+        // Clear referral from localStorage
+        const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
         if (referralAffiliateId) {
           localStorage.removeItem('referral_affiliate_id');
         }
         
-        // For test payments, redirect directly to subscriptions
-        if (data.testPayment) {
-          toast({
-            title: 'Test Payment Successful!',
-            description: 'Your subscription has been activated.',
-          });
-          navigate('/subscriptions');
-        } else {
-          // For real payments, navigate to payment processing page
-          navigate(`/payment-processing?transactionId=${data.transactionId}`);
+        // Navigate to processing with phone info for better UX
+        const params = new URLSearchParams({
+          transactionId: data.transactionId,
+          phone: phoneNumber.replace(/\s/g, ''),
+          carrier: detectedCarrier || ''
+        });
+        navigate(`/payment-processing?${params.toString()}`);
+        return;
+      }
+
+      // Handle test payment
+      if (data?.success && data?.testPayment) {
+        const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
+        if (referralAffiliateId) {
+          localStorage.removeItem('referral_affiliate_id');
         }
-      } else {
-        console.error('Payment failed with data:', data);
+        toast({
+          title: 'Test Payment Successful!',
+          description: 'Your subscription has been activated.',
+        });
+        navigate('/subscriptions');
+        return;
+      }
+
+      // Real error - no transaction created
+      if (error || !data?.success) {
+        console.error('Payment failed:', error || data);
         toast({
           title: 'Payment Failed',
-          description: data?.error || 'Failed to initiate payment',
+          description: data?.error || error?.message || 'Failed to initiate payment',
           variant: 'destructive',
         });
       }
