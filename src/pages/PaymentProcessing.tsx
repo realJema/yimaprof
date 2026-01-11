@@ -12,18 +12,17 @@ import { Loader2, CheckCircle, XCircle, Phone, Smartphone } from 'lucide-react';
 export default function PaymentProcessing() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
   const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed'>('initiating');
   const [checkCount, setCheckCount] = useState(0);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
   const maxChecks = 30; // Check for 5 minutes (30 checks * 10 seconds)
   const paymentInitiated = useRef(false);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Payment params from URL
-  const urlTransactionId = searchParams.get('transactionId');
+  // Payment params (from Payment.tsx when no transactionId yet)
   const planId = searchParams.get('planId');
   const phoneNumber = searchParams.get('phone') || '';
   const carrier = searchParams.get('carrier') as 'MTN' | 'ORANGE' | null;
@@ -87,7 +86,7 @@ export default function PaymentProcessing() {
 
   // Initiate payment via edge function
   const initiatePayment = useCallback(async () => {
-    if (!planId || !phoneNumber || !amount) {
+    if (!planId || !phoneNumber || !amount || !user) {
       console.error('Missing payment parameters');
       navigate('/subscriptions');
       return;
@@ -129,49 +128,41 @@ export default function PaymentProcessing() {
         variant: 'destructive',
       });
     }
-  }, [planId, phoneNumber, amount, referredBy, navigate, startPolling, t, toast]);
+  }, [planId, phoneNumber, amount, referredBy, user, navigate, startPolling, t, toast]);
 
-  // Handle auth check and payment initiation
   useEffect(() => {
-    // Wait for auth to load before checking user
-    if (authLoading) return;
-
     if (!user) {
       navigate('/auth');
       return;
     }
 
-    // Already initiated - don't do anything
-    if (paymentInitiated.current) return;
-
-    // If we have a transactionId in URL (legacy flow), just start polling
-    if (urlTransactionId) {
-      setTransactionId(urlTransactionId);
+    // If we already have a transactionId (legacy flow), just start polling
+    if (transactionId && !paymentInitiated.current) {
       setStatus('processing');
-      startPolling(urlTransactionId);
+      startPolling(transactionId);
       paymentInitiated.current = true;
       return;
     }
 
     // If we have payment params but no transactionId, initiate payment
-    if (planId && phoneNumber && amount) {
+    if (planId && phoneNumber && amount && !paymentInitiated.current) {
       paymentInitiated.current = true;
       initiatePayment();
       return;
     }
 
     // No transactionId and no payment params - redirect
-    navigate('/subscriptions');
-  }, [authLoading, user, urlTransactionId, planId, phoneNumber, amount, navigate, initiatePayment, startPolling]);
+    if (!transactionId && !planId) {
+      navigate('/subscriptions');
+      return;
+    }
 
-  // Cleanup on unmount
-  useEffect(() => {
     return () => {
       if (pollingInterval.current) {
         clearInterval(pollingInterval.current);
       }
     };
-  }, []);
+  }, [user, transactionId, planId, phoneNumber, amount, navigate, initiatePayment, startPolling]);
 
   const handleRetry = () => {
     navigate('/subscriptions');
