@@ -5,25 +5,36 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 interface EvaluationTimerProps {
   totalSeconds: number;
+  /**
+   * Optional initial value for remaining seconds (used for session resume).
+   * If omitted, defaults to totalSeconds.
+   */
+  initialSeconds?: number;
   isPaused: boolean;
   onTimeUp: () => void;
   onTick?: (remainingSeconds: number) => void;
 }
 
-export function EvaluationTimer({ 
-  totalSeconds, 
-  isPaused, 
+export function EvaluationTimer({
+  totalSeconds,
+  initialSeconds,
+  isPaused,
   onTimeUp,
-  onTick
+  onTick,
 }: EvaluationTimerProps) {
-  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
+  const [remainingSeconds, setRemainingSeconds] = useState(() => initialSeconds ?? totalSeconds);
   const { language } = useLanguage();
+
+  // Keep internal timer in sync when starting/resuming an evaluation.
+  useEffect(() => {
+    setRemainingSeconds(initialSeconds ?? totalSeconds);
+  }, [initialSeconds, totalSeconds]);
 
   useEffect(() => {
     if (isPaused || remainingSeconds <= 0) return;
 
     const interval = setInterval(() => {
-      setRemainingSeconds(prev => {
+      setRemainingSeconds((prev) => {
         const newValue = prev - 1;
         onTick?.(newValue);
         if (newValue <= 0) {
