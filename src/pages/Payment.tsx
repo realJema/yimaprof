@@ -145,7 +145,7 @@ export default function Payment() {
     setDetectedCarrier(carrier);
   };
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
     if (!plan || !user) return;
 
     if (!phoneNumber.trim()) {
@@ -166,52 +166,48 @@ export default function Payment() {
       return;
     }
 
-    setLoading(true);
+    // Handle test payment (670000000) synchronously
+    const cleanedPhone = phoneNumber.replace(/\s/g, '');
+    if (cleanedPhone === '670000000') {
+      handleTestPayment();
+      return;
+    }
 
-    // All payments go through the edge function for consistency
+    // Navigate to processing page immediately with payment params
+    const params = new URLSearchParams({
+      planId: plan.id,
+      phone: cleanedPhone,
+      carrier: detectedCarrier || '',
+      amount: plan.price.toString()
+    });
+    
+    // Clear referral from localStorage before navigating
+    const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
+    if (referralAffiliateId) {
+      params.set('referredBy', referralAffiliateId);
+      localStorage.removeItem('referral_affiliate_id');
+    }
+    
+    navigate(`/payment-processing?${params.toString()}`);
+  };
+
+  const handleTestPayment = async () => {
+    if (!plan || !user) return;
+    
+    setLoading(true);
     try {
-      // Get referral affiliate ID from localStorage
       const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
       
-      console.log('Calling mesomb-payment function with:', {
-        planId: plan.id,
-        phoneNumber: phoneNumber.replace(/\s/g, ''),
-        amount: plan.price,
-        referredBy: referralAffiliateId
-      });
-
       const { data, error } = await supabase.functions.invoke('mesomb-payment', {
         body: {
           planId: plan.id,
-          phoneNumber: phoneNumber.replace(/\s/g, ''),
+          phoneNumber: '670000000',
           amount: plan.price,
           referredBy: referralAffiliateId
         }
       });
 
-      console.log('Function response:', { data, error });
-
-      // Check if we got a transactionId - navigate to processing page regardless of error status
-      if (data?.transactionId && !data?.testPayment) {
-        // Clear referral from localStorage
-        const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
-        if (referralAffiliateId) {
-          localStorage.removeItem('referral_affiliate_id');
-        }
-        
-        // Navigate to processing with phone info for better UX
-        const params = new URLSearchParams({
-          transactionId: data.transactionId,
-          phone: phoneNumber.replace(/\s/g, ''),
-          carrier: detectedCarrier || ''
-        });
-        navigate(`/payment-processing?${params.toString()}`);
-        return;
-      }
-
-      // Handle test payment
       if (data?.success && data?.testPayment) {
-        const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
         if (referralAffiliateId) {
           localStorage.removeItem('referral_affiliate_id');
         }
@@ -220,23 +216,14 @@ export default function Payment() {
           description: 'Your subscription has been activated.',
         });
         navigate('/subscriptions');
-        return;
-      }
-
-      // Real error - no transaction created
-      if (error || !data?.success) {
-        console.error('Payment failed:', error || data);
-        toast({
-          title: 'Payment Failed',
-          description: data?.error || error?.message || 'Failed to initiate payment',
-          variant: 'destructive',
-        });
+      } else {
+        throw new Error(data?.error || 'Test payment failed');
       }
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Test payment error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to process payment. Please try again.',
+        description: 'Test payment failed. Please try again.',
         variant: 'destructive',
       });
     } finally {
