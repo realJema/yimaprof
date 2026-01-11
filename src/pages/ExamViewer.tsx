@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { FileText, Calendar, Clock, ArrowLeft, X, Play, CheckCircle, BookOpen } from 'lucide-react';
+import { FileText, Clock, ArrowLeft, X, Play, CheckCircle, BookOpen, WifiOff, RefreshCw } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
@@ -22,6 +22,15 @@ import { EvaluationResultsDialog } from '@/components/exam/EvaluationResultsDial
 import { EvaluationExitDialog } from '@/components/exam/EvaluationExitDialog';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import {
+  clearEvaluationSession,
+  enqueuePendingSubmission,
+  loadEvaluationSession,
+  saveEvaluationSession,
+  setLastActiveExamRoute,
+  type EvaluationSession,
+} from '@/lib/evaluationSession';
+
 
 interface Exam {
   id: string;
@@ -113,7 +122,13 @@ export default function ExamViewer() {
   const [userAnswers, setUserAnswers] = useState<Array<{ questionIndex: number; answer: string }>>([]);
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
-  
+
+  // Resumable evaluation state
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const persistDebounceRef = useRef<number | null>(null);
+  const [fetchError, setFetchError] = useState<'network' | 'not_found' | null>(null);
+  const [isSubmittingResult, setIsSubmittingResult] = useState(false);
+
   // Enhanced evaluation state
   const [showRulesDialog, setShowRulesDialog] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -197,6 +212,7 @@ export default function ExamViewer() {
 
   const fetchExam = useCallback(async () => {
     try {
+      setFetchError(null);
       const { data: examData, error: examError } = await supabase
         .from('exams')
         .select(`
@@ -211,7 +227,7 @@ export default function ExamViewer() {
         `)
         .eq('id', examId)
         .single();
-      
+
       if (examError) throw examError;
       setExam(examData as any);
 
@@ -222,11 +238,18 @@ export default function ExamViewer() {
           setActiveQuestion(questions[0].id);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      const msg = String(error?.message || '');
+      const isNetwork = !navigator.onLine || /failed to fetch|network/i.test(msg);
+      setFetchError(isNetwork ? 'network' : 'not_found');
+
       toast({
         title: language === 'fr' ? 'Erreur' : 'Error',
-        description: language === 'fr' ? 'Échec de la récupération des détails de l\'épreuve' : 'Failed to fetch exam details',
-        variant: 'destructive'
+        description:
+          language === 'fr'
+            ? "Échec de la récupération des détails de l'épreuve"
+            : 'Failed to fetch exam details',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -240,6 +263,86 @@ export default function ExamViewer() {
       fetchAttemptCount();
     }
   }, [examId, fetchExam, checkAccess, fetchAttemptCount]);
+
+  // Restore evaluation session on refresh/reopen (critical: no session loss).
+  useEffect(() => {
+    if (!examId) return;
+
+    // Only restore when user is explicitly in evaluation mode and hasn't already started.
+    if (mode !== 'evaluation' || evaluationActive || submitted) return;
+
+    const session = loadEvaluationSession(user?.id ?? null, examId);
+    if (!session) return;
+
+    setCurrentAttemptNumber(session.attemptNumber);
+    setTotalEvaluationSeconds(session.totalSeconds);
+    setRemainingSeconds(session.remainingSeconds);
+    setTimeSpentSeconds(session.timeSpentSeconds);
+    setUserAnswers(session.answers || []);
+    if (session.activeQuestionId) setActiveQuestion(session.activeQuestionId);
+    if (typeof session.zoom === 'number') setZoom(session.zoom);
+
+    setEvaluationActive(true);
+    setEvaluationPaused(session.paused ?? true);
+  }, [examId, mode, evaluationActive, submitted, user?.id]);
+
+  // Persist evaluation session while user is working.
+  useEffect(() => {
+    if (!examId) return;
+    if (!evaluationActive || submitted) return;
+
+    // debounce to avoid writing on every keystroke/tick
+    if (persistDebounceRef.current) window.clearTimeout(persistDebounceRef.current);
+
+    persistDebounceRef.current = window.setTimeout(() => {
+      const route = `/exam/${examId}?mode=evaluation`;
+      setLastActiveExamRoute(route);
+
+      const session: EvaluationSession = {
+        version: 1,
+        userId: user?.id ?? null,
+        examId,
+        route,
+        attemptNumber: currentAttemptNumber,
+        totalSeconds: totalEvaluationSeconds,
+        remainingSeconds: remainingSeconds ?? totalEvaluationSeconds,
+        timeSpentSeconds,
+        answers: userAnswers,
+        activeQuestionId: activeQuestion,
+        zoom,
+        paused: evaluationPaused,
+        updatedAt: Date.now(),
+      };
+
+      saveEvaluationSession(session);
+    }, 250);
+
+    return () => {
+      if (persistDebounceRef.current) window.clearTimeout(persistDebounceRef.current);
+    };
+  }, [
+    examId,
+    evaluationActive,
+    submitted,
+    user?.id,
+    currentAttemptNumber,
+    totalEvaluationSeconds,
+    remainingSeconds,
+    timeSpentSeconds,
+    userAnswers,
+    activeQuestion,
+    zoom,
+    evaluationPaused,
+  ]);
+
+  // If user is offline during evaluation, pause automatically to protect remaining time.
+  useEffect(() => {
+    if (!evaluationActive || submitted) return;
+
+    const onOffline = () => setEvaluationPaused(true);
+    window.addEventListener('offline', onOffline);
+    return () => window.removeEventListener('offline', onOffline);
+  }, [evaluationActive, submitted]);
 
   // Fullscreen change handler
   useEffect(() => {
@@ -327,43 +430,78 @@ export default function ExamViewer() {
     return { correct, total };
   }, [exam, userAnswers]);
 
-  // Save evaluation to database
-  const saveEvaluation = useCallback(async (mcqScore: { correct: number; total: number } | null) => {
-    if (!user || !examId) return;
+  // Save evaluation to database (reliable: retries + offline queue)
+  const saveEvaluation = useCallback(
+    async (mcqScore: { correct: number; total: number } | null) => {
+      if (!user || !examId) return { ok: false };
 
-    try {
-      const { error } = await supabase.from('user_evaluations').insert({
+      const payload = {
         user_id: user.id,
         exam_id: examId,
         attempt_number: currentAttemptNumber,
         mcq_score: mcqScore?.correct ?? null,
         mcq_total: mcqScore?.total ?? null,
         time_spent_seconds: timeSpentSeconds,
-        answers: userAnswers
-      });
+        answers: userAnswers,
+      };
 
-      if (error) {
-        console.error('Error saving evaluation:', error);
+      // If offline, queue immediately.
+      if (!navigator.onLine) {
+        enqueuePendingSubmission({
+          version: 1,
+          id: crypto.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          createdAt: Date.now(),
+          payload,
+        });
+        return { ok: false };
       }
-    } catch (error) {
-      console.error('Error saving evaluation:', error);
-    }
-  }, [user, examId, currentAttemptNumber, timeSpentSeconds, userAnswers]);
+
+      // Retry a few times for transient network glitches.
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const { error } = await supabase.from('user_evaluations').insert(payload);
+        if (!error) return { ok: true };
+
+        const msg = String(error.message || '');
+        const transient = /timeout|network|failed to fetch|fetch/i.test(msg);
+        if (!transient || attempt === 3) {
+          console.error('Error saving evaluation:', error);
+          enqueuePendingSubmission({
+            version: 1,
+            id: crypto.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+            createdAt: Date.now(),
+            payload,
+          });
+          return { ok: false };
+        }
+
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+      }
+
+      return { ok: false };
+    },
+    [user, examId, currentAttemptNumber, timeSpentSeconds, userAnswers]
+  );
 
   // Start evaluation (after rules dialog)
   const handleStartEvaluation = async () => {
     setShowRulesDialog(false);
+
+    // fresh start: clear any previous local session
+    if (examId) clearEvaluationSession(user?.id ?? null, examId);
+
     setEvaluationActive(true);
     setEvaluationPaused(false);
     setUserAnswers([]);
     setSubmitted(false);
     setScore(null);
-    
+
     const durationMinutes = exam?.durations?.minutes || DEFAULT_DURATION_MINUTES;
-    setTotalEvaluationSeconds(durationMinutes * 60);
+    const totalSeconds = durationMinutes * 60;
+    setTotalEvaluationSeconds(totalSeconds);
+    setRemainingSeconds(totalSeconds);
     setTimeSpentSeconds(0);
-    
-    // Enter fullscreen
+
+    // Enter fullscreen (best effort; may be blocked without user gesture on some browsers)
     try {
       await document.documentElement.requestFullscreen();
     } catch (error) {
@@ -376,13 +514,19 @@ export default function ExamViewer() {
 
   // Handle evaluation submission
   const handleSubmitEvaluation = async () => {
+    if (isSubmittingResult) return;
+    setIsSubmittingResult(true);
+
+    // Stop time immediately
+    setEvaluationPaused(true);
+
     const hasMcq = hasMcqQuestions();
     const mcqScore = hasMcq ? calculateScore() : null;
-    
+
     setScore(mcqScore);
     setSubmitted(true);
     setEvaluationActive(false);
-    
+
     // Exit fullscreen
     if (document.fullscreenElement) {
       try {
@@ -392,11 +536,15 @@ export default function ExamViewer() {
       }
     }
 
-    // Save to database
+    // Save to database (retries/queue). If queued, the history will appear once sync happens.
     await saveEvaluation(mcqScore);
-    
+
+    // Once submitted, clear local session so it can't be resumed or re-submitted accidentally.
+    if (examId) clearEvaluationSession(user?.id ?? null, examId);
+
     // Show results dialog
     setShowResultsDialog(true);
+    setIsSubmittingResult(false);
   };
 
   // Handle time up
@@ -410,10 +558,11 @@ export default function ExamViewer() {
   };
 
   // Handle timer tick
-  const handleTimerTick = (remainingSeconds: number) => {
+  const handleTimerTick = (nextRemainingSeconds: number) => {
+    setRemainingSeconds(nextRemainingSeconds);
     const durationMinutes = exam?.durations?.minutes || DEFAULT_DURATION_MINUTES;
     const totalSeconds = durationMinutes * 60;
-    setTimeSpentSeconds(totalSeconds - remainingSeconds);
+    setTimeSpentSeconds(Math.max(0, totalSeconds - nextRemainingSeconds));
   };
 
   // Handle pause
@@ -436,7 +585,10 @@ export default function ExamViewer() {
     setEvaluationActive(false);
     setEvaluationPaused(false);
     setUserAnswers([]);
-    
+
+    // Clear resumable session explicitly on exit.
+    if (examId) clearEvaluationSession(user?.id ?? null, examId);
+
     // Exit fullscreen
     if (document.fullscreenElement) {
       try {
@@ -445,7 +597,7 @@ export default function ExamViewer() {
         console.error('Could not exit fullscreen:', error);
       }
     }
-    
+
     navigate(`/exam/${examId}?mode=preview`, { replace: true });
   };
 
@@ -531,6 +683,7 @@ export default function ExamViewer() {
               <div className="flex items-center gap-4">
                 <EvaluationTimer
                   totalSeconds={totalEvaluationSeconds}
+                  initialSeconds={remainingSeconds ?? totalEvaluationSeconds}
                   isPaused={evaluationPaused}
                   onTimeUp={handleTimeUp}
                   onTick={handleTimerTick}
