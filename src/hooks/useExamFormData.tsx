@@ -7,6 +7,7 @@ interface Subject {
   name_en: string;
   name_fr: string;
   is_active: boolean;
+  system: 'francophone' | 'anglophone' | 'shared';
 }
 
 interface Establishment {

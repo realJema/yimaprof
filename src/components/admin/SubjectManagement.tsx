@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AdminDataTable } from './AdminDataTable';
@@ -16,6 +17,7 @@ interface Subject {
   name_en: string | null;
   name_fr: string | null;
   is_active: boolean | null;
+  system?: 'francophone' | 'anglophone' | 'shared' | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +34,7 @@ export function SubjectManagement() {
     name_en: '',
     name_fr: '',
     is_active: true,
+    system: 'shared' as 'francophone' | 'anglophone' | 'shared',
   });
 
   useEffect(() => {
@@ -88,7 +91,7 @@ export function SubjectManagement() {
 
       setIsDialogOpen(false);
       setEditingItem(null);
-      setFormData({ name: '', name_en: '', name_fr: '', is_active: true });
+      setFormData({ name: '', name_en: '', name_fr: '', is_active: true, system: 'shared' });
       fetchSubjects();
     } catch (error) {
       console.error('Error saving subject:', error);
@@ -107,6 +110,7 @@ export function SubjectManagement() {
       name_en: item.name_en || '',
       name_fr: item.name_fr || '',
       is_active: item.is_active ?? true,
+      system: item.system || 'shared',
     });
     setIsDialogOpen(true);
   };
@@ -142,6 +146,18 @@ export function SubjectManagement() {
     { key: 'name_en', label: 'Name (EN)' },
     { key: 'name_fr', label: 'Name (FR)' },
     { 
+      key: 'system', 
+      label: 'System',
+      render: (value: string) => {
+        const labels: Record<string, string> = { 
+          francophone: '🇫🇷 Francophone', 
+          anglophone: '🇬🇧 Anglophone', 
+          shared: '🌐 Both' 
+        };
+        return labels[value] || value;
+      }
+    },
+    { 
       key: 'is_active', 
       label: 'Active',
       render: (value: boolean) => value ? '✓' : '✗'
@@ -159,7 +175,7 @@ export function SubjectManagement() {
           <DialogTrigger asChild>
             <Button onClick={() => {
               setEditingItem(null);
-              setFormData({ name: '', name_en: '', name_fr: '', is_active: true });
+              setFormData({ name: '', name_en: '', name_fr: '', is_active: true, system: 'shared' });
             }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Subject
@@ -196,6 +212,22 @@ export function SubjectManagement() {
                   value={formData.name_fr}
                   onChange={(e) => setFormData({ ...formData, name_fr: e.target.value })}
                 />
+              </div>
+              <div>
+                <Label htmlFor="system">System</Label>
+                <Select
+                  value={formData.system}
+                  onValueChange={(value: 'francophone' | 'anglophone' | 'shared') => setFormData({ ...formData, system: value })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select system" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="francophone">🇫🇷 Francophone</SelectItem>
+                    <SelectItem value="anglophone">🇬🇧 Anglophone</SelectItem>
+                    <SelectItem value="shared">🌐 Both Systems</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
