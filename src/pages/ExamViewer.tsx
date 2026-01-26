@@ -22,16 +22,7 @@ import { EvaluationResultsDialog } from '@/components/exam/EvaluationResultsDial
 import { EvaluationExitDialog } from '@/components/exam/EvaluationExitDialog';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import {
-  clearEvaluationSession,
-  enqueuePendingSubmission,
-  loadEvaluationSession,
-  saveEvaluationSession,
-  setLastActiveExamRoute,
-  type EvaluationSession,
-} from '@/lib/evaluationSession';
-
-
+import { clearEvaluationSession, enqueuePendingSubmission, loadEvaluationSession, saveEvaluationSession, setLastActiveExamRoute, type EvaluationSession } from '@/lib/evaluationSession';
 interface Exam {
   id: string;
   title: string;
@@ -84,25 +75,31 @@ interface Exam {
     country?: string;
   };
 }
-
 interface SidebarQuestion {
   id: string;
   number: string;
   text: string;
   type: 'heading' | 'question';
 }
-
 const DEFAULT_DURATION_MINUTES = 60;
-
 export default function ExamViewer() {
-  const { examId } = useParams();
+  const {
+    examId
+  } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { language, t } = useLanguage();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    language,
+    t
+  } = useLanguage();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const mode = searchParams.get('mode') || 'preview';
-  
+
   // Core state
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,9 +116,15 @@ export default function ExamViewer() {
   const isMobile = useIsMobile();
 
   // Evaluation state
-  const [userAnswers, setUserAnswers] = useState<Array<{ questionIndex: number; answer: string }>>([]);
+  const [userAnswers, setUserAnswers] = useState<Array<{
+    questionIndex: number;
+    answer: string;
+  }>>([]);
   const [submitted, setSubmitted] = useState(false);
-  const [score, setScore] = useState<{ correct: number; total: number } | null>(null);
+  const [score, setScore] = useState<{
+    correct: number;
+    total: number;
+  } | null>(null);
 
   // Resumable evaluation state
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -144,14 +147,14 @@ export default function ExamViewer() {
   // Fetch previous attempts count
   const fetchAttemptCount = useCallback(async () => {
     if (!user || !examId) return;
-    
     try {
-      const { count, error } = await supabase
-        .from('user_evaluations')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('exam_id', examId);
-      
+      const {
+        count,
+        error
+      } = await supabase.from('user_evaluations').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('user_id', user.id).eq('exam_id', examId);
       if (!error && count !== null) {
         setAttemptCount(count);
         setCurrentAttemptNumber(count + 1);
@@ -160,7 +163,6 @@ export default function ExamViewer() {
       console.error('Error fetching attempt count:', error);
     }
   }, [user, examId]);
-
   const checkAccess = useCallback(async () => {
     if (!user) {
       setHasAccess(true);
@@ -168,7 +170,12 @@ export default function ExamViewer() {
       return;
     }
     try {
-      const { data: isAdminUser, error: adminError } = await supabase.rpc('is_admin', { user_id: user.id });
+      const {
+        data: isAdminUser,
+        error: adminError
+      } = await supabase.rpc('is_admin', {
+        user_id: user.id
+      });
       if (!adminError && isAdminUser === true) {
         setHasAccess(true);
         setIsFreeUser(false);
@@ -177,19 +184,13 @@ export default function ExamViewer() {
 
       // Check for active AND non-expired subscription
       const now = new Date().toISOString();
-      const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select(`*, subscription_plans (name)`)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .gte('expires_at', now)
-        .maybeSingle();
-      
+      const {
+        data: subscription
+      } = await supabase.from('subscriptions').select(`*, subscription_plans (name)`).eq('user_id', user.id).eq('status', 'active').gte('expires_at', now).maybeSingle();
       if (subscription && subscription.expires_at) {
         // Double-check expiration on client side (defense in depth)
         const expirationDate = new Date(subscription.expires_at);
         const currentDate = new Date();
-        
         if (expirationDate.getTime() > currentDate.getTime()) {
           setHasAccess(true);
           setIsFreeUser(false);
@@ -209,13 +210,13 @@ export default function ExamViewer() {
       setIsFreeUser(true);
     }
   }, [user]);
-
   const fetchExam = useCallback(async () => {
     try {
       setFetchError(null);
-      const { data: examData, error: examError } = await supabase
-        .from('exams')
-        .select(`
+      const {
+        data: examData,
+        error: examError
+      } = await supabase.from('exams').select(`
           *,
           classes (id, name, display_name, section, level),
           subjects:subject_id (name, name_en, name_fr),
@@ -224,13 +225,9 @@ export default function ExamViewer() {
           academic_years:academic_year_id (year_label, start_year, end_year),
           durations:duration_id (display_label, minutes),
           establishments:establishment_id (name, type, country)
-        `)
-        .eq('id', examId)
-        .single();
-
+        `).eq('id', examId).single();
       if (examError) throw examError;
       setExam(examData as any);
-
       if (examData.content) {
         const questions = extractQuestions(examData.content);
         setSidebarQuestions(questions);
@@ -242,20 +239,15 @@ export default function ExamViewer() {
       const msg = String(error?.message || '');
       const isNetwork = !navigator.onLine || /failed to fetch|network/i.test(msg);
       setFetchError(isNetwork ? 'network' : 'not_found');
-
       toast({
         title: language === 'fr' ? 'Erreur' : 'Error',
-        description:
-          language === 'fr'
-            ? "Échec de la récupération des détails de l'épreuve"
-            : 'Failed to fetch exam details',
-        variant: 'destructive',
+        description: language === 'fr' ? "Échec de la récupération des détails de l'épreuve" : 'Failed to fetch exam details',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
   }, [examId, language, toast]);
-
   useEffect(() => {
     if (examId) {
       fetchExam();
@@ -270,10 +262,8 @@ export default function ExamViewer() {
 
     // Only restore when user is explicitly in evaluation mode and hasn't already started.
     if (mode !== 'evaluation' || evaluationActive || submitted) return;
-
     const session = loadEvaluationSession(user?.id ?? null, examId);
     if (!session) return;
-
     setCurrentAttemptNumber(session.attemptNumber);
     setTotalEvaluationSeconds(session.totalSeconds);
     setRemainingSeconds(session.remainingSeconds);
@@ -281,7 +271,6 @@ export default function ExamViewer() {
     setUserAnswers(session.answers || []);
     if (session.activeQuestionId) setActiveQuestion(session.activeQuestionId);
     if (typeof session.zoom === 'number') setZoom(session.zoom);
-
     setEvaluationActive(true);
     setEvaluationPaused(session.paused ?? true);
   }, [examId, mode, evaluationActive, submitted, user?.id]);
@@ -293,11 +282,9 @@ export default function ExamViewer() {
 
     // debounce to avoid writing on every keystroke/tick
     if (persistDebounceRef.current) window.clearTimeout(persistDebounceRef.current);
-
     persistDebounceRef.current = window.setTimeout(() => {
       const route = `/exam/${examId}?mode=evaluation`;
       setLastActiveExamRoute(route);
-
       const session: EvaluationSession = {
         version: 1,
         userId: user?.id ?? null,
@@ -311,34 +298,18 @@ export default function ExamViewer() {
         activeQuestionId: activeQuestion,
         zoom,
         paused: evaluationPaused,
-        updatedAt: Date.now(),
+        updatedAt: Date.now()
       };
-
       saveEvaluationSession(session);
     }, 250);
-
     return () => {
       if (persistDebounceRef.current) window.clearTimeout(persistDebounceRef.current);
     };
-  }, [
-    examId,
-    evaluationActive,
-    submitted,
-    user?.id,
-    currentAttemptNumber,
-    totalEvaluationSeconds,
-    remainingSeconds,
-    timeSpentSeconds,
-    userAnswers,
-    activeQuestion,
-    zoom,
-    evaluationPaused,
-  ]);
+  }, [examId, evaluationActive, submitted, user?.id, currentAttemptNumber, totalEvaluationSeconds, remainingSeconds, timeSpentSeconds, userAnswers, activeQuestion, zoom, evaluationPaused]);
 
   // If user is offline during evaluation, pause automatically to protect remaining time.
   useEffect(() => {
     if (!evaluationActive || submitted) return;
-
     const onOffline = () => setEvaluationPaused(true);
     window.addEventListener('offline', onOffline);
     return () => window.removeEventListener('offline', onOffline);
@@ -353,47 +324,61 @@ export default function ExamViewer() {
         setEvaluationPaused(true);
       }
     };
-
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, [evaluationActive, submitted]);
-
   const extractQuestions = (content: any): SidebarQuestion[] => {
     const questions: SidebarQuestion[] = [];
     let questionNumber = 0;
     const items = Array.isArray(content) ? content : content.questions || [];
     items.forEach((item: any) => {
       if (item.item_type === 'heading') {
-        questions.push({ id: item.id, number: '', text: item.text || '', type: 'heading' });
+        questions.push({
+          id: item.id,
+          number: '',
+          text: item.text || '',
+          type: 'heading'
+        });
       } else if (item.item_type === 'question') {
         questionNumber++;
-        questions.push({ id: item.id, number: item.paper_number || `Q${questionNumber}`, text: item.text || '', type: 'question' });
+        questions.push({
+          id: item.id,
+          number: item.paper_number || `Q${questionNumber}`,
+          text: item.text || '',
+          type: 'question'
+        });
       }
     });
     return questions;
   };
-
   const handleQuestionClick = (questionId: string) => {
     setActiveQuestion(questionId);
     const element = document.getElementById(`question-${questionId}`);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
     }
   };
-
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleZoomReset = () => setZoom(1);
-
   const handleAnswerChange = (questionIndex: number, answer: string) => {
     setUserAnswers(prev => {
       const existing = prev.findIndex(a => a.questionIndex === questionIndex);
       if (existing >= 0) {
         const updated = [...prev];
-        updated[existing] = { questionIndex, answer };
+        updated[existing] = {
+          questionIndex,
+          answer
+        };
         return updated;
       }
-      return [...prev, { questionIndex, answer }];
+      return [...prev, {
+        questionIndex,
+        answer
+      }];
     });
   };
 
@@ -401,23 +386,17 @@ export default function ExamViewer() {
   const hasMcqQuestions = useCallback(() => {
     if (!exam?.content) return false;
     const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
-    return items.some((item: any) => 
-      (item.item_type === 'question' && item.question_type === 'multiple_choice') || 
-      item.type === 'multiple_choice'
-    );
+    return items.some((item: any) => item.item_type === 'question' && item.question_type === 'multiple_choice' || item.type === 'multiple_choice');
   }, [exam]);
-
   const calculateScore = useCallback(() => {
-    if (!exam?.content) return { correct: 0, total: 0 };
-    
+    if (!exam?.content) return {
+      correct: 0,
+      total: 0
+    };
     let correct = 0;
     let total = 0;
     const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
-    const questions = items.filter((item: any) => 
-      (item.item_type === 'question' && item.question_type === 'multiple_choice') || 
-      item.type === 'multiple_choice'
-    );
-    
+    const questions = items.filter((item: any) => item.item_type === 'question' && item.question_type === 'multiple_choice' || item.type === 'multiple_choice');
     questions.forEach((question: any, index: number) => {
       total++;
       const userAnswer = userAnswers.find(a => a.questionIndex === index);
@@ -426,61 +405,71 @@ export default function ExamViewer() {
         correct++;
       }
     });
-    
-    return { correct, total };
+    return {
+      correct,
+      total
+    };
   }, [exam, userAnswers]);
 
   // Save evaluation to database (reliable: retries + offline queue)
-  const saveEvaluation = useCallback(
-    async (mcqScore: { correct: number; total: number } | null) => {
-      if (!user || !examId) return { ok: false };
+  const saveEvaluation = useCallback(async (mcqScore: {
+    correct: number;
+    total: number;
+  } | null) => {
+    if (!user || !examId) return {
+      ok: false
+    };
+    const payload = {
+      user_id: user.id,
+      exam_id: examId,
+      attempt_number: currentAttemptNumber,
+      mcq_score: mcqScore?.correct ?? null,
+      mcq_total: mcqScore?.total ?? null,
+      time_spent_seconds: timeSpentSeconds,
+      answers: userAnswers
+    };
 
-      const payload = {
-        user_id: user.id,
-        exam_id: examId,
-        attempt_number: currentAttemptNumber,
-        mcq_score: mcqScore?.correct ?? null,
-        mcq_total: mcqScore?.total ?? null,
-        time_spent_seconds: timeSpentSeconds,
-        answers: userAnswers,
+    // If offline, queue immediately.
+    if (!navigator.onLine) {
+      enqueuePendingSubmission({
+        version: 1,
+        id: crypto.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        createdAt: Date.now(),
+        payload
+      });
+      return {
+        ok: false
       };
+    }
 
-      // If offline, queue immediately.
-      if (!navigator.onLine) {
+    // Retry a few times for transient network glitches.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const {
+        error
+      } = await supabase.from('user_evaluations').insert(payload);
+      if (!error) return {
+        ok: true
+      };
+      const msg = String(error.message || '');
+      const transient = /timeout|network|failed to fetch|fetch/i.test(msg);
+      if (!transient || attempt === 3) {
+        console.error('Error saving evaluation:', error);
         enqueuePendingSubmission({
           version: 1,
           id: crypto.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
           createdAt: Date.now(),
-          payload,
+          payload
         });
-        return { ok: false };
+        return {
+          ok: false
+        };
       }
-
-      // Retry a few times for transient network glitches.
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        const { error } = await supabase.from('user_evaluations').insert(payload);
-        if (!error) return { ok: true };
-
-        const msg = String(error.message || '');
-        const transient = /timeout|network|failed to fetch|fetch/i.test(msg);
-        if (!transient || attempt === 3) {
-          console.error('Error saving evaluation:', error);
-          enqueuePendingSubmission({
-            version: 1,
-            id: crypto.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-            createdAt: Date.now(),
-            payload,
-          });
-          return { ok: false };
-        }
-
-        await new Promise((r) => setTimeout(r, 400 * attempt));
-      }
-
-      return { ok: false };
-    },
-    [user, examId, currentAttemptNumber, timeSpentSeconds, userAnswers]
-  );
+      await new Promise(r => setTimeout(r, 400 * attempt));
+    }
+    return {
+      ok: false
+    };
+  }, [user, examId, currentAttemptNumber, timeSpentSeconds, userAnswers]);
 
   // Start evaluation (after rules dialog)
   const handleStartEvaluation = async () => {
@@ -488,13 +477,11 @@ export default function ExamViewer() {
 
     // fresh start: clear any previous local session
     if (examId) clearEvaluationSession(user?.id ?? null, examId);
-
     setEvaluationActive(true);
     setEvaluationPaused(false);
     setUserAnswers([]);
     setSubmitted(false);
     setScore(null);
-
     const durationMinutes = exam?.durations?.minutes || DEFAULT_DURATION_MINUTES;
     const totalSeconds = durationMinutes * 60;
     setTotalEvaluationSeconds(totalSeconds);
@@ -509,7 +496,9 @@ export default function ExamViewer() {
     }
 
     // Navigate to evaluation mode
-    navigate(`/exam/${examId}?mode=evaluation`, { replace: true });
+    navigate(`/exam/${examId}?mode=evaluation`, {
+      replace: true
+    });
   };
 
   // Handle evaluation submission
@@ -519,10 +508,8 @@ export default function ExamViewer() {
 
     // Stop time immediately
     setEvaluationPaused(true);
-
     const hasMcq = hasMcqQuestions();
     const mcqScore = hasMcq ? calculateScore() : null;
-
     setScore(mcqScore);
     setSubmitted(true);
     setEvaluationActive(false);
@@ -597,8 +584,9 @@ export default function ExamViewer() {
         console.error('Could not exit fullscreen:', error);
       }
     }
-
-    navigate(`/exam/${examId}?mode=preview`, { replace: true });
+    navigate(`/exam/${examId}?mode=preview`, {
+      replace: true
+    });
   };
 
   // Handle retry
@@ -612,13 +600,17 @@ export default function ExamViewer() {
   // Handle close results
   const handleCloseResults = () => {
     setShowResultsDialog(false);
-    navigate(`/exam/${examId}?mode=preview`, { replace: true });
+    navigate(`/exam/${examId}?mode=preview`, {
+      replace: true
+    });
   };
 
   // Handle view answers - navigate to correction mode with submitted answers
   const handleViewAnswers = () => {
     setShowResultsDialog(false);
-    navigate(`/exam/${examId}?mode=correction`, { replace: true });
+    navigate(`/exam/${examId}?mode=correction`, {
+      replace: true
+    });
   };
 
   // Reset evaluation for retry button in old flow
@@ -636,18 +628,13 @@ export default function ExamViewer() {
       setShowRulesDialog(true);
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+    return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <p className="text-muted-foreground">{language === 'fr' ? 'Chargement...' : 'Loading...'}</p>
-      </div>
-    );
+      </div>;
   }
-
   if (!exam) {
-    return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+    return <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">
@@ -658,17 +645,14 @@ export default function ExamViewer() {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted) || isFreeUser;
+  const showAnswers = mode === 'correction' || mode === 'evaluation' && submitted || isFreeUser;
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
 
   // Fullscreen evaluation mode
   if (evaluationActive && !submitted) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
+    return <div className="min-h-screen bg-background flex flex-col">
         {/* Fullscreen Header */}
         <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 py-3">
@@ -681,37 +665,20 @@ export default function ExamViewer() {
               </div>
               
               <div className="flex items-center gap-4">
-                <EvaluationTimer
-                  totalSeconds={totalEvaluationSeconds}
-                  initialSeconds={remainingSeconds ?? totalEvaluationSeconds}
-                  isPaused={evaluationPaused}
-                  onTimeUp={handleTimeUp}
-                  onTick={handleTimerTick}
-                />
-                <EvaluationControls
-                  isPaused={evaluationPaused}
-                  onPause={handlePause}
-                  onResume={handleResume}
-                  onExit={() => setShowExitDialog(true)}
-                  onSubmit={handleSubmitEvaluation}
-                  canSubmit={userAnswers.length > 0}
-                />
+                <EvaluationTimer totalSeconds={totalEvaluationSeconds} initialSeconds={remainingSeconds ?? totalEvaluationSeconds} isPaused={evaluationPaused} onTimeUp={handleTimeUp} onTick={handleTimerTick} />
+                <EvaluationControls isPaused={evaluationPaused} onPause={handlePause} onResume={handleResume} onExit={() => setShowExitDialog(true)} onSubmit={handleSubmitEvaluation} canSubmit={userAnswers.length > 0} />
               </div>
             </div>
           </div>
         </header>
 
         {/* Pause Overlay */}
-        {evaluationPaused && (
-          <div className="fixed inset-0 z-40 bg-background/95 backdrop-blur flex items-center justify-center">
+        {evaluationPaused && <div className="fixed inset-0 z-40 bg-background/95 backdrop-blur flex items-center justify-center">
             <Card className="max-w-md">
               <CardHeader className="text-center">
                 <CardTitle>{language === 'fr' ? 'Évaluation en Pause' : 'Evaluation Paused'}</CardTitle>
                 <CardDescription>
-                  {language === 'fr' 
-                    ? 'Cliquez sur "Reprendre" pour continuer votre évaluation.'
-                    : 'Click "Resume" to continue your evaluation.'
-                  }
+                  {language === 'fr' ? 'Cliquez sur "Reprendre" pour continuer votre évaluation.' : 'Click "Resume" to continue your evaluation.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center gap-3">
@@ -724,49 +691,34 @@ export default function ExamViewer() {
                 </Button>
               </CardContent>
             </Card>
-          </div>
-        )}
+          </div>}
 
         {/* Content */}
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto px-4 py-6 max-w-4xl">
-            <div ref={contentRef} style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }} className="transition-transform duration-200">
-              {exam.content ? (
-                <ExamContentRenderer
-                  content={exam.content}
-                  showAnswers={false}
-                  mode="evaluation"
-                  questionIdPrefix="question-"
-                  userAnswers={userAnswers}
-                  onAnswerChange={handleAnswerChange}
-                />
-              ) : (
-                <Card>
+            <div ref={contentRef} style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left'
+          }} className="transition-transform duration-200">
+              {exam.content ? <ExamContentRenderer content={exam.content} showAnswers={false} mode="evaluation" questionIdPrefix="question-" userAnswers={userAnswers} onAnswerChange={handleAnswerChange} /> : <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
                       {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
                     </p>
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
             </div>
           </div>
         </main>
 
         <ZoomControls zoom={zoom} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onReset={handleZoomReset} />
         
-        <EvaluationExitDialog
-          open={showExitDialog}
-          onOpenChange={setShowExitDialog}
-          onConfirmExit={handleConfirmExit}
-        />
-      </div>
-    );
+        <EvaluationExitDialog open={showExitDialog} onOpenChange={setShowExitDialog} onConfirmExit={handleConfirmExit} />
+      </div>;
   }
 
   // Normal view
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Mobile-first Header with Back Button */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
@@ -783,16 +735,14 @@ export default function ExamViewer() {
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
-                {exam.classes && (
-                  <>
+                {exam.classes && <>
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
                         <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
-                  </>
-                )}
+                  </>}
                 <BreadcrumbItem>
                   <BreadcrumbPage className="max-w-[200px] truncate">{exam.title}</BreadcrumbPage>
                 </BreadcrumbItem>
@@ -812,155 +762,86 @@ export default function ExamViewer() {
           
           {/* Mobile: Compact Info Grid */}
           <div className="grid grid-cols-2 gap-2 sm:hidden mb-3">
-            {exam.subjects && (
-              <div className="bg-background/60 rounded-lg px-3 py-2">
+            {exam.subjects && <div className="bg-background/60 rounded-lg px-3 py-2">
                 <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Matière' : 'Subject'}</p>
                 <p className="text-sm font-medium truncate">
                   {language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}
                 </p>
-              </div>
-            )}
-            {exam.classes && (
-              <div className="bg-background/60 rounded-lg px-3 py-2">
+              </div>}
+            {exam.classes && <div className="bg-background/60 rounded-lg px-3 py-2">
                 <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Classe' : 'Class'}</p>
                 <p className="text-sm font-medium truncate">{exam.classes.display_name}</p>
-              </div>
-            )}
-            {exam.academic_years && (
-              <div className="bg-background/60 rounded-lg px-3 py-2">
+              </div>}
+            {exam.academic_years && <div className="bg-background/60 rounded-lg px-3 py-2">
                 <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Année' : 'Year'}</p>
                 <p className="text-sm font-medium">{exam.academic_years.year_label}</p>
-              </div>
-            )}
-            {exam.durations && (
-              <div className="bg-background/60 rounded-lg px-3 py-2">
+              </div>}
+            {exam.durations && <div className="bg-background/60 rounded-lg px-3 py-2">
                 <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Durée' : 'Duration'}</p>
                 <p className="text-sm font-medium flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {exam.durations.display_label}
                 </p>
-              </div>
-            )}
+              </div>}
           </div>
           
           {/* Desktop: Inline Info */}
           <div className="hidden sm:flex items-center gap-3 text-sm text-muted-foreground flex-wrap mb-3">
-            {exam.establishments && (
-              <span className="flex items-center gap-1">
+            {exam.establishments && <span className="flex items-center gap-1">
                 <FileText className="h-3.5 w-3.5" />
                 {exam.establishments.name}
-              </span>
-            )}
+              </span>}
             {exam.classes && <span>{exam.classes.display_name}</span>}
             {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
             {exam.periods && <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>}
             {exam.academic_years && <span>{exam.academic_years.year_label}</span>}
             {exam.exam_types && <span>{language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}</span>}
-            {exam.durations && (
-              <span className="flex items-center gap-1">
+            {exam.durations && <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
                 {exam.durations.display_label}
-              </span>
-            )}
+              </span>}
           </div>
           
           {/* Mobile: Additional Info Badges */}
           <div className="flex flex-wrap gap-1.5 sm:hidden mb-3">
-            {exam.establishments && (
-              <Badge variant="secondary" className="text-xs">
+            {exam.establishments && <Badge variant="secondary" className="text-xs">
                 {exam.establishments.name}
-              </Badge>
-            )}
-            {exam.periods && (
-              <Badge variant="outline" className="text-xs">
+              </Badge>}
+            {exam.periods && <Badge variant="outline" className="text-xs">
                 {language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}
-              </Badge>
-            )}
-            {exam.exam_types && (
-              <Badge variant="outline" className="text-xs">
+              </Badge>}
+            {exam.exam_types && <Badge variant="outline" className="text-xs">
                 {language === 'fr' ? exam.exam_types.name_fr || exam.exam_types.name : exam.exam_types.name_en || exam.exam_types.name}
-              </Badge>
-            )}
+              </Badge>}
           </div>
             
           {/* Action Buttons - Full width on mobile */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             {/* Mode Switcher Buttons */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button 
-                size="sm" 
-                className={cn(
-                  "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
-                  mode === 'correction' 
-                    ? "bg-indigo-600 hover:bg-indigo-700 text-white" 
-                    : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-400"
-                )}
-                onClick={() => {
-                  if (mode === 'correction') {
-                    navigate(`/exam/${examId}?mode=preview`);
-                  } else {
-                    setShowCorrectionDialog(true);
-                  }
-                }}
-              >
+              <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'correction' ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-400")} onClick={() => {
+              if (mode === 'correction') {
+                navigate(`/exam/${examId}?mode=preview`);
+              } else {
+                setShowCorrectionDialog(true);
+              }
+            }}>
                 <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden xs:inline">
-                  {mode === 'correction' 
-                    ? (language === 'fr' ? 'Masquer' : 'Hide')
-                    : (language === 'fr' ? 'Correction' : 'Correction')
-                  }
+                  {mode === 'correction' ? language === 'fr' ? 'Masquer' : 'Hide' : language === 'fr' ? 'Correction' : 'Correction'}
                 </span>
                 <span className="xs:hidden">
                   {language === 'fr' ? 'Corrigé' : 'Solution'}
                 </span>
               </Button>
               
-              <Button 
-                size="sm" 
-                className={cn(
-                  "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
-                  mode === 'evaluation' && submitted
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                )}
-                onClick={handleEvaluationButtonClick}
-              >
+              <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'evaluation' && submitted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400")} onClick={handleEvaluationButtonClick}>
                 <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 {language === 'fr' ? 'Évaluation' : 'Evaluate'}
               </Button>
               
               {/* View PDF Button */}
-              {exam.file_url && (
-                <Button 
-                  size="sm" 
-                  className={cn(
-                    "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
-                    showPdfSplit
-                      ? "bg-amber-600 hover:bg-amber-700 text-white"
-                      : "bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400"
-                  )}
-                  onClick={() => {
-                    if (isMobile) {
-                      setShowPdfModal(true);
-                    } else {
-                      const newShowPdf = !showPdfSplit;
-                      setShowPdfSplit(newShowPdf);
-                      if (newShowPdf) {
-                        setSidebarCollapsed(true);
-                      }
-                    }
-                  }}
-                >
-                  <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">
-                    {!isMobile && showPdfSplit 
-                      ? (language === 'fr' ? 'Masquer PDF' : 'Hide PDF')
-                      : (language === 'fr' ? 'PDF' : 'PDF')
-                    }
-                  </span>
-                  <span className="xs:hidden">PDF</span>
-                </Button>
-              )}
+              {exam.file_url}
             </div>
           </div>
         </div>
@@ -969,28 +850,15 @@ export default function ExamViewer() {
       {/* Main Content */}
       <div className="flex min-h-[calc(100vh-200px)] sm:h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <aside className={cn(
-          "hidden lg:block border-r border-border bg-card transition-all duration-300",
-          sidebarCollapsed ? "w-0 border-0" : "w-80"
-        )}>
-          <ExamSidebar
-            questions={sidebarQuestions}
-            activeQuestion={activeQuestion}
-            onQuestionClick={handleQuestionClick}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+        <aside className={cn("hidden lg:block border-r border-border bg-card transition-all duration-300", sidebarCollapsed ? "w-0 border-0" : "w-80")}>
+          <ExamSidebar questions={sidebarQuestions} activeQuestion={activeQuestion} onQuestionClick={handleQuestionClick} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
         </aside>
 
         {/* Content Area */}
-        <main className={cn(
-          "flex-1 overflow-auto transition-all duration-300",
-          showPdfSplit && exam.file_url ? "w-1/2" : "w-full"
-        )}>
+        <main className={cn("flex-1 overflow-auto transition-all duration-300", showPdfSplit && exam.file_url ? "w-1/2" : "w-full")}>
           <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
             {/* Score Card for Evaluation Mode */}
-            {mode === 'evaluation' && submitted && score && (
-              <Card className="mb-6 border-primary bg-primary/5">
+            {mode === 'evaluation' && submitted && score && <Card className="mb-6 border-primary bg-primary/5">
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center gap-2">
                     {t('evaluation_results')}
@@ -1009,7 +877,7 @@ export default function ExamViewer() {
                       </div>
                       <div>
                         <p className="text-3xl font-bold">
-                          {score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0}%
+                          {score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {t('score')}
@@ -1021,55 +889,31 @@ export default function ExamViewer() {
                     </Button>
                   </div>
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
 
             {/* Exam Content */}
-            <div 
-              ref={contentRef} 
-              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }} 
-              className="transition-transform duration-200"
-            >
-              {exam.content ? (
-                <ExamContentRenderer
-                  content={exam.content}
-                  showAnswers={showAnswers}
-                  mode={mode as 'preview' | 'evaluation' | 'solution'}
-                  questionIdPrefix="question-"
-                  userAnswers={userAnswers}
-                  onAnswerChange={handleAnswerChange}
-                />
-              ) : (
-                <Card>
+            <div ref={contentRef} style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left'
+          }} className="transition-transform duration-200">
+              {exam.content ? <ExamContentRenderer content={exam.content} showAnswers={showAnswers} mode={mode as 'preview' | 'evaluation' | 'solution'} questionIdPrefix="question-" userAnswers={userAnswers} onAnswerChange={handleAnswerChange} /> : <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
                       {language === 'fr' ? 'Aucun contenu disponible' : 'No content available'}
                     </p>
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
             </div>
           </div>
         </main>
 
         {/* PDF Split View - Desktop Only */}
-        {!isMobile && showPdfSplit && exam.file_url && (
-          <aside className="w-1/2 border-l border-border bg-card relative">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute right-2 top-2 z-10" 
-              onClick={() => setShowPdfSplit(false)}
-            >
+        {!isMobile && showPdfSplit && exam.file_url && <aside className="w-1/2 border-l border-border bg-card relative">
+            <Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10" onClick={() => setShowPdfSplit(false)}>
               <X className="h-4 w-4" />
             </Button>
-            <iframe 
-              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
-              className="w-full h-full" 
-              title="Exam PDF" 
-            />
-          </aside>
-        )}
+            <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="w-full h-full" title="Exam PDF" />
+          </aside>}
       </div>
 
       {/* Zoom Controls */}
@@ -1084,16 +928,10 @@ export default function ExamViewer() {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                {language === 'fr' 
-                  ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.'
-                  : 'You are about to view the official solutions for this exam.'
-                }
+                {language === 'fr' ? 'Vous êtes sur le point de voir les solutions officielles de cette épreuve.' : 'You are about to view the official solutions for this exam.'}
               </p>
               <p className="font-semibold text-foreground">
-                {language === 'fr' 
-                  ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !'
-                  : 'We suggest taking the evaluation first to test your knowledge!'
-                }
+                {language === 'fr' ? 'Nous vous suggérons de passer d\'abord en mode évaluation pour tester vos connaissances !' : 'We suggest taking the evaluation first to test your knowledge!'}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1109,26 +947,10 @@ export default function ExamViewer() {
       </AlertDialog>
 
       {/* Evaluation Rules Dialog */}
-      <EvaluationRulesDialog
-        open={showRulesDialog}
-        onOpenChange={setShowRulesDialog}
-        onStart={handleStartEvaluation}
-        durationMinutes={durationMinutes}
-        attemptCount={attemptCount}
-      />
+      <EvaluationRulesDialog open={showRulesDialog} onOpenChange={setShowRulesDialog} onStart={handleStartEvaluation} durationMinutes={durationMinutes} attemptCount={attemptCount} />
 
       {/* Evaluation Results Dialog */}
-      <EvaluationResultsDialog
-        open={showResultsDialog}
-        onOpenChange={setShowResultsDialog}
-        score={score}
-        hasMcq={hasMcqQuestions()}
-        timeSpentSeconds={timeSpentSeconds}
-        attemptNumber={currentAttemptNumber}
-        onRetry={handleRetry}
-        onClose={handleCloseResults}
-        onViewAnswers={handleViewAnswers}
-      />
+      <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} />
 
       {/* PDF Modal - Mobile Only */}
       <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
@@ -1138,15 +960,8 @@ export default function ExamViewer() {
               {language === 'fr' ? 'Version PDF' : 'PDF Version'}
             </DialogTitle>
           </DialogHeader>
-          {exam.file_url && (
-            <iframe 
-              src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} 
-              className="flex-1 w-full min-h-0" 
-              title="Exam PDF" 
-            />
-          )}
+          {exam.file_url && <iframe src={`${exam.file_url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} className="flex-1 w-full min-h-0" title="Exam PDF" />}
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 }
