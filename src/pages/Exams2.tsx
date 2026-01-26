@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { anonymizeSchoolName, matchesSchoolSearch } from '@/lib/schoolAnonymizer';
 
 interface Exam {
   id: string;
@@ -610,7 +611,14 @@ const Exams2 = () => {
                   <Button variant="outline" className="justify-between min-w-[200px] sm:min-w-[300px]">
                     <span className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
-                      {selectedSchools.length === 0 ? language === 'fr' ? 'Tous les établissements' : 'All schools' : selectedSchools.length === 1 ? schools?.find(s => s.id === selectedSchools[0])?.name : `${selectedSchools.length} ${language === 'fr' ? 'établissements' : 'schools'}`}
+                      {selectedSchools.length === 0 
+                        ? (language === 'fr' ? 'Tous les établissements' : 'All schools') 
+                        : selectedSchools.length === 1 
+                          ? (() => {
+                              const school = schools?.find(s => s.id === selectedSchools[0]);
+                              return school ? anonymizeSchoolName(school) : '';
+                            })()
+                          : `${selectedSchools.length} ${language === 'fr' ? 'établissements' : 'schools'}`}
                     </span>
                     {selectedSchools.length > 0 && <Badge variant="secondary">{selectedSchools.length}</Badge>}
                   </Button>
@@ -625,7 +633,7 @@ const Exams2 = () => {
                     <div className="p-2 space-y-1">
                       {schools?.map(school => <label key={school.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md">
                           <Checkbox checked={selectedSchools.includes(school.id)} onCheckedChange={() => toggleSchool(school.id)} />
-                          <span className="text-sm flex-1">{school.name}</span>
+                          <span className="text-sm flex-1 text-muted-foreground">{anonymizeSchoolName(school)}</span>
                           <span className="text-xs text-muted-foreground">
                             {getFilterCounts.schools[school.id] || 0}
                           </span>
@@ -706,8 +714,8 @@ const Exams2 = () => {
             {(activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
                 {selectedSchools.map(id => {
               const school = schools?.find(s => s.id === id);
-              return school && <Badge key={id} variant="secondary" className="gap-1 text-xs">
-                      {school.name}
+              return school && <Badge key={id} variant="secondary" className="gap-1 text-xs text-muted-foreground">
+                      {anonymizeSchoolName(school)}
                       <X className="h-3 w-3 cursor-pointer" onClick={() => toggleSchool(id)} />
                     </Badge>;
             })}
@@ -835,8 +843,8 @@ const Exams2 = () => {
                             </div>
 
                             {exam.establishment && (
-                              <p className="text-xs text-muted-foreground truncate mt-2 pt-2 border-t border-border/50">
-                                {exam.establishment.name}
+                              <p className="text-xs text-muted-foreground/70 truncate mt-2 pt-2 border-t border-border/50">
+                                {anonymizeSchoolName(exam.establishment)}
                               </p>
                             )}
                           </CardContent>

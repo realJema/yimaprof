@@ -23,6 +23,7 @@ import { EvaluationExitDialog } from '@/components/exam/EvaluationExitDialog';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { clearEvaluationSession, enqueuePendingSubmission, loadEvaluationSession, saveEvaluationSession, setLastActiveExamRoute, type EvaluationSession } from '@/lib/evaluationSession';
+import { anonymizeSchoolName } from '@/lib/schoolAnonymizer';
 interface Exam {
   id: string;
   title: string;
@@ -787,9 +788,9 @@ export default function ExamViewer() {
           
           {/* Desktop: Inline Info */}
           <div className="hidden sm:flex items-center gap-3 text-sm text-muted-foreground flex-wrap mb-3">
-            {exam.establishments && <span className="flex items-center gap-1">
+            {exam.establishments && exam.establishment_id && <span className="flex items-center gap-1 text-muted-foreground/70">
                 <FileText className="h-3.5 w-3.5" />
-                {exam.establishments.name}
+                {anonymizeSchoolName({ id: exam.establishment_id, name: exam.establishments.name })}
               </span>}
             {exam.classes && <span>{exam.classes.display_name}</span>}
             {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
@@ -804,8 +805,8 @@ export default function ExamViewer() {
           
           {/* Mobile: Additional Info Badges */}
           <div className="flex flex-wrap gap-1.5 sm:hidden mb-3">
-            {exam.establishments && <Badge variant="secondary" className="text-xs">
-                {exam.establishments.name}
+            {exam.establishments && exam.establishment_id && <Badge variant="secondary" className="text-xs text-muted-foreground/70">
+                {anonymizeSchoolName({ id: exam.establishment_id, name: exam.establishments.name })}
               </Badge>}
             {exam.periods && <Badge variant="outline" className="text-xs">
                 {language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}

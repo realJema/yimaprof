@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { anonymizeSchoolName, matchesSchoolSearch } from "@/lib/schoolAnonymizer";
 interface Class {
   id: string;
   name: string;
@@ -66,12 +67,15 @@ export default function Exams() {
   const isFullAccessUser = user && hasActiveSubscription;
   
   const filteredEstablishments = establishments.filter(est =>
-    est.name.toLowerCase().includes(schoolSearchTerm.toLowerCase())
+    matchesSchoolSearch(est, schoolSearchTerm)
   );
   
   const selectedSchoolName = selectedEstablishment === 'all' 
     ? (language === 'fr' ? 'Toutes les écoles' : 'All Schools')
-    : establishments.find(e => e.id === selectedEstablishment)?.name || '';
+    : (() => {
+        const est = establishments.find(e => e.id === selectedEstablishment);
+        return est ? anonymizeSchoolName(est) : '';
+      })();
   useEffect(() => {
     fetchEstablishments();
   }, []);
@@ -311,7 +315,7 @@ export default function Exams() {
                         >
                           <Check className={cn("h-4 w-4 shrink-0", selectedEstablishment === est.id ? "opacity-100" : "opacity-0")} />
                           <School className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <span className="truncate">{est.name}</span>
+                          <span className="truncate text-muted-foreground">{anonymizeSchoolName(est)}</span>
                         </button>
                       ))
                     )}
