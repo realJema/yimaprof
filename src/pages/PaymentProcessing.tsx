@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, CheckCircle, XCircle, Phone, Smartphone } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
 
 export default function PaymentProcessing() {
   const [searchParams] = useSearchParams();
@@ -17,6 +17,7 @@ export default function PaymentProcessing() {
   const { t } = useLanguage();
   const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed'>('initiating');
   const [checkCount, setCheckCount] = useState(0);
+  const [countdown, setCountdown] = useState(5);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
   const maxChecks = 30; // Check for 5 minutes (30 checks * 10 seconds)
   const paymentInitiated = useRef(false);
@@ -164,6 +165,23 @@ export default function PaymentProcessing() {
     };
   }, [user, transactionId, planId, phoneNumber, amount, navigate, initiatePayment, startPolling]);
 
+  // Auto-redirect on success
+  useEffect(() => {
+    if (status === 'completed') {
+      const countdownInterval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            navigate('/exams2');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(countdownInterval);
+    }
+  }, [status, navigate]);
+
   const handleRetry = () => {
     navigate('/subscriptions');
   };
@@ -202,154 +220,77 @@ export default function PaymentProcessing() {
             </div>
             
             <CardTitle className="text-2xl">
-              {status === 'initiating' && 'Envoi en cours...'}
-              {status === 'processing' && t('payment_processing')}
+              {status === 'initiating' && 'Confirmez sur votre téléphone'}
+              {status === 'processing' && 'Vérification du paiement...'}
               {status === 'completed' && t('payment_success')}
               {status === 'failed' && t('payment_failed')}
             </CardTitle>
             
             <CardDescription>
-              {status === 'initiating' && (
-                <span>Envoi de la demande de paiement à votre téléphone...</span>
+              {status === 'initiating' && amount && (
+                <span className="text-base">
+                  Veuillez confirmer le paiement de <strong className="text-primary">{parseInt(amount).toLocaleString()} XAF</strong> depuis MeSomb sur votre téléphone
+                </span>
               )}
               {status === 'processing' && (
-                <>
-                  {t('payment_processing_desc')}
-                  <br />
-                  <span className="text-xs text-muted-foreground">
-                    {t('check')} #{checkCount + 1} {t('of')} {maxChecks}
-                  </span>
-                </>
+                <span className="text-xs text-muted-foreground">
+                  Vérification #{checkCount + 1} sur {maxChecks}
+                </span>
               )}
-              {status === 'completed' && t('payment_success_desc')}
+              {status === 'completed' && (
+                <span>Redirection vers les examens dans {countdown} secondes...</span>
+              )}
               {status === 'failed' && t('payment_failed_desc')}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {status === 'initiating' && (
-              <div className="space-y-4">
-                {/* Phone number and carrier info */}
-                {phoneNumber && (
-                  <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
-                    {carrier && (
-                      <Badge 
-                        variant="secondary" 
-                        className={carrier === 'MTN' 
-                          ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
-                          : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
-                        }
-                      >
-                        {carrier}
-                      </Badge>
-                    )}
-                  </div>
+            {status === 'initiating' && phoneNumber && (
+              <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
+                <Phone className="h-5 w-5 text-muted-foreground" />
+                <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
+                {carrier && (
+                  <Badge 
+                    variant="secondary" 
+                    className={carrier === 'MTN' 
+                      ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
+                      : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
+                    }
+                  >
+                    {carrier}
+                  </Badge>
                 )}
-                
-                <p className="text-sm text-muted-foreground">
-                  Veuillez patienter pendant que nous envoyons la demande de paiement...
-                </p>
               </div>
             )}
 
-            {status === 'processing' && (
-              <div className="space-y-4">
-                {/* Prominent phone confirmation message */}
-                <div className="bg-primary/10 border-2 border-primary/30 p-4 rounded-lg animate-pulse">
-                  <div className="flex items-center justify-center gap-3 mb-2">
-                    <Smartphone className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-lg text-primary">
-                      Confirmez sur votre téléphone
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Une demande de paiement a été envoyée
-                  </p>
-                </div>
-                
-                {/* Phone number and carrier info */}
-                {phoneNumber && (
-                  <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
-                    <Phone className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
-                    {carrier && (
-                      <Badge 
-                        variant="secondary" 
-                        className={carrier === 'MTN' 
-                          ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
-                          : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
-                        }
-                      >
-                        {carrier}
-                      </Badge>
-                    )}
-                  </div>
+            {status === 'processing' && phoneNumber && (
+              <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
+                <Phone className="h-5 w-5 text-muted-foreground" />
+                <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
+                {carrier && (
+                  <Badge 
+                    variant="secondary" 
+                    className={carrier === 'MTN' 
+                      ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
+                      : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
+                    }
+                  >
+                    {carrier}
+                  </Badge>
                 )}
-
-                {/* Instructions */}
-                <div className="bg-muted/50 p-4 rounded-lg text-sm">
-                  <p className="font-medium mb-2">{t('what_to_do_next')}</p>
-                  <ol className="text-left space-y-2 list-decimal list-inside">
-                    <li className="flex items-start gap-2">
-                      <span className="shrink-0">1.</span>
-                      <span>{t('check_phone_notification')}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="shrink-0">2.</span>
-                      <span>{t('enter_pin')}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="shrink-0">3.</span>
-                      <span>{t('confirm_amount')}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="shrink-0">4.</span>
-                      <span>{t('wait_confirmation')}</span>
-                    </li>
-                  </ol>
-                </div>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/subscriptions')}
-                  className="w-full"
-                >
-                  {t('cancel')}
-                </Button>
               </div>
             )}
 
             {status === 'completed' && (
-              <div className="space-y-3">
-                <Button onClick={handleGoToSubscriptions} className="w-full" size="lg">
-                  {t('go_to_subscriptions')}
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={handleGoToExams}
-                  className="w-full"
-                  size="lg"
-                >
-                  {t('go_to_exams')}
-                </Button>
-              </div>
+              <Button onClick={() => navigate('/exams2')} className="w-full" size="lg">
+                Accéder aux examens maintenant
+              </Button>
             )}
 
             {status === 'failed' && (
-              <div className="space-y-3">
-                <Button onClick={handleRetry} className="w-full" size="lg">
-                  {t('try_again')}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/subscriptions')}
-                  className="w-full"
-                >
-                  {t('back_to_plans')}
-                </Button>
-              </div>
+              <Button onClick={handleRetry} className="w-full" size="lg">
+                {t('try_again')}
+              </Button>
             )}
           </CardContent>
         </Card>
