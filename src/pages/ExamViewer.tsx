@@ -732,14 +732,18 @@ export default function ExamViewer() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to="/exams">{language === 'fr' ? 'Épreuves' : 'Exams'}</Link>
+                    <Link to={`/exams2${exam.classes?.section ? `?system=${exam.classes.section}` : ''}`}>
+                      {language === 'fr' ? 'Épreuves' : 'Exams'}
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 {exam.classes && <>
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
-                        <Link to={`/exams/${exam.class_id}/subjects`}>{exam.classes.display_name}</Link>
+                        <Link to={`/exams2?system=${exam.classes.section}&class=${exam.class_id}`}>
+                          {exam.classes.display_name}
+                        </Link>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
