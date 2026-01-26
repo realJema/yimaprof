@@ -839,9 +839,6 @@ export default function ExamViewer() {
                 <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 {language === 'fr' ? 'Évaluation' : 'Evaluate'}
               </Button>
-              
-              {/* View PDF Button */}
-              {exam.file_url}
             </div>
           </div>
         </div>
