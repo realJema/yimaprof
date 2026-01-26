@@ -195,7 +195,7 @@ export function ExamPreviewDialog({ exam, open, onOpenChange, onUpdated }: ExamP
 
               {/* Two column grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Subject */}
+                {/* Subject - filtered by class section */}
                 <div className="space-y-2">
                   <Label>{t('subject') || 'Subject'}</Label>
                   <Select value={formData.subject_id} onValueChange={(v) => setFormData(prev => ({ ...prev, subject_id: v }))}>
@@ -203,11 +203,25 @@ export function ExamPreviewDialog({ exam, open, onOpenChange, onUpdated }: ExamP
                       <SelectValue placeholder={t('select_subject') || 'Select subject'} />
                     </SelectTrigger>
                     <SelectContent>
-                      {formOptions.subjects?.map(subject => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {language === 'fr' ? subject.name_fr || subject.name : subject.name_en || subject.name}
-                        </SelectItem>
-                      ))}
+                      {(() => {
+                        // Get selected class's section
+                        const selectedClass = classes?.find(c => c.id === formData.class_id);
+                        const classSection = selectedClass?.section;
+                        
+                        // Filter subjects based on class section
+                        const availableSubjects = formOptions.subjects?.filter(subject => {
+                          if (!classSection) return true; // Show all if no class selected
+                          const subjectSystem = subject.system;
+                          // Show shared subjects + system-specific subjects
+                          return subjectSystem === 'shared' || subjectSystem === classSection;
+                        });
+                        
+                        return availableSubjects?.map(subject => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {language === 'fr' ? subject.name_fr || subject.name : subject.name_en || subject.name}
+                          </SelectItem>
+                        ));
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>

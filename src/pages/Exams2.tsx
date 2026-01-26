@@ -393,7 +393,23 @@ const Exams2 = () => {
         .filter(exam => exam.subject)
         .map(exam => exam.subject!.id)
     );
-    return subjects.filter(subject => subjectIds.has(subject.id));
+    
+    // Filter subjects by both having exams AND matching the selected system
+    return subjects.filter(subject => {
+      // Must have accessible exams
+      if (!subjectIds.has(subject.id)) return false;
+      
+      // If a system is selected, filter by subject's system field
+      if (selectedSystem !== 'all') {
+        const subjectSystem = (subject as any).system;
+        // Show shared subjects + system-specific subjects
+        if (subjectSystem && subjectSystem !== 'shared' && subjectSystem !== selectedSystem) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
   }, [subjects, accessibleExams, selectedSystem]);
 
   const activeFiltersCount = selectedSchools.length + selectedClasses.length + selectedSubjects.length + (selectedYear !== 'all' ? 1 : 0) + (selectedExamType !== 'all' ? 1 : 0) + (selectedPeriod !== 'all' ? 1 : 0);

@@ -1344,7 +1344,7 @@ export default function ExamManager() {
                       </Select>
                     </div>
 
-                    {/* Subject */}
+                    {/* Subject - filtered by class section */}
                     <div>
                       <Label htmlFor="subject" className="text-xs">
                         {t("subject")} *
@@ -1363,11 +1363,25 @@ export default function ExamManager() {
                           <SelectValue placeholder={t("examSelectSubject")} />
                         </SelectTrigger>
                         <SelectContent>
-                          {formOptions.subjects?.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id}>
-                              {language === 'fr' ? subject.name_fr : subject.name_en}
-                            </SelectItem>
-                          ))}
+                          {(() => {
+                            // Get selected class's section
+                            const selectedClass = classes.find(c => c.id === formData.class_id);
+                            const classSection = selectedClass?.section;
+                            
+                            // Filter subjects based on class section
+                            const availableSubjects = formOptions.subjects?.filter(subject => {
+                              if (!classSection) return true; // Show all if no class selected
+                              const subjectSystem = subject.system;
+                              // Show shared subjects + system-specific subjects
+                              return subjectSystem === 'shared' || subjectSystem === classSection;
+                            });
+                            
+                            return availableSubjects?.map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {language === 'fr' ? subject.name_fr || subject.name : subject.name_en || subject.name}
+                              </SelectItem>
+                            ));
+                          })()}
                           <Separator className="my-2" />
                           <SelectItem value="__add_new__" className="text-primary font-medium">
                             + {t("examAddNewSubject")}
