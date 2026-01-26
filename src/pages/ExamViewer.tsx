@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { FileText, Clock, ArrowLeft, X, Play, CheckCircle, BookOpen, WifiOff, RefreshCw } from 'lucide-react';
+import { FileText, Clock, ArrowLeft, X, Play, CheckCircle, BookOpen, WifiOff, RefreshCw, Crown, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
@@ -39,6 +39,7 @@ interface Exam {
   academic_year_id: string;
   duration_id: string;
   establishment_id?: string;
+  visibility?: string; // 'public' | 'free'
   classes?: {
     id: string;
     name: string;
@@ -648,6 +649,82 @@ export default function ExamViewer() {
         </Card>
       </div>;
   }
+
+  // Premium Paywall: Show for premium exams when user doesn't have access
+  const isPremiumExam = exam.visibility !== 'free';
+  const showPaywall = isPremiumExam && !hasAccess && isFreeUser;
+
+  if (showPaywall) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-2 border-primary/20 shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10">
+              <Crown className="h-12 w-12 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">
+              {language === 'fr' ? 'Contenu Premium' : 'Premium Content'}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {language === 'fr' 
+                ? 'Cette épreuve nécessite un abonnement actif.' 
+                : 'This exam requires an active subscription.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Benefits list */}
+            <div className="space-y-3">
+              <p className="font-medium text-sm text-muted-foreground">
+                {language === 'fr' ? 'Avec Premium vous obtenez :' : 'With Premium you get:'}
+              </p>
+              <ul className="space-y-2">
+                {[
+                  { fr: 'Accès illimité à plus de 500 examens', en: 'Unlimited access to 500+ exams' },
+                  { fr: 'Corrections et solutions complètes', en: 'Full corrections and solutions' },
+                  { fr: 'Mode évaluation avec notation', en: 'Evaluation mode with scoring' },
+                  { fr: 'Suivi de votre progression', en: 'Progress tracking' }
+                ].map((benefit, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span>{language === 'fr' ? benefit.fr : benefit.en}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Price indication */}
+            <div className="text-center py-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                {language === 'fr' ? 'À partir de' : 'Starting from'}
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                2 500 XAF<span className="text-sm font-normal text-muted-foreground">/mois</span>
+              </p>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="space-y-3">
+              <Button asChild className="w-full gap-2" size="lg">
+                <Link to="/subscriptions">
+                  <Crown className="h-4 w-4" />
+                  {language === 'fr' ? 'S\'abonner maintenant' : 'Subscribe Now'}
+                </Link>
+              </Button>
+              <Button variant="outline" asChild className="w-full gap-2">
+                <Link to="/exams2">
+                  <BookOpen className="h-4 w-4" />
+                  {language === 'fr' ? 'Voir les épreuves gratuites' : 'Browse Free Exams'}
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Subscription encouragement banner for free exams (when user is not subscribed)
+  const showSubscriptionBanner = exam.visibility === 'free' && isFreeUser && !hasAccess;
   const showAnswers = mode === 'correction' || mode === 'evaluation' && submitted || isFreeUser;
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
 
@@ -859,6 +936,39 @@ export default function ExamViewer() {
         {/* Content Area */}
         <main className={cn("flex-1 overflow-auto transition-all duration-300", showPdfSplit && exam.file_url ? "w-1/2" : "w-full")}>
           <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
+            {/* Subscription Banner for Free Exams */}
+            {showSubscriptionBanner && (
+              <Card className="mb-6 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+                <CardContent className="py-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {language === 'fr' 
+                            ? 'Vous aimez cette épreuve gratuite ?' 
+                            : 'Enjoying this free exam?'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {language === 'fr' 
+                            ? 'Abonnez-vous pour accéder à plus de 500 épreuves premium avec corrections.' 
+                            : 'Subscribe to access 500+ premium exams with full solutions.'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild size="sm" className="gap-2 flex-shrink-0">
+                      <Link to="/subscriptions">
+                        <Crown className="h-4 w-4" />
+                        {language === 'fr' ? 'S\'abonner' : 'Subscribe'}
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* Score Card for Evaluation Mode */}
             {mode === 'evaluation' && submitted && score && <Card className="mb-6 border-primary bg-primary/5">
                 <CardHeader>

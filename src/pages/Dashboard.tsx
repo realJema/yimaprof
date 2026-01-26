@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,8 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
-  Flame
+  Flame,
+  AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +45,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { notifications, unreadCount } = useNotifications();
+  const { subscription: subscriptionData, daysRemaining, isExpiringSoon, hasActiveSubscription } = useSubscription();
   const [profile, setProfile] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const [userEvaluations, setUserEvaluations] = useState<any[]>([]);
@@ -611,11 +614,26 @@ export default function Dashboard() {
           </Card>
 
           {/* Subscription */}
-          <Card className="border-border/50 bg-card/95 backdrop-blur-sm shadow-soft">
+          <Card className={`border-border/50 bg-card/95 backdrop-blur-sm shadow-soft ${isExpiringSoon ? 'border-destructive/50' : ''}`}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-primary" />
-                {language === 'fr' ? 'Abonnement' : 'Subscription'}
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  {language === 'fr' ? 'Abonnement' : 'Subscription'}
+                </div>
+                {/* Expiry warning badge */}
+                {isExpiringSoon && daysRemaining !== null && (
+                  <Badge 
+                    variant="destructive" 
+                    className="flex items-center gap-1"
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    {daysRemaining === 0 
+                      ? (language === 'fr' ? 'Expire aujourd\'hui' : 'Expires today')
+                      : (language === 'fr' ? `${daysRemaining}j restants` : `${daysRemaining}d left`)
+                    }
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -633,11 +651,32 @@ export default function Dashboard() {
                     <p className="text-sm text-muted-foreground">
                       {language === 'fr' ? 'Statut' : 'Status'}
                     </p>
-                    <Badge variant="default" className="mt-1">
-                      {subscription.status === 'active' 
-                        ? (language === 'fr' ? 'Actif' : 'Active') 
-                        : subscription.status}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="default">
+                        {subscription.status === 'active' 
+                          ? (language === 'fr' ? 'Actif' : 'Active') 
+                          : subscription.status}
+                      </Badge>
+                      {/* Days remaining indicator with color coding */}
+                      {daysRemaining !== null && (
+                        <Badge 
+                          variant="outline" 
+                          className={`${
+                            daysRemaining > 7 
+                              ? 'border-green-500/50 text-green-600 dark:text-green-400' 
+                              : daysRemaining > 3 
+                                ? 'border-yellow-500/50 text-yellow-600 dark:text-yellow-400' 
+                                : 'border-destructive/50 text-destructive'
+                          }`}
+                        >
+                          <Clock className="h-3 w-3 mr-1" />
+                          {daysRemaining === 0 
+                            ? (language === 'fr' ? 'Dernier jour' : 'Last day')
+                            : (language === 'fr' ? `${daysRemaining} jours` : `${daysRemaining} days`)
+                          }
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   {subscription.expires_at && (
                     <div>
@@ -649,9 +688,35 @@ export default function Dashboard() {
                       </p>
                     </div>
                   )}
-                  <Button asChild variant="outline" className="w-full">
+
+                  {/* Urgency warning message */}
+                  {isExpiringSoon && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                      <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        {language === 'fr' 
+                          ? 'Votre abonnement expire bientôt !' 
+                          : 'Your subscription expires soon!'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {language === 'fr' 
+                          ? 'Renouvelez maintenant pour continuer à accéder à tous les examens.' 
+                          : 'Renew now to keep access to all exams.'}
+                      </p>
+                    </div>
+                  )}
+
+                  <Button 
+                    asChild 
+                    variant={isExpiringSoon ? "default" : "outline"} 
+                    className={`w-full ${isExpiringSoon ? 'gap-2' : ''}`}
+                  >
                     <Link to="/subscriptions">
-                      {language === 'fr' ? 'Gérer' : 'Manage'}
+                      {isExpiringSoon && <Crown className="h-4 w-4" />}
+                      {isExpiringSoon 
+                        ? (language === 'fr' ? 'Renouveler maintenant' : 'Renew Now')
+                        : (language === 'fr' ? 'Gérer' : 'Manage')
+                      }
                     </Link>
                   </Button>
                 </div>
