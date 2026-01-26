@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link } from 'react-router-dom';
-import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle } from 'lucide-react';
+import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -862,6 +862,26 @@ const Exams2 = () => {
                               <p className="text-xs text-muted-foreground/70 truncate mt-2 pt-2 border-t border-border/50">
                                 {anonymizeSchoolName(exam.establishment)}
                               </p>
+                            )}
+
+                            {/* Subscription CTA for free exams when user is not subscribed */}
+                            {exam.visibility === 'free' && !hasActiveSubscription && (
+                              <div className="mt-3 pt-2 border-t border-dashed border-border/50">
+                                <div 
+                                  className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.location.href = '/subscriptions';
+                                  }}
+                                >
+                                  <Sparkles className="h-3 w-3" />
+                                  <span className="font-medium">
+                                    {language === 'fr' ? 'Débloquez 500+ examens' : 'Unlock 500+ exams'}
+                                  </span>
+                                  <ArrowRight className="h-3 w-3" />
+                                </div>
+                              </div>
                             )}
                           </CardContent>
                         </Card>
