@@ -2,12 +2,12 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { BookOpen, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface FooterProps {
   className?: string;
 }
-
-export default function Footer({ className }: FooterProps = {}) {
+export default function Footer({
+  className
+}: FooterProps = {}) {
   const {
     t
   } = useLanguage();
@@ -81,12 +81,9 @@ export default function Footer({ className }: FooterProps = {}) {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <span>support@yima.edu</span>
+                <span>support@yimaprof.com</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>+237 6XX XXX XXX</span>
-              </div>
+              
             </div>
           </div>
 
