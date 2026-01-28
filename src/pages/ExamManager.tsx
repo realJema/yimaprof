@@ -442,7 +442,15 @@ export default function ExamManager() {
     }
   };
 
-  const handleContentChange = (newContent: any) => {
+  const handleContentChange = (newContentOrUpdater: any) => {
+    // Support functional updates for async operations
+    let newContent: any;
+    if (typeof newContentOrUpdater === 'function') {
+      newContent = newContentOrUpdater(parsedJson);
+    } else {
+      newContent = newContentOrUpdater;
+    }
+    
     // Update the parsed JSON
     setParsedJson(newContent);
 
