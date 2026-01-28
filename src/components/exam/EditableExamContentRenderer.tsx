@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Edit2 } from 'lucide-react';
 import { useState } from 'react';
+import { LatexText } from '@/components/ui/latex-text';
 
 interface Answer {
   id: string;
@@ -386,7 +387,7 @@ export function EditableExamContentRenderer({
                         <CheckCircle className="h-4 w-4 text-primary" />
                         <span className="text-sm font-semibold text-primary">Expected Answer:</span>
                       </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{question.answers[0].text}</p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap"><LatexText text={question.answers[0].text} /></p>
                       
                       {/* Rubric display */}
                       {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
@@ -396,7 +397,7 @@ export function EditableExamContentRenderer({
                             {question.answers[0].rubric.map((item: any, idx: number) => (
                               <div key={idx} className="flex items-start gap-2 text-xs">
                                 <Badge variant="outline" className="shrink-0">{item.points}pts</Badge>
-                                <span className="text-muted-foreground">{item.criteria}</span>
+                                <span className="text-muted-foreground"><LatexText text={item.criteria} /></span>
                               </div>
                             ))}
                           </div>
@@ -431,7 +432,7 @@ export function EditableExamContentRenderer({
                                 <CheckCircle className="h-3 w-3 text-primary" />
                                 <span className="text-xs font-semibold text-primary">Expected Answer:</span>
                               </div>
-                              <p className="text-xs text-foreground whitespace-pre-wrap">{subQ.answers[0].text}</p>
+                              <p className="text-xs text-foreground whitespace-pre-wrap"><LatexText text={subQ.answers[0].text} /></p>
                             </div>
                           )}
                         </div>
@@ -517,7 +518,7 @@ export function EditableExamContentRenderer({
                     <CheckCircle className="h-4 w-4 text-primary" />
                     <span className="text-sm font-semibold text-primary">Expected Answer:</span>
                   </div>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{question.answers[0].text}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap"><LatexText text={question.answers[0].text} /></p>
                   
                   {/* Rubric display */}
                   {question.answers[0].rubric && question.answers[0].rubric.length > 0 && (
@@ -527,7 +528,7 @@ export function EditableExamContentRenderer({
                         {question.answers[0].rubric.map((item: any, idx: number) => (
                           <div key={idx} className="flex items-start gap-2 text-xs">
                             <Badge variant="outline" className="shrink-0">{item.points}pts</Badge>
-                            <span className="text-muted-foreground">{item.criteria}</span>
+                            <span className="text-muted-foreground"><LatexText text={item.criteria} /></span>
                           </div>
                         ))}
                       </div>
