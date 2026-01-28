@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Edit2, Image, Plus, Trash2, Upload } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { LatexText } from '@/components/ui/latex-text';
@@ -49,6 +50,7 @@ interface ContentItem {
     alt?: string;
   }>;
   order: number;
+  isUploading?: boolean;
 }
 
 type ExamContentItem = ContentItem | Question;
@@ -92,28 +94,50 @@ export function EditableExamContentRenderer({
     }
   };
 
-  const handleAddImage = async (file: File, afterOrder: number, caption: string = '') => {
+  const handleAddImage = async (file: File, afterOrder: number) => {
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image smaller than 10MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Create placeholder with loading state immediately
+    const items = getItems();
+    const newOrder = afterOrder + 0.5;
+    const imageId = generateId();
+    const figureNumber = items.filter(i => i.item_type === 'image').length + 1;
+    
+    const placeholderItem = {
+      id: imageId,
+      item_type: 'image',
+      text: `Figure ${figureNumber}`,
+      assets: [{ type: 'image', url: '', alt: 'Exam figure' }],
+      order: newOrder,
+      isUploading: true,
+    };
+
+    // Insert placeholder and re-order
+    const itemsWithPlaceholder = [...items, placeholderItem]
+      .sort((a, b) => a.order - b.order)
+      .map((item, idx) => ({ ...item, order: idx + 1 }));
+
+    updateItems(itemsWithPlaceholder);
+
+    // Upload in background
     try {
-      // Validate file
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: 'Invalid file type',
-          description: 'Please select an image file',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Please select an image smaller than 10MB',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Upload to Supabase
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
@@ -127,22 +151,18 @@ export function EditableExamContentRenderer({
         .from('exam-images')
         .getPublicUrl(fileName);
 
-      // Create new image item
-      const items = getItems();
-      const newOrder = afterOrder + 0.5; // Insert between items
-      
-      const newImageItem = {
-        id: generateId(),
-        item_type: 'image',
-        text: caption || `Figure ${items.filter(i => i.item_type === 'image').length + 1}`,
-        assets: [{ type: 'image', url: urlData.publicUrl, alt: caption || 'Exam figure' }],
-        order: newOrder,
-      };
-
-      // Insert and re-order
-      const updatedItems = [...items, newImageItem]
-        .sort((a, b) => a.order - b.order)
-        .map((item, idx) => ({ ...item, order: idx + 1 }));
+      // Update the placeholder with real URL
+      const currentItems = getItems();
+      const updatedItems = currentItems.map(item => {
+        if (item.id === imageId) {
+          const { isUploading, ...rest } = item;
+          return {
+            ...rest,
+            assets: [{ type: 'image', url: urlData.publicUrl, alt: item.text || 'Exam figure' }],
+          };
+        }
+        return item;
+      });
 
       updateItems(updatedItems);
 
@@ -152,6 +172,14 @@ export function EditableExamContentRenderer({
       });
     } catch (error: any) {
       console.error('Image upload error:', error);
+      
+      // Remove the failed placeholder
+      const currentItems = getItems();
+      const cleanedItems = currentItems
+        .filter(item => item.id !== imageId)
+        .map((item, idx) => ({ ...item, order: idx + 1 }));
+      updateItems(cleanedItems);
+      
       toast({
         title: 'Upload failed',
         description: error.message || 'Failed to upload image',
@@ -360,8 +388,7 @@ export function EditableExamContentRenderer({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                const caption = prompt('Enter image caption (optional):') || '';
-                handleAddImage(file, afterOrder, caption);
+                handleAddImage(file, afterOrder);
               }
               e.target.value = '';
             }}
@@ -454,21 +481,33 @@ export function EditableExamContentRenderer({
           // Images
           if (item.item_type === 'image') {
             const asset = item.assets?.[0];
+            const isUploading = item.isUploading === true;
+            
             return (
               <div key={item.id} className="group">
                 <div className="space-y-2 relative border border-dashed border-transparent hover:border-muted-foreground/30 rounded-lg p-2">
-                  {item.text && (
-                    <div
-                      className="text-sm font-medium text-muted-foreground outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors inline-block"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
-                      onFocus={() => setEditingId(item.id)}
-                    >
-                      {item.text}
+                  {/* Inline editable caption */}
+                  <div
+                    className="text-sm font-medium text-muted-foreground outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors inline-block min-w-[100px]"
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
+                    onFocus={() => setEditingId(item.id)}
+                    data-placeholder="Enter caption..."
+                  >
+                    {item.text || ''}
+                  </div>
+                  
+                  {/* Skeleton loader during upload */}
+                  {isUploading ? (
+                    <div className="border rounded-lg overflow-hidden bg-muted">
+                      <Skeleton className="w-full h-48" />
+                      <div className="p-3 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
                     </div>
-                  )}
-                  {asset && (
+                  ) : asset && asset.url ? (
                     <div className="border rounded-lg overflow-hidden bg-background relative">
                       <img
                         src={asset.url}
@@ -476,34 +515,36 @@ export function EditableExamContentRenderer({
                         className="max-w-full h-auto"
                       />
                     </div>
-                  )}
+                  ) : null}
                   
-                  {/* Image action buttons */}
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleReplaceImage(item.id, file);
-                          e.target.value = '';
-                        }}
-                      />
-                      <span className="inline-flex items-center justify-center h-7 w-7 rounded bg-primary/90 text-primary-foreground hover:bg-primary transition-colors">
-                        <Upload className="h-3.5 w-3.5" />
-                      </span>
-                    </label>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleDeleteItem(item.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {/* Image action buttons - only show when not uploading */}
+                  {!isUploading && (
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleReplaceImage(item.id, file);
+                            e.target.value = '';
+                          }}
+                        />
+                        <span className="inline-flex items-center justify-center h-7 w-7 rounded bg-primary/90 text-primary-foreground hover:bg-primary transition-colors">
+                          <Upload className="h-3.5 w-3.5" />
+                        </span>
+                      </label>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleDeleteItem(item.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {renderAddImageButton(item.order)}
               </div>
