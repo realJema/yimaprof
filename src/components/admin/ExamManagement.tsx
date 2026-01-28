@@ -31,6 +31,7 @@ interface Exam {
   academic_year_id?: string;
   period_id?: string;
   establishment_id?: string;
+  series_id?: string;
   classes?: {
     display_name: string;
     section: string;
@@ -55,6 +56,12 @@ interface Exam {
   };
   establishments?: {
     name: string;
+  };
+  series?: {
+    code: string;
+    name: string;
+    name_en: string;
+    name_fr: string;
   };
 }
 interface Question {
@@ -137,6 +144,12 @@ export function ExamManagement() {
           ),
           establishments:establishment_id (
             name
+          ),
+          series:series_id (
+            code,
+            name,
+            name_en,
+            name_fr
           )
         `).order('created_at', {
         ascending: false

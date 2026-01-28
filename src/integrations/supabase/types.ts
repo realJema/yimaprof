@@ -344,6 +344,7 @@ export type Database = {
           is_published: boolean | null
           language: string | null
           period_id: string
+          series_id: string | null
           subject_id: string
           tags: string[] | null
           thumbnail_url: string | null
@@ -367,6 +368,7 @@ export type Database = {
           is_published?: boolean | null
           language?: string | null
           period_id: string
+          series_id?: string | null
           subject_id: string
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -390,6 +392,7 @@ export type Database = {
           is_published?: boolean | null
           language?: string | null
           period_id?: string
+          series_id?: string | null
           subject_id?: string
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -438,6 +441,13 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
             referencedColumns: ["id"]
           },
           {
@@ -801,6 +811,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      series: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          name_fr: string | null
+          order_number: number | null
+          system: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          name_fr?: string | null
+          order_number?: number | null
+          system: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          name_fr?: string | null
+          order_number?: number | null
+          system?: string
+        }
+        Relationships: []
       }
       subjects: {
         Row: {

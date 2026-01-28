@@ -28,6 +28,7 @@ import { NotificationComposer } from '@/components/admin/NotificationComposer';
 import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
 import ForumModeration from '@/components/admin/ForumModeration';
 import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
+import { SeriesManagement } from '@/components/admin/SeriesManagement';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -311,6 +312,10 @@ export default function Admin() {
                 
                 <ConfigSection title={t('exam_types')}>
                   <ExamTypeManagement />
+                </ConfigSection>
+                
+                <ConfigSection title={language === 'fr' ? 'Séries / Filières' : 'Series / Tracks'}>
+                  <SeriesManagement />
                 </ConfigSection>
                 
                 <ConfigSection title={t('durations')}>

@@ -63,6 +63,13 @@ interface Exam {
     display_name: string;
     section: string;
   } | null;
+  series: {
+    id: string;
+    code: string;
+    name: string;
+    name_en: string | null;
+    name_fr: string | null;
+  } | null;
 }
 
 // Subject colors for visual variety
@@ -143,7 +150,8 @@ const Exams2 = () => {
           period:periods(id, name, name_en, name_fr),
           duration:durations(id, minutes, display_label),
           establishment:establishments(id, name),
-          class:classes(id, name, display_name, section)
+          class:classes(id, name, display_name, section),
+          series:series(id, code, name, name_en, name_fr)
         `)
         .eq('is_published', true)
         .in('visibility', ['public', 'free'])
