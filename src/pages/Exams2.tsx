@@ -111,6 +111,7 @@ const Exams2 = () => {
   const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedExamType, setSelectedExamType] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
@@ -243,6 +244,21 @@ const Exams2 = () => {
     }
   });
 
+  // Fetch series
+  const {
+    data: series
+  } = useQuery({
+    queryKey: ['series'],
+    queryFn: async () => {
+      const {
+        data,
+        error
+      } = await supabase.from('series').select('*').eq('is_active', true).order('order_number');
+      if (error) throw error;
+      return data;
+    }
+  });
+
   // Get localized name helper
   const getLocalizedName = (item: {
     name: string;
@@ -323,6 +339,14 @@ const Exams2 = () => {
       } else if (selectedSubjects.length > 0 && !exam.subject) {
         return false;
       }
+      // Series filter
+      if (selectedSeries.length > 0) {
+        if (exam.series) {
+          if (!selectedSeries.includes(exam.series.id)) return false;
+        } else {
+          return false;
+        }
+      }
       if (selectedYear !== 'all' && exam.academic_year?.id !== selectedYear) return false;
       if (selectedExamType !== 'all' && exam.exam_type?.id !== selectedExamType) return false;
       if (selectedPeriod !== 'all' && exam.period?.id !== selectedPeriod) return false;
@@ -343,7 +367,7 @@ const Exams2 = () => {
           return 0;
       }
     });
-  }, [accessibleExams, searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedYear, selectedExamType, selectedPeriod, selectedSystem, sortBy, language]);
+  }, [accessibleExams, searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedSeries, selectedYear, selectedExamType, selectedPeriod, selectedSystem, sortBy, language]);
 
   // Pagination
   const totalPages = Math.ceil(filteredExams.length / ITEMS_PER_PAGE);
@@ -355,14 +379,15 @@ const Exams2 = () => {
   // Reset to page 1 when filters change
   useMemo(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedYear, selectedExamType, selectedPeriod, selectedSystem]);
+  }, [searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedSeries, selectedYear, selectedExamType, selectedPeriod, selectedSystem]);
 
   // Count exams per filter option (filtered by selected system and accessible exams)
   const getFilterCounts = useMemo(() => {
     const counts = {
       schools: {} as Record<string, number>,
       classes: {} as Record<string, number>,
-      subjects: {} as Record<string, number>
+      subjects: {} as Record<string, number>,
+      series: {} as Record<string, number>
     };
     // Only count accessible exams that match the selected system
     const systemFilteredExams = accessibleExams.filter(exam => {
@@ -374,6 +399,7 @@ const Exams2 = () => {
       if (exam.establishment) counts.schools[exam.establishment.id] = (counts.schools[exam.establishment.id] || 0) + 1;
       if (exam.class) counts.classes[exam.class.id] = (counts.classes[exam.class.id] || 0) + 1;
       if (exam.subject) counts.subjects[exam.subject.id] = (counts.subjects[exam.subject.id] || 0) + 1;
+      if (exam.series) counts.series[exam.series.id] = (counts.series[exam.series.id] || 0) + 1;
     });
     return counts;
   }, [accessibleExams, selectedSystem]);
@@ -420,12 +446,23 @@ const Exams2 = () => {
     });
   }, [subjects, accessibleExams, selectedSystem]);
 
-  const activeFiltersCount = selectedSchools.length + selectedClasses.length + selectedSubjects.length + (selectedYear !== 'all' ? 1 : 0) + (selectedExamType !== 'all' ? 1 : 0) + (selectedPeriod !== 'all' ? 1 : 0);
+  // Filter series based on selected system
+  const filteredSeries = useMemo(() => {
+    if (!series) return [];
+    return series.filter(s => {
+      if (s.system === 'general') return true;
+      if (selectedSystem === 'all') return true;
+      return s.system === selectedSystem;
+    });
+  }, [series, selectedSystem]);
+
+  const activeFiltersCount = selectedSchools.length + selectedClasses.length + selectedSubjects.length + selectedSeries.length + (selectedYear !== 'all' ? 1 : 0) + (selectedExamType !== 'all' ? 1 : 0) + (selectedPeriod !== 'all' ? 1 : 0);
   const clearAllFilters = () => {
     setSearchTerm('');
     setSelectedSchools([]);
     setSelectedClasses([]);
     setSelectedSubjects([]);
+    setSelectedSeries([]);
     setSelectedYear('all');
     setSelectedExamType('all');
     setSelectedPeriod('all');
@@ -438,6 +475,7 @@ const Exams2 = () => {
   const toggleSchool = (id: string) => setSelectedSchools(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
   const toggleClass = (id: string) => setSelectedClasses(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
   const toggleSubject = (id: string) => setSelectedSubjects(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+  const toggleSeries = (id: string) => setSelectedSeries(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
 
   // Multi-select popover component
   const MultiSelectPopover = ({
@@ -506,6 +544,12 @@ const Exams2 = () => {
       <div className="space-y-2">
         <label className="text-sm font-medium">{language === 'fr' ? 'Matières' : 'Subjects'}</label>
         <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={BookOpen} items={filteredSubjects} selectedItems={selectedSubjects} onToggle={toggleSubject} counts={getFilterCounts.subjects} getItemName={item => getLocalizedName(item)} />
+      </div>
+
+      {/* Series - filtered by system */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">{language === 'fr' ? 'Série / Filière' : 'Series / Track'}</label>
+        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={GraduationCap} items={filteredSeries} selectedItems={selectedSeries} onToggle={toggleSeries} counts={getFilterCounts.series} getItemName={item => getLocalizedName(item)} />
       </div>
 
       <Separator />
