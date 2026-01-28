@@ -389,7 +389,7 @@ export function EditableExamContentRenderer({
               <div key={item.id} className="group">
                 <div className="border-l-4 border-primary pl-4 py-2 relative">
                   <div 
-                    className="text-xl font-bold text-foreground uppercase tracking-wide outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors"
+                    className="text-xl font-bold text-foreground uppercase tracking-wide outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors pr-12"
                     contentEditable
                     suppressContentEditableWarning
                     onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
@@ -397,7 +397,16 @@ export function EditableExamContentRenderer({
                   >
                     {item.text}
                   </div>
-                  <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit2 className="h-3 w-3 text-muted-foreground" />
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete block"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
                 {renderAddImageButton(item.order)}
               </div>
@@ -409,7 +418,7 @@ export function EditableExamContentRenderer({
             return (
               <div key={item.id} className="group">
                 <div className="bg-muted/50 p-4 rounded-lg border border-border relative">
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-sm text-muted-foreground italic pr-12">
                     <span className="font-semibold text-foreground">Instructions: </span>
                     <span
                       className="outline-none hover:bg-muted/50 px-1 rounded transition-colors"
@@ -421,7 +430,16 @@ export function EditableExamContentRenderer({
                       {item.text}
                     </span>
                   </p>
-                  <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit2 className="h-3 w-3 text-muted-foreground" />
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete block"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
                 {renderAddImageButton(item.order)}
               </div>
@@ -433,7 +451,7 @@ export function EditableExamContentRenderer({
             return (
               <div key={item.id} className="group">
                 <div className="bg-accent/30 p-4 rounded-lg border border-accent relative">
-                  <div className="prose prose-sm max-w-none">
+                  <div className="prose prose-sm max-w-none pr-12">
                     <div
                       className="text-sm text-foreground whitespace-pre-wrap outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors"
                       contentEditable
@@ -444,7 +462,16 @@ export function EditableExamContentRenderer({
                       {item.text}
                     </div>
                   </div>
-                  <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit2 className="h-3 w-3 text-muted-foreground" />
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete block"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
                 {renderAddImageButton(item.order)}
               </div>
@@ -518,6 +545,13 @@ export function EditableExamContentRenderer({
             return (
               <div key={item.id} className="group">
                 <div className="border border-border rounded-lg p-4 bg-card relative">
+                  <button
+                    onClick={() => handleDeleteItem(item.id)}
+                    className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete question"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 <div className="space-y-4">
                   {/* Question Header */}
                   <div className="flex items-start justify-between gap-4">
