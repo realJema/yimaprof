@@ -1,7 +1,10 @@
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Edit2 } from 'lucide-react';
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Edit2, Image, Plus, Trash2, Upload } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { LatexText } from '@/components/ui/latex-text';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Answer {
   id: string;
@@ -56,16 +59,174 @@ interface EditableExamContentRendererProps {
   showAnswers?: boolean;
 }
 
+const generateId = () => `item_${Math.random().toString(36).substr(2, 9)}`;
+
 export function EditableExamContentRenderer({
   content,
   onContentChange,
   showAnswers = false
 }: EditableExamContentRendererProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploadingAtIndex, setUploadingAtIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   if (!content) {
     return <p className="text-muted-foreground">No content available.</p>;
   }
+
+  const getItems = (): any[] => {
+    if (Array.isArray(content)) {
+      return content;
+    } else if (content.questions && Array.isArray(content.questions)) {
+      return content.questions;
+    }
+    return [];
+  };
+
+  const updateItems = (newItems: any[]) => {
+    if (Array.isArray(content)) {
+      onContentChange(newItems);
+    } else if (content.questions && Array.isArray(content.questions)) {
+      onContentChange({ ...content, questions: newItems });
+    }
+  };
+
+  const handleAddImage = async (file: File, afterOrder: number, caption: string = '') => {
+    try {
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select an image file',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Please select an image smaller than 10MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Upload to Supabase
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('exam-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('exam-images')
+        .getPublicUrl(fileName);
+
+      // Create new image item
+      const items = getItems();
+      const newOrder = afterOrder + 0.5; // Insert between items
+      
+      const newImageItem = {
+        id: generateId(),
+        item_type: 'image',
+        text: caption || `Figure ${items.filter(i => i.item_type === 'image').length + 1}`,
+        assets: [{ type: 'image', url: urlData.publicUrl, alt: caption || 'Exam figure' }],
+        order: newOrder,
+      };
+
+      // Insert and re-order
+      const updatedItems = [...items, newImageItem]
+        .sort((a, b) => a.order - b.order)
+        .map((item, idx) => ({ ...item, order: idx + 1 }));
+
+      updateItems(updatedItems);
+
+      toast({
+        title: 'Image added',
+        description: 'The image has been inserted into the exam content',
+      });
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload image',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingAtIndex(null);
+    }
+  };
+
+  const handleReplaceImage = async (itemId: string, file: File) => {
+    try {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select an image file',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Upload new image
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('exam-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('exam-images')
+        .getPublicUrl(fileName);
+
+      // Update the item
+      const items = getItems();
+      const updatedItems = items.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            assets: [{ type: 'image', url: urlData.publicUrl, alt: item.text || 'Exam figure' }],
+          };
+        }
+        return item;
+      });
+
+      updateItems(updatedItems);
+
+      toast({
+        title: 'Image replaced',
+        description: 'The image has been updated',
+      });
+    } catch (error: any) {
+      console.error('Image replace error:', error);
+      toast({
+        title: 'Replace failed',
+        description: error.message || 'Failed to replace image',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    const items = getItems();
+    const updatedItems = items
+      .filter(item => item.id !== itemId)
+      .map((item, idx) => ({ ...item, order: idx + 1 }));
+    updateItems(updatedItems);
+    
+    toast({
+      title: 'Item deleted',
+      description: 'The item has been removed from the exam content',
+    });
+  };
 
   const handleTextChange = (itemId: string, newText: string, field: 'text' | 'paper_number' = 'text') => {
     let updatedContent;
@@ -189,55 +350,46 @@ export function EditableExamContentRenderer({
     const sortedItems = [...items].sort((a, b) => a.order - b.order);
     let questionNumber = 0;
 
+    const renderAddImageButton = (afterOrder: number) => (
+      <div className="flex justify-center py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const caption = prompt('Enter image caption (optional):') || '';
+                handleAddImage(file, afterOrder, caption);
+              }
+              e.target.value = '';
+            }}
+          />
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded border border-dashed border-muted-foreground/30 hover:border-primary/50">
+            <Plus className="h-3 w-3" />
+            <Image className="h-3 w-3" />
+            Add Image Here
+          </span>
+        </label>
+      </div>
+    );
+
     return (
       <div className="space-y-6">
-        {sortedItems.map((item) => {
+        {/* Add image at the beginning */}
+        <div className="group">
+          {renderAddImageButton(0)}
+        </div>
+
+        {sortedItems.map((item, index) => {
           // Headings
           if (item.item_type === 'heading') {
             return (
-              <div key={item.id} className="border-l-4 border-primary pl-4 py-2 group relative">
-                <div 
-                  className="text-xl font-bold text-foreground uppercase tracking-wide outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
-                  onFocus={() => setEditingId(item.id)}
-                >
-                  {item.text}
-                </div>
-                <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            );
-          }
-
-          // Instructions
-          if (item.item_type === 'instruction') {
-            return (
-              <div key={item.id} className="bg-muted/50 p-4 rounded-lg border border-border group relative">
-                <p className="text-sm text-muted-foreground italic">
-                  <span className="font-semibold text-foreground">Instructions: </span>
-                  <span
-                    className="outline-none hover:bg-muted/50 px-1 rounded transition-colors"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
-                    onFocus={() => setEditingId(item.id)}
-                  >
-                    {item.text}
-                  </span>
-                </p>
-                <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            );
-          }
-
-          // Passages
-          if (item.item_type === 'passage') {
-            return (
-              <div key={item.id} className="bg-accent/30 p-4 rounded-lg border border-accent group relative">
-                <div className="prose prose-sm max-w-none">
-                  <div
-                    className="text-sm text-foreground whitespace-pre-wrap outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors"
+              <div key={item.id} className="group">
+                <div className="border-l-4 border-primary pl-4 py-2 relative">
+                  <div 
+                    className="text-xl font-bold text-foreground uppercase tracking-wide outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors"
                     contentEditable
                     suppressContentEditableWarning
                     onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
@@ -245,8 +397,56 @@ export function EditableExamContentRenderer({
                   >
                     {item.text}
                   </div>
+                  <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {renderAddImageButton(item.order)}
+              </div>
+            );
+          }
+
+          // Instructions
+          if (item.item_type === 'instruction') {
+            return (
+              <div key={item.id} className="group">
+                <div className="bg-muted/50 p-4 rounded-lg border border-border relative">
+                  <p className="text-sm text-muted-foreground italic">
+                    <span className="font-semibold text-foreground">Instructions: </span>
+                    <span
+                      className="outline-none hover:bg-muted/50 px-1 rounded transition-colors"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
+                      onFocus={() => setEditingId(item.id)}
+                    >
+                      {item.text}
+                    </span>
+                  </p>
+                  <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                {renderAddImageButton(item.order)}
+              </div>
+            );
+          }
+
+          // Passages
+          if (item.item_type === 'passage') {
+            return (
+              <div key={item.id} className="group">
+                <div className="bg-accent/30 p-4 rounded-lg border border-accent relative">
+                  <div className="prose prose-sm max-w-none">
+                    <div
+                      className="text-sm text-foreground whitespace-pre-wrap outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
+                      onFocus={() => setEditingId(item.id)}
+                    >
+                      {item.text}
+                    </div>
+                  </div>
+                  <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                {renderAddImageButton(item.order)}
               </div>
             );
           }
@@ -255,28 +455,57 @@ export function EditableExamContentRenderer({
           if (item.item_type === 'image') {
             const asset = item.assets?.[0];
             return (
-              <div key={item.id} className="space-y-2 group relative">
-                {item.text && (
-                  <div
-                    className="text-sm font-medium text-muted-foreground outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors inline-block"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
-                    onFocus={() => setEditingId(item.id)}
-                  >
-                    {item.text}
+              <div key={item.id} className="group">
+                <div className="space-y-2 relative border border-dashed border-transparent hover:border-muted-foreground/30 rounded-lg p-2">
+                  {item.text && (
+                    <div
+                      className="text-sm font-medium text-muted-foreground outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors inline-block"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
+                      onFocus={() => setEditingId(item.id)}
+                    >
+                      {item.text}
+                    </div>
+                  )}
+                  {asset && (
+                    <div className="border rounded-lg overflow-hidden bg-background relative">
+                      <img
+                        src={asset.url}
+                        alt={asset.alt || 'Exam figure'}
+                        className="max-w-full h-auto"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Image action buttons */}
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleReplaceImage(item.id, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <span className="inline-flex items-center justify-center h-7 w-7 rounded bg-primary/90 text-primary-foreground hover:bg-primary transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                      </span>
+                    </label>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleDeleteItem(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                )}
-                {asset && (
-                  <div className="border rounded-lg overflow-hidden bg-background">
-                    <img
-                      src={asset.url}
-                      alt={asset.alt || 'Exam figure'}
-                      className="max-w-full h-auto"
-                    />
-                  </div>
-                )}
-                <Edit2 className="h-3 w-3 text-muted-foreground absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                {renderAddImageButton(item.order)}
               </div>
             );
           }
@@ -287,7 +516,8 @@ export function EditableExamContentRenderer({
             const question = item as Question;
 
             return (
-              <div key={item.id} className="border border-border rounded-lg p-4 bg-card group relative">
+              <div key={item.id} className="group">
+                <div className="border border-border rounded-lg p-4 bg-card relative">
                 <div className="space-y-4">
                   {/* Question Header */}
                   <div className="flex items-start justify-between gap-4">
@@ -442,8 +672,10 @@ export function EditableExamContentRenderer({
                 </div>
                 <Edit2 className="h-3 w-3 text-muted-foreground absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-            );
-          }
+              {renderAddImageButton(item.order)}
+            </div>
+          );
+        }
 
           return null;
         })}
