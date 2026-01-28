@@ -1,28 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Edit2, GripVertical, Image, Plus, Trash2, Upload } from 'lucide-react';
-import { useState, useRef, useCallback } from 'react';
+import { CheckCircle, Edit2, Image, Plus, Trash2, Upload } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { LatexText } from '@/components/ui/latex-text';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface Answer {
   id: string;
@@ -67,124 +49,9 @@ interface ContentItem {
     alt?: string;
   }>;
   order: number;
-  isUploading?: boolean;
 }
 
 type ExamContentItem = ContentItem | Question;
-
-// Sortable Image Item Component
-interface SortableImageItemProps {
-  item: any;
-  onTextChange: (id: string, text: string) => void;
-  onReplace: (id: string, file: File) => void;
-  onDelete: (id: string) => void;
-  setEditingId: (id: string | null) => void;
-  renderAddImageButton: (afterOrder: number) => JSX.Element;
-}
-
-function SortableImageItem({ 
-  item, 
-  onTextChange, 
-  onReplace, 
-  onDelete, 
-  setEditingId,
-  renderAddImageButton 
-}: SortableImageItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1000 : 'auto',
-  };
-
-  const asset = item.assets?.[0];
-  const isUploading = item.isUploading === true;
-
-  return (
-    <div ref={setNodeRef} style={style} className="group">
-      <div className="space-y-2 relative border border-dashed border-transparent hover:border-muted-foreground/30 rounded-lg p-2">
-        {/* Drag handle */}
-        <div 
-          {...attributes} 
-          {...listeners}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
-        
-        {/* Inline editable caption */}
-        <div
-          className="text-sm font-medium text-muted-foreground outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors inline-block min-w-[100px] ml-4"
-          contentEditable
-          suppressContentEditableWarning
-          onBlur={(e) => onTextChange(item.id, e.currentTarget.textContent || '')}
-          onFocus={() => setEditingId(item.id)}
-          data-placeholder="Enter caption..."
-        >
-          {item.text || ''}
-        </div>
-        
-        {/* Skeleton loader during upload */}
-        {isUploading ? (
-          <div className="border rounded-lg overflow-hidden bg-muted ml-4">
-            <Skeleton className="w-full h-48" />
-            <div className="p-3 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          </div>
-        ) : asset && asset.url ? (
-          <div className="border rounded-lg overflow-hidden bg-background relative ml-4">
-            <img
-              src={asset.url}
-              alt={asset.alt || 'Exam figure'}
-              className="max-w-full h-auto"
-            />
-          </div>
-        ) : null}
-        
-        {/* Image action buttons - only show when not uploading */}
-        {!isUploading && (
-          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onReplace(item.id, file);
-                  e.target.value = '';
-                }}
-              />
-              <span className="inline-flex items-center justify-center h-7 w-7 rounded bg-primary/90 text-primary-foreground hover:bg-primary transition-colors">
-                <Upload className="h-3.5 w-3.5" />
-              </span>
-            </label>
-            <Button
-              variant="destructive"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => onDelete(item.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        )}
-      </div>
-      {renderAddImageButton(item.order)}
-    </div>
-  );
-}
 
 interface EditableExamContentRendererProps {
   content: any;
@@ -202,20 +69,7 @@ export function EditableExamContentRenderer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingAtIndex, setUploadingAtIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pendingUploadsRef = useRef<Map<string, { url: string }>>(new Map());
   const { toast } = useToast();
-
-  // DnD sensors for image reordering
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   if (!content) {
     return <p className="text-muted-foreground">No content available.</p>;
@@ -238,80 +92,28 @@ export function EditableExamContentRenderer({
     }
   };
 
-  // Handle image drag end for reordering
-  const handleImageDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const items = getItems();
-      const imageItems = items.filter(i => i.item_type === 'image');
-      const nonImageItems = items.filter(i => i.item_type !== 'image');
-      
-      const oldIndex = imageItems.findIndex(i => i.id === active.id);
-      const newIndex = imageItems.findIndex(i => i.id === over.id);
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const reorderedImages = arrayMove(imageItems, oldIndex, newIndex);
-        
-        // Merge back: preserve original positions but swap the image orders
-        const allItems = [...nonImageItems, ...reorderedImages]
-          .sort((a, b) => a.order - b.order)
-          .map((item, idx) => ({ ...item, order: idx + 1 }));
-        
-        updateItems(allItems);
-        
-        toast({
-          title: 'Image reordered',
-          description: 'The image position has been updated',
-        });
-      }
-    }
-  };
-
-  const handleAddImage = async (file: File, afterOrder: number) => {
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please select an image file',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: 'Please select an image smaller than 10MB',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Create placeholder with loading state immediately
-    const items = getItems();
-    const newOrder = afterOrder + 0.5;
-    const imageId = generateId();
-    const figureNumber = items.filter(i => i.item_type === 'image').length + 1;
-    
-    const placeholderItem = {
-      id: imageId,
-      item_type: 'image',
-      text: `Figure ${figureNumber}`,
-      assets: [{ type: 'image', url: '', alt: 'Exam figure' }],
-      order: newOrder,
-      isUploading: true,
-    };
-
-    // Insert placeholder and re-order
-    const itemsWithPlaceholder = [...items, placeholderItem]
-      .sort((a, b) => a.order - b.order)
-      .map((item, idx) => ({ ...item, order: idx + 1 }));
-
-    updateItems(itemsWithPlaceholder);
-
-    // Upload in background
+  const handleAddImage = async (file: File, afterOrder: number, caption: string = '') => {
     try {
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select an image file',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Please select an image smaller than 10MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Upload to Supabase
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
@@ -325,34 +127,24 @@ export function EditableExamContentRenderer({
         .from('exam-images')
         .getPublicUrl(fileName);
 
-      // Store the URL in ref for the update
-      pendingUploadsRef.current.set(imageId, { url: urlData.publicUrl });
+      // Create new image item
+      const items = getItems();
+      const newOrder = afterOrder + 0.5; // Insert between items
+      
+      const newImageItem = {
+        id: generateId(),
+        item_type: 'image',
+        text: caption || `Figure ${items.filter(i => i.item_type === 'image').length + 1}`,
+        assets: [{ type: 'image', url: urlData.publicUrl, alt: caption || 'Exam figure' }],
+        order: newOrder,
+      };
 
-      // Use callback pattern to get fresh state
-      onContentChange((currentContent: any) => {
-        const currentItems = Array.isArray(currentContent) 
-          ? currentContent 
-          : currentContent?.questions || [];
-        
-        const updatedItems = currentItems.map((item: any) => {
-          if (item.id === imageId) {
-            const { isUploading, ...rest } = item;
-            return {
-              ...rest,
-              assets: [{ type: 'image', url: urlData.publicUrl, alt: item.text || 'Exam figure' }],
-            };
-          }
-          return item;
-        });
+      // Insert and re-order
+      const updatedItems = [...items, newImageItem]
+        .sort((a, b) => a.order - b.order)
+        .map((item, idx) => ({ ...item, order: idx + 1 }));
 
-        pendingUploadsRef.current.delete(imageId);
-        
-        if (Array.isArray(currentContent)) {
-          return updatedItems;
-        } else {
-          return { ...currentContent, questions: updatedItems };
-        }
-      });
+      updateItems(updatedItems);
 
       toast({
         title: 'Image added',
@@ -360,24 +152,6 @@ export function EditableExamContentRenderer({
       });
     } catch (error: any) {
       console.error('Image upload error:', error);
-      
-      // Remove the failed placeholder using callback
-      onContentChange((currentContent: any) => {
-        const currentItems = Array.isArray(currentContent) 
-          ? currentContent 
-          : currentContent?.questions || [];
-        
-        const cleanedItems = currentItems
-          .filter((item: any) => item.id !== imageId)
-          .map((item: any, idx: number) => ({ ...item, order: idx + 1 }));
-        
-        if (Array.isArray(currentContent)) {
-          return cleanedItems;
-        } else {
-          return { ...currentContent, questions: cleanedItems };
-        }
-      });
-      
       toast({
         title: 'Upload failed',
         description: error.message || 'Failed to upload image',
@@ -586,7 +360,8 @@ export function EditableExamContentRenderer({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                handleAddImage(file, afterOrder);
+                const caption = prompt('Enter image caption (optional):') || '';
+                handleAddImage(file, afterOrder, caption);
               }
               e.target.value = '';
             }}
@@ -600,25 +375,14 @@ export function EditableExamContentRenderer({
       </div>
     );
 
-    // Get image IDs for sortable context
-    const imageIds = sortedItems
-      .filter(item => item.item_type === 'image')
-      .map(item => item.id);
-
     return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleImageDragEnd}
-      >
-        <SortableContext items={imageIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-6">
-            {/* Add image at the beginning */}
-            <div className="group">
-              {renderAddImageButton(0)}
-            </div>
+      <div className="space-y-6">
+        {/* Add image at the beginning */}
+        <div className="group">
+          {renderAddImageButton(0)}
+        </div>
 
-            {sortedItems.map((item, index) => {
+        {sortedItems.map((item, index) => {
           // Headings
           if (item.item_type === 'heading') {
             return (
@@ -687,18 +451,62 @@ export function EditableExamContentRenderer({
             );
           }
 
-          // Images - use sortable component
+          // Images
           if (item.item_type === 'image') {
+            const asset = item.assets?.[0];
             return (
-              <SortableImageItem
-                key={item.id}
-                item={item}
-                onTextChange={handleTextChange}
-                onReplace={handleReplaceImage}
-                onDelete={handleDeleteItem}
-                setEditingId={setEditingId}
-                renderAddImageButton={renderAddImageButton}
-              />
+              <div key={item.id} className="group">
+                <div className="space-y-2 relative border border-dashed border-transparent hover:border-muted-foreground/30 rounded-lg p-2">
+                  {item.text && (
+                    <div
+                      className="text-sm font-medium text-muted-foreground outline-none hover:bg-muted/30 px-2 py-1 rounded transition-colors inline-block"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextChange(item.id, e.currentTarget.textContent || '')}
+                      onFocus={() => setEditingId(item.id)}
+                    >
+                      {item.text}
+                    </div>
+                  )}
+                  {asset && (
+                    <div className="border rounded-lg overflow-hidden bg-background relative">
+                      <img
+                        src={asset.url}
+                        alt={asset.alt || 'Exam figure'}
+                        className="max-w-full h-auto"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Image action buttons */}
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleReplaceImage(item.id, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <span className="inline-flex items-center justify-center h-7 w-7 rounded bg-primary/90 text-primary-foreground hover:bg-primary transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                      </span>
+                    </label>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleDeleteItem(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                {renderAddImageButton(item.order)}
+              </div>
             );
           }
 
@@ -871,9 +679,7 @@ export function EditableExamContentRenderer({
 
           return null;
         })}
-          </div>
-        </SortableContext>
-      </DndContext>
+      </div>
     );
   }
 
