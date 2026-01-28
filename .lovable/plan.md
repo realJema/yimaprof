@@ -1,211 +1,213 @@
 
+## Add Educational Series (Tracks) to Exam System
 
-## LaTeX Rendering for Exam Content
-
-This plan adds LaTeX/math formula rendering to all exam content displays, handling both plain text and LaTeX mixed content seamlessly.
-
----
-
-### Problem Analysis
-
-The exam JSON content contains LaTeX notation like:
-- Inline math: `\(P\)`, `\(\mathbb{R}\)`, `\(2x^{3} - 5x^{2} - x + 6\)`
-- Display math: `\[...\]` (block equations)
-
-These are currently displayed as raw text strings instead of rendered mathematical formulas.
+This plan adds support for educational series/tracks (e.g., Terminale C, D, Upper Sixth Science S1) to the exam system, allowing better categorization and filtering of exam papers.
 
 ---
 
-### Text Locations Requiring LaTeX Support
+### Overview
 
-After analyzing the codebase, here are all the text fields that may contain LaTeX:
+Educational series/tracks represent specialized study paths in Cameroonian secondary schools:
+- **Francophone System**: Série A (Letters), B (Economics), C (Math/Physics), D (Biology), E/TI/F (Technical)
+- **Anglophone System**: Science S1-S3, Arts A1-A5
 
-| Component | Content Type | Lines |
-|-----------|--------------|-------|
-| **ExamContentRenderer.tsx** | Headings | 109 |
-| | Instructions | 121 |
-| | Passages | 132 |
-| | Image captions | 144 |
-| | Question text | 183 |
-| | MCQ answer text (evaluation) | 220 |
-| | MCQ answer text (preview) | 244 |
-| | Long-form expected answer | 276 |
-| | Rubric criteria | 289 |
-| | Sub-question text | 314 |
-| | Sub-question answer | 323 |
-| | User's submitted answer | 343 |
-| | Legacy question text | 372 |
-| | Legacy MCQ answer (eval) | 401 |
-| | Legacy MCQ answer (preview) | 425 |
-| | Legacy long-form answer | 455 |
-| **EditableExamContentRenderer.tsx** | Headings | 205 |
-| | Instructions | 225 |
-| | Passages | 245 |
-| | Image captions | 266 |
-| | Question text | 319 |
-| | MCQ answer text | 374 |
-| | Long-form expected answer | 389 |
-| | Rubric criteria | 399 |
-| | Sub-question text | 423 |
-| | Sub-question answer | 434 |
-| | Legacy question text | 470 |
-| | Legacy MCQ answer text | 505 |
-| | Legacy long-form answer | 520 |
-| | Legacy rubric criteria | 530 |
+A "General" option will handle existing exams without a defined series.
 
 ---
 
-### Implementation Steps
+### Database Changes
 
-#### Step 1: Install KaTeX Dependency
+#### 1. Create `series` Reference Table
 
-Add `katex` package for LaTeX rendering. We'll use KaTeX directly instead of react-katex for more control.
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | uuid | Primary key |
+| `code` | text | Short code (e.g., "C", "D", "S1") |
+| `name` | text | Internal name |
+| `name_en` | text | English display name |
+| `name_fr` | text | French display name |
+| `system` | text | 'francophone', 'anglophone', or 'general' |
+| `description` | text | Optional description |
+| `order_number` | integer | Display order |
+| `is_active` | boolean | Active status |
+| `created_at` | timestamp | Creation timestamp |
+
+**Initial Data:**
+
+Francophone Series:
+- General (for all)
+- Série A - Lettres et Philosophie
+- Série B - Sciences Économiques et Sociales  
+- Série C - Mathématiques et Sciences Physiques
+- Série D - Sciences de la Vie et de la Terre
+- Série E/TI - Techniques Industrielles
+- Série F - Techniques de Gestion
+
+Anglophone Series:
+- General (for all)
+- Science S1 (Math, Physics, Chemistry)
+- Science S2 (Math, Chemistry, Biology)
+- Science S3 (Physics, Chemistry, Biology)
+- Arts A1 (Literature, History, Economics)
+- Arts A2 (Literature, Economics, Geography)
+- Arts A3 (History, Economics, Geography)
+- Arts A4 (Literature, French, History)
+- Arts A5 (History, Geography, Philosophy)
+
+#### 2. Add `series_id` to `exams` Table
 
 ```text
-Package: katex (latest version)
+ALTER TABLE exams ADD COLUMN series_id uuid REFERENCES series(id);
 ```
 
-#### Step 2: Create LatexText Component
+- Nullable to support existing exams without series
+- Foreign key to series table
 
-Create a new reusable component `src/components/ui/latex-text.tsx` that:
+#### 3. RLS Policies for Series Table
 
-1. Accepts a `text` prop (string)
-2. Detects LaTeX patterns using regex
-3. Splits text into segments (plain text vs LaTeX)
-4. Renders LaTeX portions with KaTeX
-5. Returns plain text unchanged if no LaTeX detected
+- Anyone can view active series (SELECT)
+- Only admins can manage series (ALL)
 
-**Component Logic:**
+---
+
+### Frontend Changes
+
+#### 1. Update `useExamFormData` Hook
+
+Add series fetching with system filtering:
 
 ```text
-function LatexText({ text, className }) {
-  // Pattern matches: \(...\) for inline, \[...\] for block
-  const pattern = /(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/g;
-  
-  // Split text by pattern, keeping delimiters
-  const segments = text.split(pattern);
-  
-  // For each segment:
-  //   - If matches \(...\): render inline with KaTeX
-  //   - If matches \[...\]: render block with KaTeX
-  //   - Otherwise: render as plain text
-  
-  return combined segments;
-}
+File: src/hooks/useExamFormData.tsx
+
+Add:
+- Series interface
+- Query to fetch series
+- refetchSeries function
+- Return series in hook output
 ```
 
-**Key Features:**
-- Handles mixed content (text + LaTeX + text)
-- Preserves whitespace and line breaks
-- Graceful error handling (shows raw text if KaTeX fails)
-- Supports both inline and block math
-- No rendering overhead for plain text (fast path)
+#### 2. Update ExamManager Form (Edit Exam Page)
 
-#### Step 3: Import KaTeX CSS
+```text
+File: src/pages/ExamManager.tsx
 
-Add KaTeX stylesheet import to `src/index.css`:
-
-```css
-@import 'katex/dist/katex.min.css';
+Changes:
+- Add series_id to ExamData interface
+- Add series_id to formData state
+- Add Series dropdown after Class selection
+- Filter series options based on selected class's section
+- Include "General" option always visible
+- Include series_id in exam save/update operations
 ```
 
-#### Step 4: Update ExamContentRenderer.tsx
+**Series Dropdown Logic:**
+- If class is Francophone → show Francophone + General series
+- If class is Anglophone → show Anglophone + General series
+- If no class selected → show all series
 
-Replace direct text rendering with `<LatexText>` in all identified locations:
+#### 3. Update Browse Page (Exams2)
 
-**Before:**
-```tsx
-<p className="...">{item.text}</p>
+```text
+File: src/pages/Exams2.tsx
+
+Changes:
+- Add series filter state
+- Fetch series from database
+- Filter series options based on selected system
+- Add Series multi-select filter in sidebar
+- Include series in exam filtering logic
+- Display series on exam cards
 ```
 
-**After:**
-```tsx
-<p className="..."><LatexText text={item.text} /></p>
+#### 4. Update Admin Exam Management
+
+```text
+File: src/components/admin/ExamManagement.tsx
+
+Changes:
+- Add series to Exam interface
+- Include series in exam fetch query
+- Add series filter dropdown
+- Display series in exam cards
 ```
 
-Apply to all 16+ text rendering locations in both `renderNewFormat()` and `renderLegacyFormat()` functions.
+#### 5. Create SeriesManagement Component
 
-#### Step 5: Update EditableExamContentRenderer.tsx
+```text
+File: src/components/admin/SeriesManagement.tsx
 
-For the editable admin view, LaTeX rendering is more nuanced:
+New component for System Configuration:
+- CRUD operations for series
+- Table display with code, name translations, system
+- Form with all fields
+- System dropdown (francophone/anglophone/general)
+```
 
-- **When NOT editing**: Show rendered LaTeX (use LatexText)
-- **When editing**: Show raw text (current behavior for contentEditable)
+#### 6. Update Admin Page
 
-Since contentEditable fields already show raw text, we'll add a preview mode indicator or tooltip showing the rendered version, or simply keep the edit experience as-is since admins need to see the raw LaTeX to edit it.
+```text
+File: src/pages/Admin.tsx
 
-For non-editable display areas (like the expected answer preview), use `<LatexText>`.
+Changes:
+- Import SeriesManagement
+- Add Series ConfigSection in System Configuration tab
+```
 
 ---
 
 ### Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `package.json` | Add `katex` dependency |
-| `src/components/ui/latex-text.tsx` | **Create** - New component |
-| `src/index.css` | Add KaTeX CSS import |
-| `src/components/exam/ExamContentRenderer.tsx` | Update ~16 text locations |
-| `src/components/exam/EditableExamContentRenderer.tsx` | Update display-only locations |
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/migrations/[timestamp]_add_series.sql` | Create | Database migration |
+| `src/hooks/useExamFormData.tsx` | Modify | Add series fetching |
+| `src/pages/ExamManager.tsx` | Modify | Add series dropdown to form |
+| `src/pages/Exams2.tsx` | Modify | Add series filter |
+| `src/components/admin/ExamManagement.tsx` | Modify | Add series display/filter |
+| `src/components/admin/SeriesManagement.tsx` | Create | Admin CRUD component |
+| `src/pages/Admin.tsx` | Modify | Add Series section |
 
 ---
 
-### Technical Details
+### UI/UX Considerations
 
-#### LaTeX Pattern Matching
+1. **Series Dropdown Placement**: After Class selector, as series depends on educational system
+2. **Filter Behavior**: Series filter appears after System filter is selected
+3. **"General" Option**: Always available, used for:
+   - Exams applicable to all series (e.g., general knowledge)
+   - Legacy exams imported without series info
+4. **Dynamic Filtering**: Series options update based on class section selection
 
-```text
-Regex: /(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/g
+---
 
-Matches:
-- \( ... \) - inline math (non-greedy)
-- \[ ... \] - display/block math (non-greedy)
-- [\s\S]*? handles multi-line content
-```
-
-#### Error Handling
+### Data Flow
 
 ```text
-try {
-  return katex.renderToString(latex, { throwOnError: false });
-} catch (e) {
-  // Fallback to showing raw text
-  return originalText;
-}
-```
-
-#### Performance Optimization
-
-```text
-// Fast path: if no LaTeX delimiters, return text as-is
-if (!text.includes('\\(') && !text.includes('\\[')) {
-  return <>{text}</>;
-}
+1. User selects Class → determines system (francophone/anglophone)
+2. Series dropdown filters to show relevant series + General
+3. User selects series (optional - defaults to none)
+4. On save, series_id stored in exams table
+5. On browse, series filter shows based on selected system
 ```
 
 ---
 
-### Example Transformations
+### Migration Strategy
 
-**Input:**
-```text
-On considère le polynôme \(P\) défini sur \(\mathbb{R}\) par \(P(x) = 2x^{3} - 5x^{2} - x + 6\).
-```
-
-**Output (rendered):**
-```text
-On considère le polynôme P défini sur ℝ par P(x) = 2x³ - 5x² - x + 6.
-```
-(With proper mathematical formatting - blackboard bold R, superscripts, etc.)
+1. Create series table with initial data
+2. Add nullable series_id column to exams
+3. Existing exams remain with NULL series_id (treated as "not specified")
+4. Users can edit existing exams to assign series
+5. Browse page shows "All Series" by default
 
 ---
 
 ### Summary
 
 This implementation:
-1. Creates a reusable `LatexText` component for consistent math rendering
-2. Handles mixed plain text and LaTeX content gracefully
-3. Updates both ExamContentRenderer and EditableExamContentRenderer
-4. Uses KaTeX for fast, lightweight rendering
-5. Includes error handling and performance optimization
-
+1. Creates a new `series` reference table with Francophone and Anglophone tracks
+2. Adds `series_id` to exams table (nullable for backward compatibility)
+3. Updates the exam editor with a filtered series dropdown
+4. Adds series filtering to the browse and admin pages
+5. Creates an admin management component for series CRUD
+6. Includes a "General" option for universal or legacy exams
