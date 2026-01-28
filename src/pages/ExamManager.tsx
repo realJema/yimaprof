@@ -80,6 +80,7 @@ interface ExamData {
   academic_year_id: string;
   duration_id: string;
   establishment_id?: string;
+  series_id?: string;
 }
 const generateId = () => Math.random().toString(36).substr(2, 9);
 export default function ExamManager() {
@@ -115,6 +116,7 @@ export default function ExamManager() {
     period_id: "",
     academic_year_id: "",
     duration_id: "",
+    series_id: "",
   });
 
   // Questions for form-based creation
@@ -204,6 +206,7 @@ export default function ExamManager() {
         academic_year_id: (data as any).academic_year_id || null,
         duration_id: (data as any).duration_id || null,
         establishment_id: (data as any).establishment_id || null,
+        series_id: (data as any).series_id || null,
       };
 
       setFormData(examFormData);
@@ -553,6 +556,7 @@ export default function ExamManager() {
         academic_year_id: formData.academic_year_id,
         duration_id: formData.duration_id,
         establishment_id: formData.establishment_id || null,
+        series_id: formData.series_id || null,
       };
       
       console.log('Exam data to send:', JSON.stringify(examData, null, 2));
@@ -654,6 +658,7 @@ export default function ExamManager() {
         academic_year_id: formData.academic_year_id || null,
         duration_id: formData.duration_id || null,
         establishment_id: formData.establishment_id || null,
+        series_id: formData.series_id || null,
       };
       if (isEditing) {
         const { error } = await supabase.from("exams").update(examData as any).eq("id", examId);
@@ -1630,6 +1635,50 @@ export default function ExamManager() {
                         </RadioGroup>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Series Dropdown - filtered by selected class's section */}
+                  <div>
+                    <Label className="text-sm font-semibold mb-3 block">
+                      {language === 'fr' ? 'Série / Filière' : 'Series / Track'}
+                    </Label>
+                    <Select
+                      value={formData.series_id || ''}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, series_id: value === 'none' ? '' : value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={language === 'fr' ? 'Sélectionner une série' : 'Select a series'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">
+                          {language === 'fr' ? 'Aucune série' : 'No series'}
+                        </SelectItem>
+                        {(() => {
+                          // Get selected class's section
+                          const selectedClass = classes.find(c => c.id === formData.class_id);
+                          const classSection = selectedClass?.section;
+                          
+                          // Filter series based on class section
+                          // Show general + system-specific series
+                          const availableSeries = formOptions.series?.filter(s => {
+                            if (s.system === 'general') return true;
+                            if (!classSection) return true; // Show all if no class selected
+                            return s.system === classSection;
+                          });
+                          
+                          return availableSeries?.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {language === 'fr' ? s.name_fr || s.name : s.name_en || s.name}
+                            </SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {language === 'fr' 
+                        ? 'Optionnel - Pour les examens spécifiques à une filière'
+                        : 'Optional - For exams specific to a track'}
+                    </p>
                   </div>
 
                   <div>

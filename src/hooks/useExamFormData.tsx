@@ -49,6 +49,18 @@ interface Duration {
   is_active: boolean;
 }
 
+interface Series {
+  id: string;
+  code: string;
+  name: string;
+  name_en: string;
+  name_fr: string;
+  system: 'francophone' | 'anglophone' | 'general';
+  description: string | null;
+  order_number: number;
+  is_active: boolean;
+}
+
 export const useExamFormData = () => {
   // Fetch subjects
   const { data: subjects, refetch: refetchSubjects} = useQuery<Subject[]>({
@@ -138,6 +150,21 @@ export const useExamFormData = () => {
     }
   });
 
+  // Fetch series
+  const { data: series, refetch: refetchSeries } = useQuery<Series[]>({
+    queryKey: ['series'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('series' as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('order_number');
+      
+      if (error) throw error;
+      return data as unknown as Series[];
+    }
+  });
+
   return {
     subjects,
     establishments,
@@ -145,9 +172,11 @@ export const useExamFormData = () => {
     periods,
     academicYears,
     durations,
+    series,
     refetchSubjects,
     refetchEstablishments,
     refetchAcademicYears,
     refetchDurations,
+    refetchSeries,
   };
 };
