@@ -3,6 +3,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { CheckCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LatexText } from '@/components/ui/latex-text';
 
 interface Answer {
   id: string;
@@ -106,7 +107,7 @@ export function ExamContentRenderer({
             return (
               <div key={item.id} className="border-l-4 border-primary pl-3 md:pl-4 py-2">
                 <h2 className="text-sm md:text-base font-bold text-foreground uppercase tracking-wide leading-tight">
-                  {item.text}
+                  <LatexText text={item.text} />
                 </h2>
               </div>
             );
@@ -118,7 +119,7 @@ export function ExamContentRenderer({
               <div key={item.id} className="bg-muted/50 p-4 rounded-lg border border-border">
                 <p className="text-sm text-muted-foreground italic">
                   <span className="font-semibold text-foreground">{language === 'fr' ? 'Instructions : ' : 'Instructions: '}</span>
-                  {item.text}
+                  <LatexText text={item.text} />
                 </p>
               </div>
             );
@@ -129,7 +130,7 @@ export function ExamContentRenderer({
             return (
               <div key={item.id} className="bg-accent/30 p-4 rounded-lg border border-accent">
                 <div className="prose prose-sm max-w-none">
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{item.text}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap"><LatexText text={item.text} /></p>
                 </div>
               </div>
             );
@@ -141,7 +142,7 @@ export function ExamContentRenderer({
             return (
               <div key={item.id} className="space-y-2">
                 {item.text && (
-                  <p className="text-sm font-medium text-muted-foreground">{item.text}</p>
+                  <p className="text-sm font-medium text-muted-foreground"><LatexText text={item.text} /></p>
                 )}
                 {asset && (
                   <div className="border rounded-lg overflow-hidden bg-background">
@@ -180,7 +181,7 @@ export function ExamContentRenderer({
                       {question.paper_number || questionNumber}
                     </Badge>
                     <p className="text-sm md:text-base font-medium text-foreground whitespace-pre-wrap flex-1">
-                      {question.text}
+                      <LatexText text={question.text} />
                     </p>
                     {question.marks && (
                       <Badge variant="secondary" className="text-xs shrink-0">
@@ -217,7 +218,7 @@ export function ExamContentRenderer({
                                 <span className="font-medium mr-2">
                                   {String.fromCharCode(65 + answerIndex)}.
                                 </span>
-                                {answer.text}
+                                <LatexText text={answer.text} />
                               </Label>
                             </div>
                           ))}
@@ -241,7 +242,7 @@ export function ExamContentRenderer({
                               <span className="font-medium text-sm">
                                 {String.fromCharCode(65 + answerIndex)}.
                               </span>
-                              <span className="flex-1 text-sm">{answer.text}</span>
+                              <span className="flex-1 text-sm"><LatexText text={answer.text} /></span>
                               {shouldHighlight && (
                                 <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
                               )}
@@ -273,7 +274,7 @@ export function ExamContentRenderer({
                                 {language === 'fr' ? 'Réponse attendue / Points clés :' : 'Expected Answer / Key Points:'}
                               </h4>
                               <div className="text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap">
-                                {question.answers[0].text}
+                                <LatexText text={question.answers[0].text} />
                               </div>
                               
                               {/* Rubric */}
@@ -286,7 +287,7 @@ export function ExamContentRenderer({
                                     {question.answers[0].rubric.map((criterion, idx) => (
                                       <div key={idx} className="flex justify-between text-xs">
                                         <span className="text-green-700 dark:text-green-400">
-                                          • {criterion.criteria}
+                                          • <LatexText text={criterion.criteria} />
                                         </span>
                                         <Badge variant="outline" className="h-5 text-xs">
                                           {criterion.points} {language === 'fr' ? 'pts' : 'pts'}
@@ -311,7 +312,7 @@ export function ExamContentRenderer({
                                       <Badge variant="outline" className="text-xs">
                                         {subQ.display_number || `${questionNumber}(${String.fromCharCode(97 + subIndex)})`}
                                       </Badge>
-                                      <p className="text-sm font-medium flex-1">{subQ.text}</p>
+                                      <p className="text-sm font-medium flex-1"><LatexText text={subQ.text} /></p>
                                     </div>
                                     
                                     {showAnswers && subQ.answers && subQ.answers[0] && (
@@ -320,7 +321,7 @@ export function ExamContentRenderer({
                                           {language === 'fr' ? 'Réponse attendue :' : 'Expected Answer:'}
                                         </p>
                                         <div className="text-xs text-green-700 dark:text-green-400 whitespace-pre-wrap">
-                                          {subQ.answers[0].text}
+                                          <LatexText text={subQ.answers[0].text} />
                                         </div>
                                       </div>
                                     )}
@@ -340,7 +341,7 @@ export function ExamContentRenderer({
                         {language === 'fr' ? 'Votre réponse :' : 'Your Answer:'}
                       </h4>
                       <p className="text-sm text-blue-700 dark:text-blue-400 whitespace-pre-wrap">
-                        {currentAnswer.answer}
+                        <LatexText text={currentAnswer.answer} />
                       </p>
                     </div>
                   )}
@@ -369,7 +370,7 @@ export function ExamContentRenderer({
                     {index + 1}
                   </Badge>
                   <p className="text-base font-medium text-foreground flex-1">
-                    {question.text}
+                    <LatexText text={question.text} />
                   </p>
                   {question.marks && (
                     <Badge variant="secondary" className="text-xs shrink-0">
@@ -391,15 +392,15 @@ export function ExamContentRenderer({
                             className="flex items-start gap-3 p-3 rounded-lg border transition-colors bg-muted/30 border-border hover:bg-muted/50"
                           >
                             <RadioGroupItem value={answer.text} id={`legacy-q${index}-${answerIndex}`} />
-                            <Label
-                              htmlFor={`legacy-q${index}-${answerIndex}`}
-                              className="flex-1 cursor-pointer text-sm font-normal"
-                            >
-                              <span className="font-medium mr-2">
-                                {String.fromCharCode(65 + answerIndex)}.
-                              </span>
-                              {answer.text}
-                            </Label>
+                              <Label
+                                htmlFor={`legacy-q${index}-${answerIndex}`}
+                                className="flex-1 cursor-pointer text-sm font-normal"
+                              >
+                                <span className="font-medium mr-2">
+                                  {String.fromCharCode(65 + answerIndex)}.
+                                </span>
+                                <LatexText text={answer.text} />
+                              </Label>
                           </div>
                         ))}
                       </RadioGroup>
@@ -422,7 +423,7 @@ export function ExamContentRenderer({
                             <span className="font-medium text-sm">
                               {String.fromCharCode(65 + answerIndex)}.
                             </span>
-                            <span className="flex-1 text-sm">{answer.text}</span>
+                            <span className="flex-1 text-sm"><LatexText text={answer.text} /></span>
                             {shouldHighlight && (
                               <CheckCircle className="h-4 w-4 text-green-600" />
                             )}
@@ -452,7 +453,7 @@ export function ExamContentRenderer({
                           {language === 'fr' ? 'Réponse attendue :' : 'Expected Answer:'}
                         </h4>
                         <div className="text-sm text-green-700 dark:text-green-400">
-                          {question.answers[0].text}
+                          <LatexText text={question.answers[0].text} />
                         </div>
                       </div>
                     ) : null}
