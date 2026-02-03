@@ -672,114 +672,76 @@ const Exams2 = () => {
               )}
             </div>
 
-            {/* School Selection - Prominent */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-between min-w-[200px] sm:min-w-[300px]">
-                    <span className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      {selectedSchools.length === 0 
-                        ? (language === 'fr' ? 'Tous les établissements' : 'All schools') 
-                        : selectedSchools.length === 1 
-                          ? (() => {
-                              const school = schools?.find(s => s.id === selectedSchools[0]);
-                              return school ? anonymizeSchoolName(school) : '';
-                            })()
-                          : `${selectedSchools.length} ${language === 'fr' ? 'établissements' : 'schools'}`}
-                    </span>
-                    {selectedSchools.length > 0 && <Badge variant="secondary">{selectedSchools.length}</Badge>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <div className="p-3 border-b">
-                    <p className="font-medium text-sm">
-                      {language === 'fr' ? 'Sélectionner les établissements' : 'Select schools'}
-                    </p>
-                  </div>
-                  <ScrollArea className="h-[300px]">
-                    <div className="p-2 space-y-1">
-                      {schools?.map(school => <label key={school.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md">
-                          <Checkbox checked={selectedSchools.includes(school.id)} onCheckedChange={() => toggleSchool(school.id)} />
-                          <span className="text-sm flex-1 text-muted-foreground">{anonymizeSchoolName(school)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {getFilterCounts.schools[school.id] || 0}
-                          </span>
-                        </label>)}
-                    </div>
-                  </ScrollArea>
-                  {selectedSchools.length > 0 && <div className="border-t p-2">
-                      <Button variant="ghost" size="sm" className="w-full" onClick={() => setSelectedSchools([])}>
-                        {language === 'fr' ? 'Effacer la sélection' : 'Clear selection'}
-                      </Button>
-                    </div>}
-                </PopoverContent>
-              </Popover>
-
-              <p className="text-sm text-muted-foreground self-center">
-                {filteredExams.length} {language === 'fr' ? 'épreuve(s) trouvée(s)' : 'exam(s) found'}
-              </p>
-            </div>
+            {/* Exam count */}
+            <p className="text-sm text-muted-foreground">
+              {filteredExams.length} {language === 'fr' ? 'épreuve(s) trouvée(s)' : 'exam(s) found'}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
         <div className="flex gap-6">
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:block w-64 shrink-0">
-            <div className="sticky top-32 bg-card rounded-lg border p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  {language === 'fr' ? 'Filtres' : 'Filters'}
-                </h2>
-                {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
+          {/* Desktop Sidebar - Hide for non-subscribers (free papers only) */}
+          {hasActiveSubscription && (
+            <aside className="hidden lg:block w-64 shrink-0">
+              <div className="sticky top-32 bg-card rounded-lg border p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {language === 'fr' ? 'Filtres' : 'Filters'}
+                  </h2>
+                  {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
+                </div>
+                <FiltersContent />
               </div>
-              <FiltersContent />
-            </div>
-          </aside>
+            </aside>
+          )}
 
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 gap-4">
               <div className="flex items-center gap-3">
-                {/* Mobile Filter Button */}
-                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="lg:hidden">
-                      <SlidersHorizontal className="h-4 w-4 mr-2" />
-                      {language === 'fr' ? 'Filtres' : 'Filters'}
-                      {activeFiltersCount > 0 && <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80">
-                    <SheetHeader>
-                      <SheetTitle>{language === 'fr' ? 'Filtres' : 'Filters'}</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-4">
-                      <FiltersContent />
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                {/* Mobile Filter Button - Hide for non-subscribers */}
+                {hasActiveSubscription && (
+                  <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm" className="lg:hidden">
+                        <SlidersHorizontal className="h-4 w-4 mr-2" />
+                        {language === 'fr' ? 'Filtres' : 'Filters'}
+                        {activeFiltersCount > 0 && <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-80">
+                      <SheetHeader>
+                        <SheetTitle>{language === 'fr' ? 'Filtres' : 'Filters'}</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-4">
+                        <FiltersContent />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                )}
               </div>
 
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[130px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">{language === 'fr' ? 'Plus récent' : 'Newest'}</SelectItem>
-                  <SelectItem value="oldest">{language === 'fr' ? 'Plus ancien' : 'Oldest'}</SelectItem>
-                  <SelectItem value="title">{language === 'fr' ? 'Titre' : 'Title'}</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Sort - Only for subscribers */}
+              {hasActiveSubscription && (
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[130px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">{language === 'fr' ? 'Plus récent' : 'Newest'}</SelectItem>
+                    <SelectItem value="oldest">{language === 'fr' ? 'Plus ancien' : 'Oldest'}</SelectItem>
+                    <SelectItem value="title">{language === 'fr' ? 'Titre' : 'Title'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
-            {/* Active filters badges */}
-            {(activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
+            {/* Active filters badges - Only for subscribers */}
+            {hasActiveSubscription && (activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
                 {selectedSchools.map(id => {
               const school = schools?.find(s => s.id === id);
               return school && <Badge key={id} variant="secondary" className="gap-1 text-xs text-muted-foreground">
