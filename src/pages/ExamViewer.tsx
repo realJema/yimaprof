@@ -725,7 +725,9 @@ export default function ExamViewer() {
 
   // Subscription encouragement banner for free exams (when user is not subscribed)
   const showSubscriptionBanner = exam.visibility === 'free' && isFreeUser && !hasAccess;
-  const showAnswers = mode === 'correction' || mode === 'evaluation' && submitted || isFreeUser;
+  const isFreeExam = exam.visibility === 'free';
+  // Free exams: solutions only shown in correction mode (not instantly)
+  const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
 
   // Fullscreen evaluation mode
@@ -917,10 +919,13 @@ export default function ExamViewer() {
                 </span>
               </Button>
               
-              <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'evaluation' && submitted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400")} onClick={handleEvaluationButtonClick}>
-                <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                {language === 'fr' ? 'Évaluation' : 'Evaluate'}
-              </Button>
+              {/* Hide evaluation button for free exams */}
+              {!isFreeExam && (
+                <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'evaluation' && submitted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400")} onClick={handleEvaluationButtonClick}>
+                  <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  {language === 'fr' ? 'Évaluation' : 'Evaluate'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
