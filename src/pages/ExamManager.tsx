@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   BookOpen,
   Plus,
@@ -88,6 +88,8 @@ export default function ExamManager() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { examId } = useParams();
+  const [searchParams] = useSearchParams();
+  const fromUrl = searchParams.get('from') || '/admin/exams';
   const isEditing = !!examId;
   const { t, language } = useLanguage();
   const queryClient = useQueryClient();
@@ -1023,7 +1025,7 @@ export default function ExamManager() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/admin-exams')}
+              onClick={() => navigate(fromUrl)}
               className="gap-2"
             >
               <ChevronDown className="h-4 w-4 rotate-90" />

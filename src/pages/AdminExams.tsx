@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BookOpen, Plus, Edit, Trash2, Eye, Search, Globe2, Languages, Shield, ArrowLeft, PanelLeftClose, PanelLeftOpen, CheckCircle2, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExamPreviewDialog } from '@/components/admin/ExamPreviewDialog';
@@ -79,18 +79,44 @@ export default function AdminExams() {
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
   
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [selectedSubject, setSelectedSubject] = useState<string>('all');
-  const [selectedClass, setSelectedClass] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedLanguage, setSelectedLanguage] = useState<'all' | 'fr' | 'en'>('all');
-  const [selectedEstablishment, setSelectedEstablishment] = useState<string>('all');
+  // URL-based filters
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Derived filter values from URL
+  const searchQuery = searchParams.get('search') || '';
+  const selectedYear = searchParams.get('year') || 'all';
+  const selectedSubject = searchParams.get('subject') || 'all';
+  const selectedClass = searchParams.get('class') || 'all';
+  const selectedStatus = searchParams.get('status') || 'all';
+  const selectedLanguage = (searchParams.get('lang') as 'all' | 'fr' | 'en') || 'all';
+  const selectedEstablishment = searchParams.get('school') || 'all';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  
+  // UI-only state (not persisted in URL)
   const [sidebarVisible, setSidebarVisible] = useState(true);
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  // Helper functions for URL param updates
+  const setParam = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value && value !== 'all' && value !== '') {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    // Reset page on filter change
+    newParams.delete('page');
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const setPage = (page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (page > 1) {
+      newParams.set('page', page.toString());
+    } else {
+      newParams.delete('page');
+    }
+    setSearchParams(newParams, { replace: true });
+  };
   const itemsPerPage = 12;
   
   // Preview
@@ -240,14 +266,7 @@ export default function AdminExams() {
   };
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedYear('all');
-    setSelectedSubject('all');
-    setSelectedClass('all');
-    setSelectedStatus('all');
-    setSelectedLanguage('all');
-    setSelectedEstablishment('all');
-    setCurrentPage(1);
+    setSearchParams({}, { replace: true });
   };
 
   const filteredExams = filterExams(exams);
@@ -340,7 +359,7 @@ export default function AdminExams() {
 
           {/* Actions */}
           <div className="grid grid-cols-3 gap-1.5 pt-3 border-t border-border/30">
-            <Link to={`/admin/exam/edit/${exam.id}`} className="block">
+            <Link to={`/admin/exam/edit/${exam.id}?from=${encodeURIComponent(`/admin/exams?${searchParams.toString()}`)}`} className="block">
               <Button variant="outline" size="sm" className="w-full h-8 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 dark:hover:text-blue-400 transition-colors">
                 <Edit className="h-3.5 w-3.5" />
               </Button>
@@ -377,7 +396,7 @@ export default function AdminExams() {
           <Input
             placeholder={t('search_exams')}
             value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => setParam('search', e.target.value)}
             className="pl-9"
           />
         </div>
@@ -389,7 +408,7 @@ export default function AdminExams() {
         <ToggleGroup 
           type="single" 
           value={selectedLanguage} 
-          onValueChange={(v) => { if (v) { setSelectedLanguage(v as typeof selectedLanguage); setCurrentPage(1); } }}
+          onValueChange={(v) => { if (v) setParam('lang', v); }}
           className="flex w-full"
         >
           <ToggleGroupItem value="all" className="flex-1 text-xs">{t('all')}</ToggleGroupItem>
@@ -405,7 +424,7 @@ export default function AdminExams() {
       {/* Year */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">{t('year_filter')}</Label>
-        <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setCurrentPage(1); }}>
+        <Select value={selectedYear} onValueChange={(v) => setParam('year', v)}>
           <SelectTrigger>
             <SelectValue placeholder={t('all_years')} />
           </SelectTrigger>
@@ -421,7 +440,7 @@ export default function AdminExams() {
       {/* Subject */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">{t('subject_filter')}</Label>
-        <Select value={selectedSubject} onValueChange={(v) => { setSelectedSubject(v); setCurrentPage(1); }}>
+        <Select value={selectedSubject} onValueChange={(v) => setParam('subject', v)}>
           <SelectTrigger>
             <SelectValue placeholder={t('all_subjects')} />
           </SelectTrigger>
@@ -437,7 +456,7 @@ export default function AdminExams() {
       {/* Class */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">{t('class_filter')}</Label>
-        <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setCurrentPage(1); }}>
+        <Select value={selectedClass} onValueChange={(v) => setParam('class', v)}>
           <SelectTrigger>
             <SelectValue placeholder={t('all_classes')} />
           </SelectTrigger>
@@ -453,7 +472,7 @@ export default function AdminExams() {
       {/* School */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">{t('school_filter')}</Label>
-        <Select value={selectedEstablishment} onValueChange={(v) => { setSelectedEstablishment(v); setCurrentPage(1); }}>
+        <Select value={selectedEstablishment} onValueChange={(v) => setParam('school', v)}>
           <SelectTrigger>
             <SelectValue placeholder={t('all_schools')} />
           </SelectTrigger>
@@ -470,7 +489,7 @@ export default function AdminExams() {
       {/* Status */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">{t('status_filter')}</Label>
-        <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}>
+        <Select value={selectedStatus} onValueChange={(v) => setParam('status', v)}>
           <SelectTrigger>
             <SelectValue placeholder={t('all_status')} />
           </SelectTrigger>
@@ -667,7 +686,7 @@ export default function AdminExams() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                        onClick={() => setPage(Math.max(1, currentPage - 1))} 
                         disabled={currentPage === 1}
                       >
                         {t('previous')}
@@ -684,7 +703,7 @@ export default function AdminExams() {
                                 <Button
                                   variant={currentPage === page ? 'default' : 'outline'}
                                   size="sm"
-                                  onClick={() => setCurrentPage(page)}
+                                  onClick={() => setPage(page)}
                                   className="w-8 h-8 p-0"
                                 >
                                   {page}
@@ -697,7 +716,7 @@ export default function AdminExams() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                        onClick={() => setPage(Math.min(totalPages, currentPage + 1))} 
                         disabled={currentPage === totalPages}
                       >
                         {t('next')}
