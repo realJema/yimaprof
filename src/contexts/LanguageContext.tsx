@@ -776,6 +776,15 @@ const translations = {
     next: 'Suivant',
     showing_exams: 'Affichage de',
     of_exams: 'sur',
+    
+    // Footer
+    about_yima: 'YIMA est une plateforme éducative dédiée à l\'excellence académique en Afrique. Nous rendons l\'éducation accessible en fournissant des ressources d\'examen de qualité.',
+    platform: 'Plateforme',
+    company: 'Entreprise',
+    stay_updated: 'Restez informé',
+    newsletter_desc: 'Abonnez-vous à notre newsletter pour recevoir les dernières mises à jour et les nouveaux examens.',
+    enter_email: 'Entrez votre email',
+    rights_reserved: 'Tous droits réservés.',
   },
   en: {
     navigation: 'Navigation',
@@ -1546,6 +1555,15 @@ const translations = {
     next: 'Next',
     showing_exams: 'Showing',
     of_exams: 'of',
+    
+    // Footer
+    about_yima: 'YIMA is an educational platform dedicated to academic excellence in Africa. We make education accessible by providing quality exam resources.',
+    platform: 'Platform',
+    company: 'Company',
+    stay_updated: 'Stay Updated',
+    newsletter_desc: 'Subscribe to our newsletter to receive the latest updates and new exams.',
+    enter_email: 'Enter your email',
+    rights_reserved: 'All rights reserved.',
   },
 };
 
