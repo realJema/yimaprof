@@ -605,29 +605,6 @@ const Exams2 = () => {
         </>}
     </div>;
   return <div className="min-h-screen bg-background">
-      {/* Free Papers Banner for non-subscribers */}
-      {!hasActiveSubscription && (
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-primary/20">
-          <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Badge variant="secondary" className="bg-primary/20 text-primary border-0">
-                {language === 'fr' ? 'Gratuit' : 'Free'}
-              </Badge>
-              <p className="text-muted-foreground">
-                {language === 'fr' 
-                  ? 'Découvrez nos épreuves gratuites. Abonnez-vous pour accéder à toutes les épreuves!'
-                  : 'Explore our free papers. Subscribe to access all exams!'}
-              </p>
-            </div>
-            <Link to="/subscriptions">
-              <Button size="sm" className="shrink-0">
-                {language === 'fr' ? 'S\'abonner' : 'Subscribe'}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-
       {/* Top Header with System and School */}
       <div className="border-b bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
@@ -932,6 +909,82 @@ const Exams2 = () => {
                 <p className="text-center text-sm text-muted-foreground mt-4">
                   {language === 'fr' ? `Page ${currentPage} sur ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
                 </p>
+
+                {/* Prominent Subscribe CTA for non-subscribers - Below free papers */}
+                {!hasActiveSubscription && (
+                  <div className="mt-12 animate-fade-in">
+                    <Card className="relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-primary/10">
+                      {/* Decorative elements */}
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                      <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+                      
+                      <CardContent className="relative py-10 px-6 sm:py-12 sm:px-10">
+                        <div className="max-w-2xl mx-auto text-center space-y-6">
+                          {/* Icon with animation */}
+                          <div className="inline-flex items-center justify-center p-4 rounded-full bg-primary/10 hover-scale">
+                            <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+                          </div>
+                          
+                          {/* Heading */}
+                          <div className="space-y-2">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+                              {language === 'fr' 
+                                ? 'Débloquez plus de 500 épreuves premium' 
+                                : 'Unlock 500+ Premium Exams'}
+                            </h2>
+                            <p className="text-muted-foreground text-base sm:text-lg max-w-lg mx-auto">
+                              {language === 'fr' 
+                                ? 'Accédez à toutes les épreuves avec corrections complètes, mode évaluation et suivi de progression.'
+                                : 'Access all exams with full solutions, evaluation mode, and progress tracking.'}
+                            </p>
+                          </div>
+                          
+                          {/* Features */}
+                          <div className="flex flex-wrap justify-center gap-3 text-sm">
+                            {[
+                              { fr: 'Corrections détaillées', en: 'Detailed solutions' },
+                              { fr: 'Mode évaluation', en: 'Evaluation mode' },
+                              { fr: 'Suivi de progression', en: 'Progress tracking' },
+                              { fr: 'Accès illimité', en: 'Unlimited access' }
+                            ].map((feature, i) => (
+                              <Badge 
+                                key={i} 
+                                variant="secondary" 
+                                className="px-3 py-1.5 bg-primary/10 text-primary border-0 animate-fade-in"
+                                style={{ animationDelay: `${i * 100}ms` }}
+                              >
+                                {language === 'fr' ? feature.fr : feature.en}
+                              </Badge>
+                            ))}
+                          </div>
+                          
+                          {/* Price hint */}
+                          <div className="text-sm text-muted-foreground">
+                            {language === 'fr' ? 'À partir de' : 'Starting from'}{' '}
+                            <span className="font-bold text-foreground text-lg">2 500 XAF</span>
+                            <span className="text-muted-foreground">/mois</span>
+                          </div>
+                          
+                          {/* CTA Buttons */}
+                          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <Link to="/subscriptions">
+                              <Button size="lg" className="gap-2 px-8 hover-scale shadow-lg shadow-primary/20">
+                                <Sparkles className="h-5 w-5" />
+                                {language === 'fr' ? 'S\'abonner maintenant' : 'Subscribe Now'}
+                                <ArrowRight className="h-5 w-5" />
+                              </Button>
+                            </Link>
+                            <Link to="/subscriptions">
+                              <Button variant="outline" size="lg" className="gap-2">
+                                {language === 'fr' ? 'Voir les forfaits' : 'View Plans'}
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </>}
           </main>
         </div>
