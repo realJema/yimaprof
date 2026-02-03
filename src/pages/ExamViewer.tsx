@@ -797,13 +797,21 @@ export default function ExamViewer() {
       </div>;
   }
 
+  // Get the preserved filter context from URL params
+  const fromUrl = searchParams.get('from');
+  const backUrl = fromUrl || '/exams2';
+  
+  // Build breadcrumb URLs that preserve filter context
+  const examsUrl = fromUrl || `/exams2${exam.classes?.section ? `?system=${exam.classes.section}` : ''}`;
+  const classUrl = fromUrl || `/exams2?system=${exam.classes?.section || ''}&class=${exam.class_id || ''}`;
+
   // Normal view
   return <div className="min-h-screen bg-background">
       {/* Mobile-first Header with Back Button */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 sm:gap-2 px-2 sm:px-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate(backUrl)} className="gap-1 sm:gap-2 px-2 sm:px-3">
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">{language === 'fr' ? 'Retour' : 'Back'}</span>
             </Button>
@@ -811,7 +819,7 @@ export default function ExamViewer() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to={`/exams2${exam.classes?.section ? `?system=${exam.classes.section}` : ''}`}>
+                    <Link to={examsUrl}>
                       {language === 'fr' ? 'Épreuves' : 'Exams'}
                     </Link>
                   </BreadcrumbLink>
@@ -820,7 +828,7 @@ export default function ExamViewer() {
                 {exam.classes && <>
                     <BreadcrumbItem>
                       <BreadcrumbLink asChild>
-                        <Link to={`/exams2?system=${exam.classes.section}&class=${exam.class_id}`}>
+                        <Link to={classUrl}>
                           {exam.classes.display_name}
                         </Link>
                       </BreadcrumbLink>
