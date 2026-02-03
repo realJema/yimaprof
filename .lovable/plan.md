@@ -1,213 +1,177 @@
 
-## Add Educational Series (Tracks) to Exam System
 
-This plan adds support for educational series/tracks (e.g., Terminale C, D, Upper Sixth Science S1) to the exam system, allowing better categorization and filtering of exam papers.
+## Filter State Persistence and Breadcrumb Synchronization
 
----
+This plan addresses the need to persist filter selections across navigation on the Browse page (`Exams2`) and synchronize them with breadcrumbs so users can easily return to their filtered view.
 
-### Overview
+### Problem Statement
 
-Educational series/tracks represent specialized study paths in Cameroonian secondary schools:
-- **Francophone System**: Série A (Letters), B (Economics), C (Math/Physics), D (Biology), E/TI/F (Technical)
-- **Anglophone System**: Science S1-S3, Arts A1-A5
+Currently, the Browse page (`Exams2.tsx`) uses local React state for all filters:
+- `selectedSystem`, `selectedClasses`, `selectedSubjects`, `selectedSeries`, `selectedYear`, `selectedExamType`, `selectedPeriod`, `sortBy`, `searchTerm`
 
-A "General" option will handle existing exams without a defined series.
+When a user navigates to an exam and returns, all filter state is lost. Additionally, the ExamViewer breadcrumbs already include some URL parameters (`system` and `class`), but the Browse page doesn't read these parameters.
 
----
+### Solution Overview
 
-### Database Changes
-
-#### 1. Create `series` Reference Table
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | uuid | Primary key |
-| `code` | text | Short code (e.g., "C", "D", "S1") |
-| `name` | text | Internal name |
-| `name_en` | text | English display name |
-| `name_fr` | text | French display name |
-| `system` | text | 'francophone', 'anglophone', or 'general' |
-| `description` | text | Optional description |
-| `order_number` | integer | Display order |
-| `is_active` | boolean | Active status |
-| `created_at` | timestamp | Creation timestamp |
-
-**Initial Data:**
-
-Francophone Series:
-- General (for all)
-- Série A - Lettres et Philosophie
-- Série B - Sciences Économiques et Sociales  
-- Série C - Mathématiques et Sciences Physiques
-- Série D - Sciences de la Vie et de la Terre
-- Série E/TI - Techniques Industrielles
-- Série F - Techniques de Gestion
-
-Anglophone Series:
-- General (for all)
-- Science S1 (Math, Physics, Chemistry)
-- Science S2 (Math, Chemistry, Biology)
-- Science S3 (Physics, Chemistry, Biology)
-- Arts A1 (Literature, History, Economics)
-- Arts A2 (Literature, Economics, Geography)
-- Arts A3 (History, Economics, Geography)
-- Arts A4 (Literature, French, History)
-- Arts A5 (History, Geography, Philosophy)
-
-#### 2. Add `series_id` to `exams` Table
-
-```text
-ALTER TABLE exams ADD COLUMN series_id uuid REFERENCES series(id);
-```
-
-- Nullable to support existing exams without series
-- Foreign key to series table
-
-#### 3. RLS Policies for Series Table
-
-- Anyone can view active series (SELECT)
-- Only admins can manage series (ALL)
+Convert all filter state from React state to URL search parameters using `useSearchParams` from react-router-dom. This approach:
+1. Persists filters in the URL during navigation
+2. Works with browser back/forward buttons
+3. Allows shareable filtered views
+4. Enables breadcrumbs to correctly link back with the active filters
 
 ---
 
-### Frontend Changes
+### Implementation Steps
 
-#### 1. Update `useExamFormData` Hook
+#### Step 1: Update Exams2.tsx to Use URL Parameters
 
-Add series fetching with system filtering:
+**Changes to `src/pages/Exams2.tsx`:**
 
-```text
-File: src/hooks/useExamFormData.tsx
+1. **Import `useSearchParams`** from `react-router-dom`
 
-Add:
-- Series interface
-- Query to fetch series
-- refetchSeries function
-- Return series in hook output
+2. **Replace state declarations with URL-based state**:
+   - Read filter values from URL search params on component mount
+   - Create setter functions that update URL params instead of React state
+
+3. **URL Parameter Schema**:
+   ```text
+   /exams2?system=francophone
+          &class=id1,id2
+          &subject=id1,id2
+          &series=id1,id2
+          &year=yearId
+          &type=examTypeId
+          &period=periodId
+          &sort=newest
+          &search=searchTerm
+          &page=1
+   ```
+
+4. **Helper Functions**:
+   - `getParamArray(key)`: Parse comma-separated IDs from URL
+   - `setParamArray(key, values)`: Set comma-separated IDs in URL
+   - `getParam(key, defaultValue)`: Get single param with fallback
+   - `setParam(key, value)`: Set single param
+
+5. **Filter setters will update URL**:
+   ```typescript
+   const toggleClass = (id: string) => {
+     const current = getParamArray('class');
+     const updated = current.includes(id) 
+       ? current.filter(c => c !== id) 
+       : [...current, id];
+     setParamArray('class', updated);
+   };
+   ```
+
+6. **Clear filters function** will reset all URL params
+
+7. **Pagination** will also use URL params for `page` parameter
+
+#### Step 2: Update Exam Cards to Preserve Filter Context
+
+**Changes to `src/pages/Exams2.tsx`:**
+
+Update the exam card `Link` to pass the current filter state:
+
+```typescript
+<Link 
+  key={exam.id} 
+  to={`/exam/${exam.id}?${new URLSearchParams({
+    from: `/exams2?${searchParams.toString()}`
+  }).toString()}`}
+>
 ```
 
-#### 2. Update ExamManager Form (Edit Exam Page)
+This passes the complete current URL as a `from` parameter, enabling perfect restoration.
 
-```text
-File: src/pages/ExamManager.tsx
+#### Step 3: Update ExamViewer Breadcrumbs
 
-Changes:
-- Add series_id to ExamData interface
-- Add series_id to formData state
-- Add Series dropdown after Class selection
-- Filter series options based on selected class's section
-- Include "General" option always visible
-- Include series_id in exam save/update operations
+**Changes to `src/pages/ExamViewer.tsx`:**
+
+1. **Read the `from` parameter** to get the original browse URL with filters
+
+2. **Update breadcrumb links** to use the preserved filter context:
+   - "Exams" breadcrumb links back to the full filtered URL
+   - Class breadcrumb links back with system and class filter active
+
+3. **Update Back button** to use the `from` parameter if available, otherwise use `navigate(-1)`
+
+```typescript
+const fromUrl = searchParams.get('from') || '/exams2';
+
+// In breadcrumbs:
+<Link to={fromUrl}>
+  {language === 'fr' ? 'Epreuves' : 'Exams'}
+</Link>
 ```
 
-**Series Dropdown Logic:**
-- If class is Francophone → show Francophone + General series
-- If class is Anglophone → show Anglophone + General series
-- If no class selected → show all series
+#### Step 4: Initialize Filters from URL on Page Load
 
-#### 3. Update Browse Page (Exams2)
+**Changes to `src/pages/Exams2.tsx`:**
 
-```text
-File: src/pages/Exams2.tsx
+Ensure that when the page loads with URL parameters (e.g., from a breadcrumb click), the filters are properly initialized:
 
-Changes:
-- Add series filter state
-- Fetch series from database
-- Filter series options based on selected system
-- Add Series multi-select filter in sidebar
-- Include series in exam filtering logic
-- Display series on exam cards
-```
+```typescript
+const [searchParams, setSearchParams] = useSearchParams();
 
-#### 4. Update Admin Exam Management
-
-```text
-File: src/components/admin/ExamManagement.tsx
-
-Changes:
-- Add series to Exam interface
-- Include series in exam fetch query
-- Add series filter dropdown
-- Display series in exam cards
-```
-
-#### 5. Create SeriesManagement Component
-
-```text
-File: src/components/admin/SeriesManagement.tsx
-
-New component for System Configuration:
-- CRUD operations for series
-- Table display with code, name translations, system
-- Form with all fields
-- System dropdown (francophone/anglophone/general)
-```
-
-#### 6. Update Admin Page
-
-```text
-File: src/pages/Admin.tsx
-
-Changes:
-- Import SeriesManagement
-- Add Series ConfigSection in System Configuration tab
+// Derived state from URL
+const selectedSystem = searchParams.get('system') || 'all';
+const selectedClasses = useMemo(() => 
+  searchParams.get('class')?.split(',').filter(Boolean) || [], 
+  [searchParams]
+);
+// ... similar for other filters
 ```
 
 ---
 
-### Files to Create/Modify
+### Technical Details
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/migrations/[timestamp]_add_series.sql` | Create | Database migration |
-| `src/hooks/useExamFormData.tsx` | Modify | Add series fetching |
-| `src/pages/ExamManager.tsx` | Modify | Add series dropdown to form |
-| `src/pages/Exams2.tsx` | Modify | Add series filter |
-| `src/components/admin/ExamManagement.tsx` | Modify | Add series display/filter |
-| `src/components/admin/SeriesManagement.tsx` | Create | Admin CRUD component |
-| `src/pages/Admin.tsx` | Modify | Add Series section |
+#### URL Parameter Mapping
 
----
+| Filter | URL Param | Format | Example |
+|--------|-----------|--------|---------|
+| System | `system` | Single value | `francophone` |
+| Classes | `class` | Comma-separated IDs | `id1,id2` |
+| Subjects | `subject` | Comma-separated IDs | `id1,id2` |
+| Series | `series` | Comma-separated IDs | `id1,id2` |
+| Year | `year` | Single ID | `yearId` |
+| Exam Type | `type` | Single ID | `typeId` |
+| Period | `period` | Single ID | `periodId` |
+| Sort | `sort` | Single value | `newest` |
+| Search | `search` | String | `math` |
+| Page | `page` | Number | `2` |
 
-### UI/UX Considerations
+#### Files to Modify
 
-1. **Series Dropdown Placement**: After Class selector, as series depends on educational system
-2. **Filter Behavior**: Series filter appears after System filter is selected
-3. **"General" Option**: Always available, used for:
-   - Exams applicable to all series (e.g., general knowledge)
-   - Legacy exams imported without series info
-4. **Dynamic Filtering**: Series options update based on class section selection
+1. **`src/pages/Exams2.tsx`** (Primary changes)
+   - Add `useSearchParams` import
+   - Replace `useState` for filters with URL-derived values
+   - Update all filter setters to modify URL params
+   - Update exam card links to include `from` parameter
+   - Add memoized URL parsing helpers
 
----
+2. **`src/pages/ExamViewer.tsx`** (Breadcrumb updates)
+   - Read `from` parameter for return navigation
+   - Update breadcrumb links to use preserved filter URL
+   - Update Back button behavior
 
-### Data Flow
+#### Edge Cases Handled
 
-```text
-1. User selects Class → determines system (francophone/anglophone)
-2. Series dropdown filters to show relevant series + General
-3. User selects series (optional - defaults to none)
-4. On save, series_id stored in exams table
-5. On browse, series filter shows based on selected system
-```
-
----
-
-### Migration Strategy
-
-1. Create series table with initial data
-2. Add nullable series_id column to exams
-3. Existing exams remain with NULL series_id (treated as "not specified")
-4. Users can edit existing exams to assign series
-5. Browse page shows "All Series" by default
+- Invalid URL params gracefully default to 'all' or empty arrays
+- Multi-select filters use comma-separated IDs that are URL-safe
+- Browser refresh preserves current filters
+- Empty filter values are removed from URL to keep it clean
+- Pagination resets to page 1 when filters change (already implemented)
 
 ---
 
-### Summary
+### Benefits
 
-This implementation:
-1. Creates a new `series` reference table with Francophone and Anglophone tracks
-2. Adds `series_id` to exams table (nullable for backward compatibility)
-3. Updates the exam editor with a filtered series dropdown
-4. Adds series filtering to the browse and admin pages
-5. Creates an admin management component for series CRUD
-6. Includes a "General" option for universal or legacy exams
+1. **Persistence**: Filters survive navigation and page refreshes
+2. **Shareability**: Users can share or bookmark specific filtered views
+3. **Browser History**: Back/forward buttons work correctly with filter state
+4. **Breadcrumb Sync**: Clicking breadcrumbs restores the exact filter state
+5. **Deep Linking**: External links can open the page with pre-selected filters
+
