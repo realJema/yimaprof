@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -104,22 +104,53 @@ const ITEMS_PER_PAGE = 12;
 const Exams2 = () => {
   const { language } = useLanguage();
   const { hasActiveSubscription, subscription } = useSubscription();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showFreeOnly, setShowFreeOnly] = useState(false);
 
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
-  const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [selectedExamType, setSelectedExamType] = useState<string>('all');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
-  const [selectedSystem, setSelectedSystem] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('newest');
+  // URL parameter helpers
+  const getParamArray = useCallback((key: string): string[] => {
+    const value = searchParams.get(key);
+    return value ? value.split(',').filter(Boolean) : [];
+  }, [searchParams]);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const setParam = useCallback((key: string, value: string | null) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value && value !== 'all') {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    // Reset page when filters change
+    if (key !== 'page') {
+      newParams.delete('page');
+    }
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const setParamArray = useCallback((key: string, values: string[]) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (values.length > 0) {
+      newParams.set(key, values.join(','));
+    } else {
+      newParams.delete(key);
+    }
+    // Reset page when filters change
+    newParams.delete('page');
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Derived filter state from URL
+  const selectedSystem = searchParams.get('system') || 'all';
+  const selectedClasses = useMemo(() => getParamArray('class'), [getParamArray]);
+  const selectedSubjects = useMemo(() => getParamArray('subject'), [getParamArray]);
+  const selectedSeries = useMemo(() => getParamArray('series'), [getParamArray]);
+  const selectedSchools = useMemo(() => getParamArray('school'), [getParamArray]);
+  const selectedYear = searchParams.get('year') || 'all';
+  const selectedExamType = searchParams.get('type') || 'all';
+  const selectedPeriod = searchParams.get('period') || 'all';
+  const sortBy = searchParams.get('sort') || 'newest';
+  const searchTerm = searchParams.get('search') || '';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -291,11 +322,11 @@ const Exams2 = () => {
     if (!hasActiveSubscription) return;
     if (availableSystems.hasMultiple) return; // User has both, keep current selection
     if (availableSystems.francophone && selectedSystem !== 'francophone') {
-      setSelectedSystem('francophone');
+      setParam('system', 'francophone');
     } else if (availableSystems.anglophone && selectedSystem !== 'anglophone') {
-      setSelectedSystem('anglophone');
+      setParam('system', 'anglophone');
     }
-  }, [availableSystems, hasActiveSubscription]);
+  }, [availableSystems, hasActiveSubscription, selectedSystem, setParam]);
 
   // Filter exams based on subscription access or free visibility
   const accessibleExams = useMemo(() => {
@@ -376,10 +407,7 @@ const Exams2 = () => {
     return filteredExams.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredExams, currentPage]);
 
-  // Reset to page 1 when filters change
-  useMemo(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedSchools, selectedClasses, selectedSubjects, selectedSeries, selectedYear, selectedExamType, selectedPeriod, selectedSystem]);
+  // Page reset is now handled by setParam and setParamArray automatically
 
   // Count exams per filter option (filtered by selected system and accessible exams)
   const getFilterCounts = useMemo(() => {
@@ -457,25 +485,39 @@ const Exams2 = () => {
   }, [series, selectedSystem]);
 
   const activeFiltersCount = selectedSchools.length + selectedClasses.length + selectedSubjects.length + selectedSeries.length + (selectedYear !== 'all' ? 1 : 0) + (selectedExamType !== 'all' ? 1 : 0) + (selectedPeriod !== 'all' ? 1 : 0);
-  const clearAllFilters = () => {
-    setSearchTerm('');
-    setSelectedSchools([]);
-    setSelectedClasses([]);
-    setSelectedSubjects([]);
-    setSelectedSeries([]);
-    setSelectedYear('all');
-    setSelectedExamType('all');
-    setSelectedPeriod('all');
-    // Don't reset system if user only has one
-    if (availableSystems.hasMultiple) {
-      setSelectedSystem('all');
+  
+  const clearAllFilters = useCallback(() => {
+    const newParams = new URLSearchParams();
+    // Preserve system if user only has one
+    if (!availableSystems.hasMultiple && selectedSystem !== 'all') {
+      newParams.set('system', selectedSystem);
     }
-    setCurrentPage(1);
-  };
-  const toggleSchool = (id: string) => setSelectedSchools(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
-  const toggleClass = (id: string) => setSelectedClasses(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
-  const toggleSubject = (id: string) => setSelectedSubjects(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
-  const toggleSeries = (id: string) => setSelectedSeries(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+    setSearchParams(newParams, { replace: true });
+  }, [availableSystems.hasMultiple, selectedSystem, setSearchParams]);
+
+  const toggleSchool = useCallback((id: string) => {
+    const current = getParamArray('school');
+    const updated = current.includes(id) ? current.filter(s => s !== id) : [...current, id];
+    setParamArray('school', updated);
+  }, [getParamArray, setParamArray]);
+
+  const toggleClass = useCallback((id: string) => {
+    const current = getParamArray('class');
+    const updated = current.includes(id) ? current.filter(c => c !== id) : [...current, id];
+    setParamArray('class', updated);
+  }, [getParamArray, setParamArray]);
+
+  const toggleSubject = useCallback((id: string) => {
+    const current = getParamArray('subject');
+    const updated = current.includes(id) ? current.filter(s => s !== id) : [...current, id];
+    setParamArray('subject', updated);
+  }, [getParamArray, setParamArray]);
+
+  const toggleSeries = useCallback((id: string) => {
+    const current = getParamArray('series');
+    const updated = current.includes(id) ? current.filter(s => s !== id) : [...current, id];
+    setParamArray('series', updated);
+  }, [getParamArray, setParamArray]);
 
   // Multi-select popover component
   const MultiSelectPopover = ({
@@ -529,7 +571,7 @@ const Exams2 = () => {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-9" />
+        <Input placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'} value={searchTerm} onChange={e => setParam('search', e.target.value || null)} className="pl-10 h-9" />
       </div>
 
       <Separator />
@@ -557,7 +599,7 @@ const Exams2 = () => {
       {/* Year */}
       <div className="space-y-2">
         <label className="text-sm font-medium">{language === 'fr' ? 'Année' : 'Year'}</label>
-        <Select value={selectedYear} onValueChange={setSelectedYear}>
+        <Select value={selectedYear} onValueChange={(value) => setParam('year', value)}>
           <SelectTrigger className="h-9">
             <SelectValue />
           </SelectTrigger>
@@ -571,7 +613,7 @@ const Exams2 = () => {
       {/* Exam Type */}
       <div className="space-y-2">
         <label className="text-sm font-medium">{language === 'fr' ? 'Type' : 'Type'}</label>
-        <Select value={selectedExamType} onValueChange={setSelectedExamType}>
+        <Select value={selectedExamType} onValueChange={(value) => setParam('type', value)}>
           <SelectTrigger className="h-9">
             <SelectValue />
           </SelectTrigger>
@@ -585,7 +627,7 @@ const Exams2 = () => {
       {/* Period */}
       <div className="space-y-2">
         <label className="text-sm font-medium">{language === 'fr' ? 'Période' : 'Period'}</label>
-        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+        <Select value={selectedPeriod} onValueChange={(value) => setParam('period', value)}>
           <SelectTrigger className="h-9">
             <SelectValue />
           </SelectTrigger>
@@ -628,7 +670,7 @@ const Exams2 = () => {
                   <span className="text-sm font-medium text-muted-foreground">
                     {language === 'fr' ? 'Système:' : 'System:'}
                   </span>
-                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setSelectedSystem(value)} className="bg-muted p-1 rounded-lg">
+                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setParam('system', value)} className="bg-muted p-1 rounded-lg">
                     {availableSystems.hasMultiple && (
                       <ToggleGroupItem value="all" className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm">
                         {language === 'fr' ? 'Tous' : 'All'}
@@ -704,7 +746,7 @@ const Exams2 = () => {
 
               {/* Sort - Only for subscribers */}
               {hasActiveSubscription && (
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
                   <SelectTrigger className="w-[130px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -807,8 +849,11 @@ const Exams2 = () => {
                     const subjectName = getLocalizedName(exam.subject);
                     const cardColor = getSubjectColor(subjectName);
                     
+                    // Build URL with 'from' param to preserve filter context
+                    const examUrl = `/exam/${exam.id}?from=${encodeURIComponent(`/exams2?${searchParams.toString()}`)}`;
+                    
                     return (
-                      <Link key={exam.id} to={`/exam/${exam.id}`}>
+                      <Link key={exam.id} to={examUrl}>
                         <Card className={`h-full min-h-[160px] hover:shadow-lg transition-all cursor-pointer group border-2 ${cardColor}`}>
                           <CardContent className="p-4 flex flex-col h-full">
                             {/* Badges at top */}
@@ -883,7 +928,7 @@ const Exams2 = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && <div className="flex items-center justify-center gap-2 mt-8">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <Button variant="outline" size="sm" onClick={() => setParam('page', String(Math.max(1, currentPage - 1)))} disabled={currentPage === 1}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     
@@ -894,14 +939,14 @@ const Exams2 = () => {
                   const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1;
                   return <div key={page} className="flex items-center gap-1">
                               {showEllipsisBefore && <span className="px-2 text-muted-foreground">...</span>}
-                              <Button variant={currentPage === page ? "default" : "outline"} size="sm" className="w-9 h-9" onClick={() => setCurrentPage(page)}>
+                              <Button variant={currentPage === page ? "default" : "outline"} size="sm" className="w-9 h-9" onClick={() => setParam('page', String(page))}>
                                 {page}
                               </Button>
                             </div>;
                 })}
                     </div>
 
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                    <Button variant="outline" size="sm" onClick={() => setParam('page', String(Math.min(totalPages, currentPage + 1)))} disabled={currentPage === totalPages}>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>}
