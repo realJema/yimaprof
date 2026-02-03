@@ -191,7 +191,7 @@ export default function PaymentProcessing() {
   };
 
   const handleGoToExams = () => {
-    navigate('/exams');
+    navigate('/exams2');
   };
 
   // Format phone number for display

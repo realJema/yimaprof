@@ -92,7 +92,7 @@ const Index = () => {
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             {user ? (
               <Button size="lg" className="gradient-primary text-lg px-8 py-6" asChild>
-                <Link to="/exams">
+                <Link to="/exams2">
                   <Search className="mr-2 h-5 w-5" />
                   {t('explore_exams')}
                 </Link>
@@ -293,7 +293,7 @@ const Index = () => {
           
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-6" asChild>
-              <Link to={user ? "/exams" : "/auth?mode=signup"}>
+              <Link to={user ? "/exams2" : "/auth?mode=signup"}>
                 {user ? t('explore_now') : t('create_account')}
               </Link>
             </Button>

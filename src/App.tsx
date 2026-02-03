@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
@@ -13,10 +13,7 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
-import Exams from "./pages/Exams";
 import Exams2 from "./pages/Exams2";
-import ExamSubjects from "./pages/ExamSubjects";
-import ExamList from "./pages/ExamList";
 import ExamViewer from "./pages/ExamViewer";
 import Settings from "./pages/Settings";
 import Subscriptions from "./pages/Subscriptions";
@@ -72,9 +69,10 @@ const App = () => {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/exams" element={<Exams />} />
-                    <Route path="/exams/:classId/subjects" element={<ExamSubjects />} />
-                    <Route path="/exams/:classId/list" element={<ExamList />} />
+                    {/* Redirect old /exams routes to browse page */}
+                    <Route path="/exams" element={<Navigate to="/exams2" replace />} />
+                    <Route path="/exams/:classId/subjects" element={<Navigate to="/exams2" replace />} />
+                    <Route path="/exams/:classId/list" element={<Navigate to="/exams2" replace />} />
                     <Route path="/exam/:examId" element={<ExamViewer />} />
                     <Route path="/exams2" element={<Exams2 />} />
                   <Route path="/settings" element={<Settings />} />
