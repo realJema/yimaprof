@@ -642,7 +642,7 @@ export default function ExamViewer() {
             <p className="text-muted-foreground">
               {language === 'fr' ? 'Épreuve non trouvée' : 'Exam not found'}
             </p>
-            <Button onClick={() => navigate('/exams')} className="mt-4">
+            <Button onClick={() => navigate('/exams2')} className="mt-4">
               {language === 'fr' ? 'Retour aux épreuves' : 'Back to Exams'}
             </Button>
           </CardContent>
