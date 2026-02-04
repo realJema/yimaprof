@@ -34,3 +34,9 @@ verify_jwt = false
 
 [functions.send-notification-email]
 verify_jwt = false
+
+[functions.verify-stuck-payments]
+verify_jwt = false
+
+[functions.admin-resolve-transaction]
+verify_jwt = true
