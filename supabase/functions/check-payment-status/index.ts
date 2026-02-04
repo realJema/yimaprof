@@ -87,7 +87,7 @@ serve(async (req) => {
 
     console.log('Transaction found:', transaction.id, 'Status:', transaction.status);
 
-    // If transaction is already completed or failed, return status
+    // If transaction is already completed, return status
     if (transaction.status === 'completed') {
       console.log('Transaction already completed');
       return new Response(JSON.stringify({
@@ -98,6 +98,7 @@ serve(async (req) => {
       });
     }
     
+    // If transaction is already failed, return status
     if (transaction.status === 'failed') {
       console.log('Transaction already failed');
       return new Response(JSON.stringify({
@@ -132,9 +133,9 @@ serve(async (req) => {
             const mesombTx = mesombTransactions[0];
             console.log('MeSomb transaction status:', mesombTx.status);
             
-            // Check if payment was successful
+            // Check if payment was successful - use atomic database function
             if (mesombTx.status === 'SUCCESS') {
-              console.log('Payment confirmed by MeSomb! Activating subscription...');
+              console.log('Payment confirmed by MeSomb! Using atomic function to activate subscription...');
               
               // Get metadata for plan_id and referred_by
               const metadata = transaction.metadata as { plan_id?: string; referred_by?: string } || {};
@@ -142,51 +143,74 @@ serve(async (req) => {
               const referredBy = metadata.referred_by;
               
               if (planId) {
-                // Activate subscription
-                const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
+                // Use atomic database function for ACID-compliant completion
+                const { data: result, error: rpcError } = await supabase.rpc('complete_payment_transaction', {
+                  p_transaction_id: transactionId,
+                  p_plan_id: planId,
                   p_user_id: user.id,
-                  p_new_plan_id: planId,
                   p_referred_by: referredBy || null
                 });
                 
+                console.log('Atomic completion result:', result, 'Error:', rpcError);
+                
                 if (rpcError) {
-                  console.error('Failed to activate subscription:', rpcError);
-                } else {
-                  console.log('Subscription activated:', rpcResult);
-                  
-                  // Update transaction to completed with subscription_id
-                  const subscriptionId = rpcResult?.new_subscription_id || null;
-                  await supabase.from('transactions').update({
-                    status: 'completed',
-                    subscription_id: subscriptionId,
-                    metadata: {
-                      ...metadata,
-                      mesomb_confirmed: true,
-                      confirmed_at: new Date().toISOString()
-                    }
-                  }).eq('id', transactionId);
-                  
+                  console.error('Atomic completion RPC error:', rpcError);
+                  // Return processing to retry later
                   return new Response(JSON.stringify({
-                    status: 'completed',
-                    message: 'Payment confirmed and subscription activated!',
-                    transaction: { ...transaction, status: 'completed', subscription_id: subscriptionId }
+                    status: 'processing',
+                    message: 'Retrying subscription activation...',
+                    transaction: transaction
                   }), {
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                   });
                 }
+                
+                if (!result?.success) {
+                  console.error('Atomic completion failed:', result?.error);
+                  
+                  // If already completed (idempotency), return success
+                  if (result?.already_completed) {
+                    return new Response(JSON.stringify({
+                      status: 'completed',
+                      message: 'Payment already processed',
+                      transaction: { ...transaction, status: 'completed', subscription_id: result.subscription_id }
+                    }), {
+                      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    });
+                  }
+                  
+                  // Return processing to retry later
+                  return new Response(JSON.stringify({
+                    status: 'processing',
+                    message: 'Retrying subscription activation...',
+                    transaction: transaction
+                  }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  });
+                }
+                
+                console.log('Subscription activated atomically:', result.subscription_id);
+                
+                return new Response(JSON.stringify({
+                  status: 'completed',
+                  message: 'Payment confirmed and subscription activated!',
+                  transaction: { ...transaction, status: 'completed', subscription_id: result.subscription_id }
+                }), {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              } else {
+                console.error('Missing plan_id in transaction metadata');
               }
             } else if (mesombTx.status === 'FAILED' || mesombTx.status === 'CANCELLED') {
-              console.log('Payment failed/cancelled in MeSomb');
+              console.log('Payment failed/cancelled in MeSomb - using atomic function');
               
-              // Update transaction to failed
-              await supabase.from('transactions').update({
-                status: 'failed',
-                metadata: {
-                  ...(transaction.metadata || {}),
-                  mesomb_final_status: mesombTx.status,
-                  failed_at: new Date().toISOString()
-                }
-              }).eq('id', transactionId);
+              // Use atomic database function for failure
+              const { data: result, error: rpcError } = await supabase.rpc('fail_payment_transaction', {
+                p_transaction_id: transactionId,
+                p_reason: `MeSomb status: ${mesombTx.status}`
+              });
+              
+              console.log('Atomic fail result:', result, 'Error:', rpcError);
               
               return new Response(JSON.stringify({
                 status: 'failed',

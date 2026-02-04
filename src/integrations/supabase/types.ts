@@ -1165,6 +1165,19 @@ export type Database = {
         Returns: Json
       }
       check_subscription_expiry: { Args: never; Returns: number }
+      complete_payment_transaction: {
+        Args: {
+          p_plan_id: string
+          p_referred_by?: string
+          p_transaction_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      fail_payment_transaction: {
+        Args: { p_reason?: string; p_transaction_id: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

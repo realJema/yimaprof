@@ -128,39 +128,51 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Test case - auto-activate for test number
+    // Test case - auto-activate for test number using atomic function
     if (cleanedPhone === '670000000') {
-      console.log('Test number detected, auto-activating');
+      console.log('Test number detected, using atomic function for auto-activation');
       
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('transition_subscription_plan', {
+      // Create transaction first
+      const { data: testTransaction, error: insertError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          amount: amount,
+          currency: 'XAF',
+          provider: 'mesomb',
+          status: 'processing',
+          provider_reference: 'TEST_' + Date.now(),
+          metadata: { phone_number: cleanedPhone, plan_id: planId, referred_by: referredBy, test_payment: true }
+        })
+        .select()
+        .single();
+
+      if (insertError || !testTransaction) {
+        return new Response(JSON.stringify({ error: 'Failed to create test transaction' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Use atomic function to complete
+      const { data: result, error: rpcError } = await supabase.rpc('complete_payment_transaction', {
+        p_transaction_id: testTransaction.id,
+        p_plan_id: planId,
         p_user_id: user.id,
-        p_new_plan_id: planId,
         p_referred_by: referredBy || null
       });
       
-      if (rpcError) {
-        return new Response(JSON.stringify({ error: 'Failed to activate subscription', details: rpcError.message }), {
+      if (rpcError || !result?.success) {
+        console.error('Test payment atomic completion failed:', rpcError || result?.error);
+        return new Response(JSON.stringify({ error: 'Failed to activate subscription', details: rpcError?.message || result?.error }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const subscriptionId = rpcResult?.new_subscription_id || null;
-        
-      await supabase.from('transactions').insert({
-        user_id: user.id,
-        subscription_id: subscriptionId,
-        amount: amount,
-        currency: 'XAF',
-        provider: 'mesomb',
-        status: 'completed',
-        provider_reference: 'TEST_' + Date.now(),
-        metadata: { phone_number: cleanedPhone, plan_id: planId, test_payment: true }
-      });
-
       return new Response(JSON.stringify({
         success: true,
-        transactionId: 'test_' + Date.now(),
+        transactionId: testTransaction.id,
         message: 'Test payment completed',
         testPayment: true
       }), {
@@ -176,7 +188,15 @@ serve(async (req) => {
       });
     }
 
-    // Create pending transaction
+    // Create pending transaction with all metadata needed for atomic completion
+    const transactionMetadata = { 
+      phone_number: cleanedPhone, 
+      plan_id: planId, 
+      referred_by: referredBy, 
+      service,
+      initiated_at: new Date().toISOString()
+    };
+    
     const { data: pendingTransaction, error: pendingError } = await supabase
       .from('transactions')
       .insert({
@@ -185,7 +205,7 @@ serve(async (req) => {
         currency: 'XAF',
         provider: 'mesomb',
         status: 'pending',
-        metadata: { phone_number: cleanedPhone, plan_id: planId, referred_by: referredBy, service }
+        metadata: transactionMetadata
       })
       .select()
       .single();
@@ -232,28 +252,48 @@ serve(async (req) => {
         reference: response.reference
       });
 
-      // Handle ANY response from MeSomb (success or timeout) as "processing"
-      // The payment was sent to user's phone - we need to poll for final status
       const providerRef = response.reference || response.transaction?.pk || null;
       const isSuccess = response.isOperationSuccess();
       const mesombStatus = response.status;
       const mesombMessage = response.message || '';
       
-      // Update transaction to processing - payment request was sent
+      // Check if MeSomb clearly rejected the payment
+      if (!isSuccess && mesombStatus === 'FAIL') {
+        console.log('MeSomb rejected payment, failing transaction atomically');
+        
+        // Use atomic function to fail the transaction
+        await supabase.rpc('fail_payment_transaction', {
+          p_transaction_id: pendingTransaction.id,
+          p_reason: mesombMessage || 'MeSomb rejected payment request'
+        });
+        
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: mesombMessage || 'Payment was rejected. Please try again.',
+          transactionId: pendingTransaction.id
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Only set to "processing" if we got a valid response (successful or pending)
+      // and preferably have a provider reference
       await supabase.from('transactions').update({
         status: 'processing',
         provider_reference: providerRef,
         metadata: { 
-          ...pendingTransaction.metadata, 
+          ...transactionMetadata, 
           mesomb_status: mesombStatus,
           mesomb_message: mesombMessage,
-          mesomb_success: isSuccess
+          mesomb_success: isSuccess,
+          provider_ref_obtained: !!providerRef
         }
       }).eq('id', pendingTransaction.id);
       
-      console.log('Transaction updated to processing, returning success to frontend');
+      console.log('Transaction updated to processing, provider_ref:', providerRef);
       
-      // Always return success with transactionId so user goes to processing page
+      // Return success with transactionId so user goes to processing page
       return new Response(JSON.stringify({
         success: true,
         transactionId: pendingTransaction.id,
@@ -272,11 +312,15 @@ serve(async (req) => {
       console.error('MeSomb SDK error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment request failed';
       
-      // Even on SDK error, if transaction was created, set to processing
-      // User may still receive the payment prompt on their phone
+      // On SDK error, still set to processing - user may receive payment prompt
+      // The background job will clean up truly failed transactions later
       await supabase.from('transactions').update({
         status: 'processing',
-        metadata: { ...pendingTransaction.metadata, sdk_error: errorMessage }
+        metadata: { 
+          ...transactionMetadata, 
+          sdk_error: errorMessage,
+          sdk_error_at: new Date().toISOString()
+        }
       }).eq('id', pendingTransaction.id);
       
       // Return success with transactionId so user can still wait for confirmation
