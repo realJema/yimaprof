@@ -236,9 +236,11 @@ serve(async (req) => {
         service: service,
         payer: cleanedPhone,
         nonce: RandomGenerator.nonce(),
+        trxID: pendingTransaction.id, // Our transaction ID for EXTERNAL lookup
         currency: 'XAF',
         country: 'CM',
         fees: true,
+        mode: service === 'ORANGE' ? 'asynchronous' : 'synchronous', // Async for Orange to prevent USSD blocking
         message: 'Subscription payment',
         reference: `sub_${pendingTransaction.id.substring(0, 8)}`
       };
