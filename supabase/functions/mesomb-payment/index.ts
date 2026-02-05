@@ -7,6 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Timeout for MeSomb SDK collect call (15 seconds)
+// Orange Money USSD can block for ~90s, so we timeout early and assume prompt was sent
+const COLLECT_TIMEOUT_MS = 15000;
+
 // Determine service type from phone number (Cameroon)
 function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
   const cleaned = phoneNumber.replace(/\D/g, '');
@@ -240,9 +244,55 @@ serve(async (req) => {
       };
 
       console.log('MeSomb collect request:', collectRequest);
-      console.log('Making MeSomb API call via SDK...');
+      console.log('Making MeSomb API call via SDK with', COLLECT_TIMEOUT_MS, 'ms timeout...');
       
-      const response = await paymentOperation.makeCollect(collectRequest);
+      // Create timeout promise for Orange Money optimization
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('COLLECT_TIMEOUT')), COLLECT_TIMEOUT_MS);
+      });
+      
+      let response = null;
+      let timedOut = false;
+      
+      try {
+        response = await Promise.race([
+          paymentOperation.makeCollect(collectRequest),
+          timeoutPromise
+        ]);
+      } catch (timeoutError) {
+        if (timeoutError instanceof Error && timeoutError.message === 'COLLECT_TIMEOUT') {
+          timedOut = true;
+          console.log('MeSomb SDK call timed out after', COLLECT_TIMEOUT_MS, 'ms - assuming payment prompt sent to phone');
+        } else {
+          throw timeoutError;
+        }
+      }
+      
+      // Handle timeout case - assume payment prompt was sent
+      if (timedOut) {
+        await supabase.from('transactions').update({
+          status: 'processing',
+          metadata: { 
+            ...transactionMetadata, 
+            sdk_timeout: true,
+            timeout_at: new Date().toISOString()
+          }
+        }).eq('id', pendingTransaction.id);
+        
+        console.log('Transaction set to processing after timeout');
+        
+        return new Response(JSON.stringify({
+          success: true,
+          transactionId: pendingTransaction.id,
+          phoneNumber: cleanedPhone,
+          service: service,
+          message: 'Veuillez confirmer le paiement sur votre téléphone.',
+          status: 'processing',
+          timedOut: true
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       console.log('MeSomb SDK response:', {
         success: response.isOperationSuccess(),

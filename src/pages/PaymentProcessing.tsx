@@ -92,7 +92,17 @@ export default function PaymentProcessing() {
 
   // Manual check handler - triggered when user clicks "I've confirmed"
   const handleManualCheck = async () => {
-    if (!transactionId || isManualChecking) return;
+    if (isManualChecking) return;
+    
+    // If no transactionId yet (still initiating), show helpful message
+    if (!transactionId) {
+      toast({
+        title: 'Paiement en cours d\'initialisation',
+        description: 'Veuillez patienter quelques secondes puis réessayer.',
+      });
+      return;
+    }
+    
     setIsManualChecking(true);
     await checkPaymentStatus(transactionId);
     setIsManualChecking(false);
@@ -271,21 +281,47 @@ export default function PaymentProcessing() {
 
           <CardContent className="space-y-6">
             {status === 'initiating' && phoneNumber && (
-              <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
-                {carrier && (
-                  <Badge 
-                    variant="secondary" 
-                    className={carrier === 'MTN' 
-                      ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
-                      : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
-                    }
-                  >
-                    {carrier}
-                  </Badge>
-                )}
-              </div>
+              <>
+                <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
+                  {carrier && (
+                    <Badge 
+                      variant="secondary" 
+                      className={carrier === 'MTN' 
+                        ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
+                        : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
+                      }
+                    >
+                      {carrier}
+                    </Badge>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={handleManualCheck} 
+                  disabled={isManualChecking}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  {isManualChecking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vérification en cours...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      J'ai confirmé le paiement
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  Confirmez le paiement sur votre téléphone, puis cliquez sur le bouton ci-dessus
+                </p>
+              </>
             )}
 
             {status === 'processing' && phoneNumber && (
