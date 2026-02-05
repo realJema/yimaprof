@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
 
 export default function PaymentProcessing() {
@@ -15,6 +16,7 @@ export default function PaymentProcessing() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { refreshSubscription } = useSubscription();
   const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed'>('initiating');
   const [checkCount, setCheckCount] = useState(0);
   const [countdown, setCountdown] = useState(5);
@@ -44,6 +46,8 @@ export default function PaymentProcessing() {
         if (pollingInterval.current) {
           clearInterval(pollingInterval.current);
         }
+        // Refresh subscription state immediately so browse page shows full content
+        await refreshSubscription();
         toast({
           title: t('payment_success'),
           description: t('payment_success_desc'),
@@ -62,7 +66,7 @@ export default function PaymentProcessing() {
     } catch (error) {
       console.error('Error checking payment status:', error);
     }
-  }, [t, toast]);
+  }, [t, toast, refreshSubscription]);
 
   // Start polling for payment status
   const startPolling = useCallback((txId: string) => {
