@@ -40,15 +40,15 @@ serve(async (req) => {
       });
     }
     
-    // Find stuck transactions (processing for > 5 minutes with provider_reference)
+    // Find ALL stuck transactions (processing for > 5 minutes) - including those without provider_reference
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     
     const { data: stuckTransactions, error: fetchError } = await supabase
       .from('transactions')
       .select('*')
       .eq('status', 'processing')
-      .not('provider_reference', 'is', null)
-      .lt('created_at', fiveMinutesAgo);
+      .lt('created_at', fiveMinutesAgo)
+      .limit(50); // Add limit for safety
     
     if (fetchError) {
       console.error('Error fetching stuck transactions:', fetchError);
@@ -58,7 +58,7 @@ serve(async (req) => {
       });
     }
     
-    console.log(`Found ${stuckTransactions?.length || 0} stuck transactions with provider_reference`);
+    console.log(`Found ${stuckTransactions?.length || 0} stuck transactions (including those without provider_reference)`);
     
     const paymentOp = new PaymentOperation({
       applicationKey: applicationKey,
@@ -73,9 +73,29 @@ serve(async (req) => {
     
     for (const tx of stuckTransactions || []) {
       try {
-        console.log(`Checking transaction ${tx.id} with reference ${tx.provider_reference}`);
+        console.log(`Checking transaction ${tx.id} (provider_reference: ${tx.provider_reference || 'none'})`);
         
-        const mesombTxs = await paymentOp.getTransactions([tx.provider_reference]);
+        // Try EXTERNAL lookup first (using our transaction ID as trxID)
+        let mesombTxs = null;
+        
+        try {
+          console.log(`Trying EXTERNAL lookup for ${tx.id}`);
+          mesombTxs = await paymentOp.checkTransactions([tx.id], 'EXTERNAL');
+          console.log(`EXTERNAL lookup result for ${tx.id}:`, mesombTxs);
+        } catch (externalError) {
+          console.log(`EXTERNAL lookup failed for ${tx.id}:`, externalError);
+        }
+        
+        // Fallback to provider_reference if EXTERNAL lookup returns nothing
+        if ((!mesombTxs || mesombTxs.length === 0) && tx.provider_reference) {
+          try {
+            console.log(`Trying MESOMB lookup with provider_reference: ${tx.provider_reference}`);
+            mesombTxs = await paymentOp.checkTransactions([tx.provider_reference], 'MESOMB');
+            console.log(`MESOMB lookup result for ${tx.id}:`, mesombTxs);
+          } catch (mesombError) {
+            console.log(`MESOMB lookup failed for ${tx.id}:`, mesombError);
+          }
+        }
         
         if (mesombTxs && mesombTxs.length > 0) {
           const mesombTx = mesombTxs[0];
@@ -124,7 +144,7 @@ serve(async (req) => {
           }
           // PENDING status: leave as-is for next check cycle
         } else {
-          console.log(`No MeSomb transaction found for ${tx.id}`);
+          console.log(`No MeSomb transaction found for ${tx.id} via EXTERNAL or MESOMB lookup`);
         }
       } catch (e) {
         const errorMsg = e instanceof Error ? e.message : 'Unknown error';

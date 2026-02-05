@@ -115,7 +115,8 @@ serve(async (req) => {
       const accessKey = Deno.env.get('MESOMB_ACCESS_KEY');
       const secretKey = Deno.env.get('MESOMB_SECRET_KEY');
       
-      if (applicationKey && accessKey && secretKey && transaction.provider_reference) {
+      // Check MeSomb even without provider_reference - use EXTERNAL lookup with our transaction ID
+      if (applicationKey && accessKey && secretKey) {
         console.log('Checking MeSomb API for transaction status...');
         
         try {
@@ -125,9 +126,27 @@ serve(async (req) => {
             secretKey: secretKey,
           });
           
-          // Check transaction status using the provider reference
-          const mesombTransactions = await paymentOperation.getTransactions([transaction.provider_reference]);
-          console.log('MeSomb getTransactions response:', mesombTransactions);
+          // Try EXTERNAL lookup first (using our transaction ID as trxID)
+          console.log('Checking MeSomb by EXTERNAL ID:', transaction.id);
+          let mesombTransactions = null;
+          
+          try {
+            mesombTransactions = await paymentOperation.checkTransactions([transaction.id], 'EXTERNAL');
+            console.log('MeSomb checkTransactions (EXTERNAL) response:', mesombTransactions);
+          } catch (externalError) {
+            console.log('EXTERNAL lookup failed:', externalError);
+          }
+          
+          // Fallback to provider_reference if EXTERNAL lookup returns nothing
+          if ((!mesombTransactions || mesombTransactions.length === 0) && transaction.provider_reference) {
+            console.log('EXTERNAL lookup empty, trying provider_reference:', transaction.provider_reference);
+            try {
+              mesombTransactions = await paymentOperation.checkTransactions([transaction.provider_reference], 'MESOMB');
+              console.log('MeSomb checkTransactions (MESOMB) response:', mesombTransactions);
+            } catch (mesombError) {
+              console.log('MESOMB lookup failed:', mesombError);
+            }
+          }
           
           if (mesombTransactions && mesombTransactions.length > 0) {
             const mesombTx = mesombTransactions[0];
@@ -221,6 +240,8 @@ serve(async (req) => {
               });
             }
             // If status is PENDING or other, continue waiting
+          } else {
+            console.log('No MeSomb transaction found via EXTERNAL or MESOMB lookup');
           }
         } catch (mesombError) {
           console.error('Error checking MeSomb API:', mesombError);
