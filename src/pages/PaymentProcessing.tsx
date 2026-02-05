@@ -21,6 +21,7 @@ export default function PaymentProcessing() {
   const [checkCount, setCheckCount] = useState(0);
   const [countdown, setCountdown] = useState(5);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
+  const [isManualChecking, setIsManualChecking] = useState(false);
   const maxChecks = 30; // Check for 5 minutes (30 checks * 10 seconds)
   const paymentInitiated = useRef(false);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -88,6 +89,14 @@ export default function PaymentProcessing() {
       });
     }, 10000);
   }, [checkPaymentStatus, maxChecks]);
+
+  // Manual check handler - triggered when user clicks "I've confirmed"
+  const handleManualCheck = async () => {
+    if (!transactionId || isManualChecking) return;
+    setIsManualChecking(true);
+    await checkPaymentStatus(transactionId);
+    setIsManualChecking(false);
+  };
 
   // Initiate payment via edge function
   const initiatePayment = useCallback(async () => {
@@ -280,21 +289,47 @@ export default function PaymentProcessing() {
             )}
 
             {status === 'processing' && phoneNumber && (
-              <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
-                {carrier && (
-                  <Badge 
-                    variant="secondary" 
-                    className={carrier === 'MTN' 
-                      ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
-                      : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
-                    }
-                  >
-                    {carrier}
-                  </Badge>
-                )}
-              </div>
+              <>
+                <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-mono text-lg">{formatPhone(phoneNumber)}</span>
+                  {carrier && (
+                    <Badge 
+                      variant="secondary" 
+                      className={carrier === 'MTN' 
+                        ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30' 
+                        : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
+                      }
+                    >
+                      {carrier}
+                    </Badge>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={handleManualCheck} 
+                  disabled={isManualChecking}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  {isManualChecking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vérification en cours...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      J'ai confirmé le paiement
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  La vérification automatique continue en arrière-plan
+                </p>
+              </>
             )}
 
             {status === 'completed' && (
