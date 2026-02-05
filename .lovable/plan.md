@@ -1,115 +1,119 @@
 
-# Fix Edge Function 401 Error - Auth Token Refresh Issue
+## Add Manual "I've Confirmed" Button to Payment Processing
 
-## Problem Diagnosis
-
-The edge function is returning **401 Unauthorized** because of an authentication token issue. Investigation revealed:
-
-1. **Auth logs show**: `Invalid Refresh Token: Refresh Token Not Found` at `10:01:38Z`
-2. **Edge function logs show**: Requests reaching the function but failing at JWT validation (401 status)
-3. **Root cause**: The user's refresh token was revoked/invalidated (possibly from logging in on another device), and when the app tried to use the expired access token, the refresh failed silently
-
-The Supabase JS client stores the session in localStorage. When the access token expires (~1 hour by default), it automatically tries to refresh using the refresh token. If that fails, the user object from `useAuth` may still show a stale user (from the initial `getSession()` call), but actual API calls fail because no valid token can be obtained.
-
-## Solution Overview
-
-Add proper handling for session refresh failures so that:
-1. The app detects when authentication is truly broken
-2. Users are logged out and redirected when tokens are invalid
-3. Edge function calls properly await session validation before proceeding
+This enhancement adds a button during the `processing` state that allows users to manually trigger an immediate payment status check, without removing the existing automatic polling.
 
 ---
 
-## Technical Implementation
+### What Changes
 
-### Step 1: Enhance Auth Hook with Session Validation
+**File: `src/pages/PaymentProcessing.tsx`**
 
-Update the `useAuth` hook to:
-- Add a `refreshSession` function to explicitly refresh/validate the session before critical operations
-- Handle `SIGNED_OUT` events properly when token refresh fails
-- Detect and handle the case where user object exists but session is invalid
+1. **Add a loading state for manual check**
+   - New state: `isManualChecking` to show loading on the button while checking
 
-### Step 2: Update PaymentProcessing Component
+2. **Add manual check handler**
+   ```typescript
+   const [isManualChecking, setIsManualChecking] = useState(false);
+   
+   const handleManualCheck = async () => {
+     if (!transactionId || isManualChecking) return;
+     setIsManualChecking(true);
+     await checkPaymentStatus(transactionId);
+     setIsManualChecking(false);
+   };
+   ```
 
-Before initiating payment:
-- Explicitly check/refresh the session
-- If session is invalid, redirect to login with a return URL
-- Add better error handling for auth-related failures
+3. **Add button in the `processing` state UI**
+   - Below the phone number display, add a confirmation button
+   - Button text: "J'ai confirmé le paiement" (I've confirmed the payment)
+   - Shows a loading spinner when checking
+   - Disabled while checking to prevent spam
 
-### Step 3: Add Session Refresh to Payment Flow
+---
 
-Wrap the edge function call with session validation:
-```typescript
-// Before calling the edge function
-const { data: { session }, error } = await supabase.auth.getSession();
-if (!session) {
-  // Token refresh failed, redirect to login
-  navigate('/auth?returnTo=/subscriptions');
-  return;
-}
+### Updated UI for Processing State
+
+```text
+┌─────────────────────────────────────────┐
+│      (Loader spinning)                   │
+│                                          │
+│   Vérification du paiement...           │
+│   Vérification #3 sur 30                │
+│                                          │
+│   ┌─────────────────────────────────┐   │
+│   │  📱  692 482 337    [ORANGE]    │   │
+│   └─────────────────────────────────┘   │
+│                                          │
+│   ┌─────────────────────────────────┐   │
+│   │  ✓ J'ai confirmé le paiement    │   │  ← NEW BUTTON
+│   └─────────────────────────────────┘   │
+│                                          │
+│   (small text: auto-check continues)     │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## Files to Modify
+### Technical Details
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useAuth.tsx` | Add `refreshSession()` method, improve auth event handling |
-| `src/pages/PaymentProcessing.tsx` | Validate session before initiating payment |
-| `src/pages/Payment.tsx` | Validate session before test payment |
+| Aspect | Implementation |
+|--------|----------------|
+| New state | `isManualChecking: boolean` |
+| New handler | `handleManualCheck()` - calls existing `checkPaymentStatus()` |
+| Button placement | Inside `CardContent` when `status === 'processing'` |
+| Button disabled | When `isManualChecking` is true |
+| Auto-polling | Unchanged - continues running every 10 seconds |
 
 ---
 
-## Code Changes
+### Code to Add
 
-### useAuth.tsx Enhancements
-
-Add to the context:
-- `refreshSession: () => Promise<boolean>` - Returns true if session is valid
-- Better handling of `TOKEN_REFRESHED` and `SIGNED_OUT` events
-
-### PaymentProcessing.tsx Changes
-
+**New state:**
 ```typescript
-const initiatePayment = useCallback(async () => {
-  if (!planId || !phoneNumber || !amount || !user) {
-    navigate('/subscriptions');
-    return;
-  }
+const [isManualChecking, setIsManualChecking] = useState(false);
+```
 
-  // Validate session before proceeding
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError || !session) {
-    toast({
-      title: 'Session Expired',
-      description: 'Please log in again to complete your payment.',
-      variant: 'destructive',
-    });
-    navigate('/auth?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search));
-    return;
-  }
+**New handler:**
+```typescript
+const handleManualCheck = async () => {
+  if (!transactionId || isManualChecking) return;
+  setIsManualChecking(true);
+  await checkPaymentStatus(transactionId);
+  setIsManualChecking(false);
+};
+```
 
-  // Proceed with payment...
-}, [...]);
+**New button in processing state (after phone display):**
+```tsx
+{status === 'processing' && (
+  <Button 
+    onClick={handleManualCheck} 
+    disabled={isManualChecking}
+    variant="outline"
+    className="w-full"
+    size="lg"
+  >
+    {isManualChecking ? (
+      <>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Vérification en cours...
+      </>
+    ) : (
+      <>
+        <CheckCircle className="mr-2 h-4 w-4" />
+        J'ai confirmé le paiement
+      </>
+    )}
+  </Button>
+)}
 ```
 
 ---
 
-## Why This Happens
+### Benefits
 
-The Supabase client stores sessions in localStorage. When:
-1. User logs in → access token (valid ~1 hour) + refresh token stored
-2. User stays on page → access token expires
-3. User triggers API call → client tries to refresh token
-4. If refresh token was revoked (login elsewhere, logout on another device), refresh fails
-5. The `user` object in React state is stale, but no valid session exists
-6. Edge function call includes no/invalid token → 401
-
-## Testing
-
-1. Log in as a user
-2. Open DevTools → Application → Local Storage
-3. Delete `sb-nrcdtxgmlhxbtfppxqop-auth-token` key
-4. Try to initiate payment
-5. Should redirect to login with appropriate message (after fix)
+- Users don't have to wait up to 10 seconds for the next automatic check
+- Especially helpful for Orange Money where USSD confirmation takes longer
+- Non-disruptive - automatic polling continues as backup
+- Simple addition with minimal code changes
