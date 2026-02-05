@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  refreshSession: () => Promise<boolean>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -40,6 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          // Handle token refresh failures - clear stale state
+          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+            if (!session) {
+              setUser(null);
+              setSession(null);
+            }
+          }
         }
       }
     );
@@ -129,10 +138,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      
+      if (error || !currentSession) {
+        // Session is invalid, clear state
+        setUser(null);
+        setSession(null);
+        return false;
+      }
+      
+      // Update state with refreshed session
+      setSession(currentSession);
+      setUser(currentSession.user);
+      return true;
+    } catch (e) {
+      console.error('Session refresh failed:', e);
+      setUser(null);
+      setSession(null);
+      return false;
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
+    refreshSession,
     signUp,
     signIn,
     signOut,

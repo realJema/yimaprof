@@ -93,6 +93,18 @@ export default function PaymentProcessing() {
       return;
     }
 
+    // Validate session before proceeding
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      toast({
+        title: 'Session expirée',
+        description: 'Veuillez vous reconnecter pour continuer le paiement.',
+        variant: 'destructive',
+      });
+      navigate('/auth?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search));
+      return;
+    }
+
     try {
       console.log('Initiating payment...', { planId, phoneNumber, amount, referredBy });
       

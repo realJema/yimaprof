@@ -196,6 +196,18 @@ export default function Payment() {
     
     setLoading(true);
     try {
+      // Validate session before proceeding
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        toast({
+          title: 'Session expirée',
+          description: 'Veuillez vous reconnecter pour continuer le paiement.',
+          variant: 'destructive',
+        });
+        navigate('/auth?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search));
+        return;
+      }
+
       const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
       
       const { data, error } = await supabase.functions.invoke('mesomb-payment', {
