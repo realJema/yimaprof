@@ -7,9 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Timeout for MeSomb SDK collect call (3 minutes)
-const COLLECT_TIMEOUT_MS = 180000;
-
 // Determine service type from phone number (Cameroon)
 function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
   const cleaned = phoneNumber.replace(/\D/g, '');
@@ -246,182 +243,83 @@ serve(async (req) => {
 
     console.log('Pending transaction created:', pendingTransaction.id);
 
-    try {
-      // Initialize PaymentOperation with credentials
-      const paymentOperation = new PaymentOperation({
-        applicationKey: applicationKey,
-        accessKey: accessKey,
-        secretKey: secretKey,
-      });
+    // Initialize PaymentOperation with credentials
+    const paymentOperation = new PaymentOperation({
+      applicationKey: applicationKey,
+      accessKey: accessKey,
+      secretKey: secretKey,
+    });
 
-      // Always use asynchronous mode - webhook will handle completion
-      const collectRequest = {
-        amount: amount,
-        service: service,
-        payer: cleanedPhone,
-        nonce: RandomGenerator.nonce(),
-        trxID: pendingTransaction.id, // Our transaction ID for webhook reconciliation
-        currency: 'XAF',
-        country: 'CM',
-        fees: true,
-        mode: 'asynchronous', // Always async - webhook handles completion
-        message: 'Subscription payment',
-        reference: `sub_${pendingTransaction.id.substring(0, 8)}`
-      };
+    // Always use asynchronous mode - webhook will handle completion
+    const collectRequest = {
+      amount: amount,
+      service: service,
+      payer: cleanedPhone,
+      nonce: RandomGenerator.nonce(),
+      trxID: pendingTransaction.id, // Our transaction ID for webhook reconciliation
+      currency: 'XAF',
+      country: 'CM',
+      fees: true,
+      mode: 'asynchronous', // Always async - webhook handles completion
+      message: 'Subscription payment',
+      reference: `sub_${pendingTransaction.id.substring(0, 8)}`
+    };
 
-      console.log('MeSomb collect request:', collectRequest);
-      console.log('Making MeSomb API call via SDK with', COLLECT_TIMEOUT_MS, 'ms timeout...');
-      
-      // Create timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('COLLECT_TIMEOUT')), COLLECT_TIMEOUT_MS);
-      });
-      
-      let response = null;
-      let timedOut = false;
-      
-      try {
-        response = await Promise.race([
-          paymentOperation.makeCollect(collectRequest),
-          timeoutPromise
-        ]);
-      } catch (timeoutError) {
-        if (timeoutError instanceof Error && timeoutError.message === 'COLLECT_TIMEOUT') {
-          timedOut = true;
-          console.log('MeSomb SDK call timed out after', COLLECT_TIMEOUT_MS, 'ms - payment prompt should have been sent');
-        } else {
-          throw timeoutError;
-        }
+    console.log('MeSomb collect request:', collectRequest);
+    
+    // Update transaction to processing immediately
+    await supabase.from('transactions').update({
+      status: 'processing',
+      metadata: { 
+        ...transactionMetadata, 
+        sdk_call_started: new Date().toISOString()
       }
-      
-      // Handle timeout case - set to processing and let webhook handle it
-      if (timedOut) {
+    }).eq('id', pendingTransaction.id);
+    
+    console.log('Transaction set to processing, starting SDK call (fire-and-forget)');
+    
+    // Fire-and-forget: Start the SDK call but don't await it
+    // The webhook will be the authoritative source for payment completion
+    paymentOperation.makeCollect(collectRequest)
+      .then(async (response) => {
+        console.log('MeSomb SDK response (background):', {
+          success: response.isOperationSuccess(),
+          status: response.status,
+          message: response.message,
+          reference: response.reference
+        });
+        
+        // Update transaction with MeSomb response (for debugging/tracking)
+        const providerRef = response.reference || response.transaction?.pk || null;
         await supabase.from('transactions').update({
-          status: 'processing',
+          provider_reference: providerRef,
           metadata: { 
             ...transactionMetadata, 
-            sdk_timeout: true,
-            timeout_at: new Date().toISOString()
+            mesomb_status: response.status,
+            mesomb_message: response.message,
+            mesomb_success: response.isOperationSuccess(),
+            sdk_returned_at: new Date().toISOString()
           }
         }).eq('id', pendingTransaction.id);
-        
-        console.log('Transaction set to processing after timeout');
-        
-        return new Response(JSON.stringify({
-          success: true,
-          transactionId: pendingTransaction.id,
-          phoneNumber: cleanedPhone,
-          service: service,
-          message: 'Veuillez confirmer le paiement sur votre téléphone.',
-          status: 'processing'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log('MeSomb SDK response:', {
-        success: response.isOperationSuccess(),
-        transactionSuccess: response.isTransactionSuccess(),
-        status: response.status,
-        message: response.message,
-        reference: response.reference
+      })
+      .catch((error) => {
+        console.error('MeSomb SDK error (background):', error);
+        // Don't update to failed - webhook is authoritative
+        // Just log for debugging
       });
-
-      const providerRef = response.reference || response.transaction?.pk || null;
-      const isSuccess = response.isOperationSuccess();
-      const mesombStatus = response.status;
-      const mesombMessage = response.message || '';
-      
-      // In async mode, a "timeout" message is NOT a real failure
-      // It just means the user hasn't confirmed yet - the webhook will still fire
-      const isUserTimeout = mesombMessage.toLowerCase().includes('too much time') || 
-                            mesombMessage.toLowerCase().includes('timeout');
-      
-      // Only treat as a real failure if MeSomb explicitly rejected AND it's not a user timeout
-      if (!isSuccess && mesombStatus === 'FAIL' && !isUserTimeout) {
-        console.log('MeSomb rejected payment, marking as failed');
-        
-        await supabase.from('transactions').update({
-          status: 'failed',
-          metadata: { 
-            ...transactionMetadata, 
-            mesomb_status: mesombStatus,
-            mesomb_message: mesombMessage,
-            failed_at: new Date().toISOString()
-          }
-        }).eq('id', pendingTransaction.id);
-        
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: mesombMessage || 'Payment was rejected. Please try again.',
-          transactionId: pendingTransaction.id,
-          status: 'failed'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      // User timeout is normal in async mode - webhook will handle final status
-      if (isUserTimeout) {
-        console.log('User timeout in async mode - continuing with processing status');
-      }
-      
-      // Update to processing - webhook will handle completion
-      await supabase.from('transactions').update({
-        status: 'processing',
-        provider_reference: providerRef,
-        metadata: { 
-          ...transactionMetadata, 
-          mesomb_status: mesombStatus,
-          mesomb_message: mesombMessage,
-          mesomb_success: isSuccess,
-          provider_ref_obtained: !!providerRef
-        }
-      }).eq('id', pendingTransaction.id);
-      
-      console.log('Transaction updated to processing, provider_ref:', providerRef);
-      
-      // Return success - webhook will update the transaction when payment completes
-      return new Response(JSON.stringify({
-        success: true,
-        transactionId: pendingTransaction.id,
-        providerReference: providerRef,
-        phoneNumber: cleanedPhone,
-        service: service,
-        message: 'Confirmez le paiement sur votre téléphone. La page se mettra à jour automatiquement.',
-        status: 'processing'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-
-    } catch (error) {
-      console.error('MeSomb SDK error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment request failed';
-      
-      // On SDK error, still set to processing - user may receive payment prompt
-      // Webhook will handle the final status
-      await supabase.from('transactions').update({
-        status: 'processing',
-        metadata: { 
-          ...transactionMetadata, 
-          sdk_error: errorMessage,
-          sdk_error_at: new Date().toISOString()
-        }
-      }).eq('id', pendingTransaction.id);
-      
-      // Return success so user can wait for confirmation
-      return new Response(JSON.stringify({ 
-        success: true,
-        transactionId: pendingTransaction.id,
-        phoneNumber: cleanedPhone,
-        service: service,
-        message: 'Vérifiez votre téléphone pour le prompt de paiement.',
-        status: 'processing'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    
+    // Return immediately - don't wait for SDK response
+    // Frontend will show "Confirm on your phone" right away
+    return new Response(JSON.stringify({
+      success: true,
+      transactionId: pendingTransaction.id,
+      phoneNumber: cleanedPhone,
+      service: service,
+      message: 'Confirmez le paiement sur votre téléphone.',
+      status: 'processing'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Unhandled error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
