@@ -332,8 +332,13 @@ serve(async (req) => {
       const mesombStatus = response.status;
       const mesombMessage = response.message || '';
       
-      // Check if MeSomb clearly rejected the payment
-      if (!isSuccess && mesombStatus === 'FAIL') {
+      // In async mode, a "timeout" message is NOT a real failure
+      // It just means the user hasn't confirmed yet - the webhook will still fire
+      const isUserTimeout = mesombMessage.toLowerCase().includes('too much time') || 
+                            mesombMessage.toLowerCase().includes('timeout');
+      
+      // Only treat as a real failure if MeSomb explicitly rejected AND it's not a user timeout
+      if (!isSuccess && mesombStatus === 'FAIL' && !isUserTimeout) {
         console.log('MeSomb rejected payment, marking as failed');
         
         await supabase.from('transactions').update({
@@ -355,6 +360,11 @@ serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+      
+      // User timeout is normal in async mode - webhook will handle final status
+      if (isUserTimeout) {
+        console.log('User timeout in async mode - continuing with processing status');
       }
       
       // Update to processing - webhook will handle completion
