@@ -38,14 +38,9 @@ serve(async (req) => {
     // - trxID: Our transaction UUID (this is what we use)
     // - amount, fees, service, currency, etc.
     
-    // Try to get our transaction ID from trxID first (preferred), then try to extract from reference
-    let ourTransactionId = payload.trxID;
-    
-    if (!ourTransactionId && payload.reference) {
-      // If reference is in format "sub_xxxxxxxx", try to find transaction
-      // But for now, we expect trxID to be set correctly
-      console.log('No trxID in payload, checking reference:', payload.reference);
-    }
+    // MeSomb sends our transaction ID in the 'reference' field (what we passed as trxID)
+    // Note: trxID in our request becomes 'reference' in the webhook payload
+    let ourTransactionId = payload.reference || payload.trxID;
     
     if (!ourTransactionId) {
       console.error('No transaction ID found in webhook payload');
@@ -54,6 +49,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    console.log('Using transaction ID:', ourTransactionId);
     
     const mesombStatus = payload.status;
     console.log(`Processing transaction ${ourTransactionId} with status ${mesombStatus}`);
