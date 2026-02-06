@@ -35,7 +35,7 @@ verify_jwt = false
 [functions.send-notification-email]
 verify_jwt = false
 
-[functions.verify-stuck-payments]
+[functions.mesomb-webhook]
 verify_jwt = false
 
 [functions.admin-resolve-transaction]

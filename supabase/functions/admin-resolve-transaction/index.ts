@@ -57,7 +57,7 @@ serve(async (req) => {
     }
     
     const requestBody = await req.json();
-    const { action, transactionId } = requestBody;
+    const { action, transactionId, reason } = requestBody;
     
     if (!transactionId) {
       return new Response(JSON.stringify({ error: 'Missing transactionId' }), {
@@ -81,6 +81,7 @@ serve(async (req) => {
     }
     
     console.log('Transaction found:', transaction.id, 'Status:', transaction.status);
+    const metadata = (transaction.metadata || {}) as { plan_id?: string; referred_by?: string };
     
     // Action: check - Just check MeSomb status
     if (action === 'check') {
@@ -137,8 +138,6 @@ serve(async (req) => {
     
     // Action: force-complete - Force complete the transaction
     if (action === 'force-complete') {
-      const metadata = transaction.metadata as { plan_id?: string; referred_by?: string } || {};
-      
       if (!metadata.plan_id) {
         return new Response(JSON.stringify({ error: 'Transaction has no plan_id in metadata' }), {
           status: 400,
@@ -146,22 +145,61 @@ serve(async (req) => {
         });
       }
       
-      const { data: result, error: rpcError } = await supabase.rpc('complete_payment_transaction', {
-        p_transaction_id: transactionId,
-        p_plan_id: metadata.plan_id,
-        p_user_id: transaction.user_id,
-        p_referred_by: metadata.referred_by || null
-      });
+      // Get plan duration
+      const { data: plan } = await supabase
+        .from('subscription_plans')
+        .select('duration_days')
+        .eq('id', metadata.plan_id)
+        .single();
       
-      if (rpcError) {
+      const durationDays = plan?.duration_days || 30;
+      
+      // Cancel existing active subscription
+      await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled', updated_at: new Date().toISOString() })
+        .eq('user_id', transaction.user_id)
+        .eq('status', 'active');
+      
+      // Create new subscription
+      const { data: newSub, error: subError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: transaction.user_id,
+          plan_id: metadata.plan_id,
+          status: 'active',
+          started_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+          auto_renew: true,
+          referred_by: metadata.referred_by || null
+        })
+        .select()
+        .single();
+      
+      if (subError) {
         return new Response(JSON.stringify({ 
-          error: 'Failed to complete transaction',
-          details: rpcError.message 
+          error: 'Failed to create subscription',
+          details: subError.message 
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      
+      // Update transaction to completed
+      await supabase
+        .from('transactions')
+        .update({
+          status: 'completed',
+          subscription_id: newSub.id,
+          metadata: {
+            ...metadata,
+            admin_force_completed: true,
+            admin_id: user.id,
+            completed_at: new Date().toISOString()
+          }
+        })
+        .eq('id', transactionId);
       
       // Log the admin action
       await supabase.rpc('log_audit', {
@@ -170,13 +208,13 @@ serve(async (req) => {
         p_target_id: transactionId,
         p_metadata: { 
           admin_id: user.id,
-          result: result 
+          subscription_id: newSub.id
         }
       });
       
       return new Response(JSON.stringify({
         success: true,
-        result,
+        subscription_id: newSub.id,
         message: 'Transaction force-completed'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -185,22 +223,19 @@ serve(async (req) => {
     
     // Action: force-fail - Force fail the transaction
     if (action === 'force-fail') {
-      const { reason } = requestBody;
-      
-      const { data: result, error: rpcError } = await supabase.rpc('fail_payment_transaction', {
-        p_transaction_id: transactionId,
-        p_reason: reason || 'Admin force-failed'
-      });
-      
-      if (rpcError) {
-        return new Response(JSON.stringify({ 
-          error: 'Failed to fail transaction',
-          details: rpcError.message 
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      await supabase
+        .from('transactions')
+        .update({
+          status: 'failed',
+          metadata: {
+            ...metadata,
+            admin_force_failed: true,
+            admin_id: user.id,
+            failure_reason: reason || 'Admin force-failed',
+            failed_at: new Date().toISOString()
+          }
+        })
+        .eq('id', transactionId);
       
       // Log the admin action
       await supabase.rpc('log_audit', {
@@ -209,14 +244,12 @@ serve(async (req) => {
         p_target_id: transactionId,
         p_metadata: { 
           admin_id: user.id,
-          reason: reason || 'Admin force-failed',
-          result: result 
+          reason: reason || 'Admin force-failed'
         }
       });
       
       return new Response(JSON.stringify({
         success: true,
-        result,
         message: 'Transaction force-failed'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -225,34 +258,6 @@ serve(async (req) => {
     
     // Action: verify-and-resolve - Check MeSomb and auto-resolve
     if (action === 'verify-and-resolve') {
-      if (!transaction.provider_reference) {
-        // No reference means it never got to MeSomb - fail it
-        const { data: result } = await supabase.rpc('fail_payment_transaction', {
-          p_transaction_id: transactionId,
-          p_reason: 'Admin verify: No provider reference - payment never initiated'
-        });
-        
-        await supabase.rpc('log_audit', {
-          p_action: 'admin_verify_resolve_transaction',
-          p_target_type: 'transaction',
-          p_target_id: transactionId,
-          p_metadata: { 
-            admin_id: user.id,
-            resolution: 'failed',
-            reason: 'no_provider_reference'
-          }
-        });
-        
-        return new Response(JSON.stringify({
-          success: true,
-          resolution: 'failed',
-          reason: 'No provider reference',
-          result
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
       const applicationKey = Deno.env.get('MESOMB_APP_KEY');
       const accessKey = Deno.env.get('MESOMB_ACCESS_KEY');
       const secretKey = Deno.env.get('MESOMB_SECRET_KEY');
@@ -271,10 +276,24 @@ serve(async (req) => {
       });
       
       try {
-        const mesombTxs = await paymentOp.getTransactions([transaction.provider_reference]);
-        const mesombTx = mesombTxs?.[0];
+        // Try EXTERNAL lookup first (using our transaction ID)
+        let mesombTxs = null;
+        try {
+          mesombTxs = await paymentOp.checkTransactions([transactionId], 'EXTERNAL');
+        } catch (e) {
+          console.log('EXTERNAL lookup failed:', e);
+        }
         
-        if (!mesombTx) {
+        // Fallback to provider_reference
+        if ((!mesombTxs || mesombTxs.length === 0) && transaction.provider_reference) {
+          try {
+            mesombTxs = await paymentOp.checkTransactions([transaction.provider_reference], 'MESOMB');
+          } catch (e) {
+            console.log('MESOMB lookup failed:', e);
+          }
+        }
+        
+        if (!mesombTxs || mesombTxs.length === 0) {
           return new Response(JSON.stringify({
             success: false,
             error: 'Transaction not found in MeSomb',
@@ -284,15 +303,55 @@ serve(async (req) => {
           });
         }
         
-        const metadata = transaction.metadata as { plan_id?: string; referred_by?: string } || {};
+        const mesombTx = mesombTxs[0];
         
         if (mesombTx.status === 'SUCCESS') {
-          const { data: result } = await supabase.rpc('complete_payment_transaction', {
-            p_transaction_id: transactionId,
-            p_plan_id: metadata.plan_id,
-            p_user_id: transaction.user_id,
-            p_referred_by: metadata.referred_by || null
-          });
+          // Get plan duration
+          const { data: plan } = await supabase
+            .from('subscription_plans')
+            .select('duration_days')
+            .eq('id', metadata.plan_id)
+            .single();
+          
+          const durationDays = plan?.duration_days || 30;
+          
+          // Cancel existing subscription
+          await supabase
+            .from('subscriptions')
+            .update({ status: 'canceled', updated_at: new Date().toISOString() })
+            .eq('user_id', transaction.user_id)
+            .eq('status', 'active');
+          
+          // Create new subscription
+          const { data: newSub } = await supabase
+            .from('subscriptions')
+            .insert({
+              user_id: transaction.user_id,
+              plan_id: metadata.plan_id,
+              status: 'active',
+              started_at: new Date().toISOString(),
+              expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+              auto_renew: true,
+              referred_by: metadata.referred_by || null
+            })
+            .select()
+            .single();
+          
+          // Update transaction
+          await supabase
+            .from('transactions')
+            .update({
+              status: 'completed',
+              subscription_id: newSub?.id,
+              metadata: {
+                ...metadata,
+                admin_verified: true,
+                admin_id: user.id,
+                mesomb_status: mesombTx.status,
+                completed_at: new Date().toISOString()
+              }
+            })
+            .eq('id', transactionId);
           
           await supabase.rpc('log_audit', {
             p_action: 'admin_verify_resolve_transaction',
@@ -309,15 +368,25 @@ serve(async (req) => {
             success: true,
             resolution: 'completed',
             mesomb_status: mesombTx.status,
-            result
+            subscription_id: newSub?.id
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
+          
         } else if (mesombTx.status === 'FAILED' || mesombTx.status === 'CANCELLED') {
-          const { data: result } = await supabase.rpc('fail_payment_transaction', {
-            p_transaction_id: transactionId,
-            p_reason: `Admin verify: MeSomb status ${mesombTx.status}`
-          });
+          await supabase
+            .from('transactions')
+            .update({
+              status: 'failed',
+              metadata: {
+                ...metadata,
+                admin_verified: true,
+                admin_id: user.id,
+                mesomb_status: mesombTx.status,
+                failed_at: new Date().toISOString()
+              }
+            })
+            .eq('id', transactionId);
           
           await supabase.rpc('log_audit', {
             p_action: 'admin_verify_resolve_transaction',
@@ -333,11 +402,11 @@ serve(async (req) => {
           return new Response(JSON.stringify({
             success: true,
             resolution: 'failed',
-            mesomb_status: mesombTx.status,
-            result
+            mesomb_status: mesombTx.status
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
+          
         } else {
           // Still pending in MeSomb
           return new Response(JSON.stringify({
