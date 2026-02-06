@@ -7,9 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Timeout for MeSomb SDK collect call (15 seconds)
-// Orange Money USSD can block for ~90s, so we timeout early and assume prompt was sent
-const COLLECT_TIMEOUT_MS = 15000;
+// Timeout for MeSomb SDK collect call (3 minutes)
+const COLLECT_TIMEOUT_MS = 180000;
 
 // Determine service type from phone number (Cameroon)
 function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
@@ -132,11 +131,20 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id);
 
-    // Test case - auto-activate for test number using atomic function
+    // Test case - auto-activate for test number
     if (cleanedPhone === '670000000') {
-      console.log('Test number detected, using atomic function for auto-activation');
+      console.log('Test number detected, auto-activating subscription');
       
-      // Create transaction first
+      // Get plan duration
+      const { data: plan } = await supabase
+        .from('subscription_plans')
+        .select('duration_days')
+        .eq('id', planId)
+        .single();
+      
+      const durationDays = plan?.duration_days || 30;
+      
+      // Create transaction
       const { data: testTransaction, error: insertError } = await supabase
         .from('transactions')
         .insert({
@@ -144,7 +152,7 @@ serve(async (req) => {
           amount: amount,
           currency: 'XAF',
           provider: 'mesomb',
-          status: 'processing',
+          status: 'completed',
           provider_reference: 'TEST_' + Date.now(),
           metadata: { phone_number: cleanedPhone, plan_id: planId, referred_by: referredBy, test_payment: true }
         })
@@ -158,27 +166,42 @@ serve(async (req) => {
         });
       }
       
-      // Use atomic function to complete
-      const { data: result, error: rpcError } = await supabase.rpc('complete_payment_transaction', {
-        p_transaction_id: testTransaction.id,
-        p_plan_id: planId,
-        p_user_id: user.id,
-        p_referred_by: referredBy || null
-      });
+      // Cancel existing subscription
+      await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled', updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('status', 'active');
       
-      if (rpcError || !result?.success) {
-        console.error('Test payment atomic completion failed:', rpcError || result?.error);
-        return new Response(JSON.stringify({ error: 'Failed to activate subscription', details: rpcError?.message || result?.error }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      // Create new subscription
+      const { data: newSub } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          plan_id: planId,
+          status: 'active',
+          started_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
+          auto_renew: true,
+          referred_by: referredBy || null
+        })
+        .select()
+        .single();
+      
+      // Update transaction with subscription_id
+      if (newSub) {
+        await supabase
+          .from('transactions')
+          .update({ subscription_id: newSub.id })
+          .eq('id', testTransaction.id);
       }
 
       return new Response(JSON.stringify({
         success: true,
         transactionId: testTransaction.id,
         message: 'Test payment completed',
-        testPayment: true
+        testPayment: true,
+        status: 'completed'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -192,7 +215,7 @@ serve(async (req) => {
       });
     }
 
-    // Create pending transaction with all metadata needed for atomic completion
+    // Create pending transaction with all metadata needed for webhook completion
     const transactionMetadata = { 
       phone_number: cleanedPhone, 
       plan_id: planId, 
@@ -231,16 +254,17 @@ serve(async (req) => {
         secretKey: secretKey,
       });
 
+      // Always use asynchronous mode - webhook will handle completion
       const collectRequest = {
         amount: amount,
         service: service,
         payer: cleanedPhone,
         nonce: RandomGenerator.nonce(),
-        trxID: pendingTransaction.id, // Our transaction ID for EXTERNAL lookup
+        trxID: pendingTransaction.id, // Our transaction ID for webhook reconciliation
         currency: 'XAF',
         country: 'CM',
         fees: true,
-        mode: service === 'ORANGE' ? 'asynchronous' : 'synchronous', // Async for Orange to prevent USSD blocking
+        mode: 'asynchronous', // Always async - webhook handles completion
         message: 'Subscription payment',
         reference: `sub_${pendingTransaction.id.substring(0, 8)}`
       };
@@ -248,7 +272,7 @@ serve(async (req) => {
       console.log('MeSomb collect request:', collectRequest);
       console.log('Making MeSomb API call via SDK with', COLLECT_TIMEOUT_MS, 'ms timeout...');
       
-      // Create timeout promise for Orange Money optimization
+      // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('COLLECT_TIMEOUT')), COLLECT_TIMEOUT_MS);
       });
@@ -264,13 +288,13 @@ serve(async (req) => {
       } catch (timeoutError) {
         if (timeoutError instanceof Error && timeoutError.message === 'COLLECT_TIMEOUT') {
           timedOut = true;
-          console.log('MeSomb SDK call timed out after', COLLECT_TIMEOUT_MS, 'ms - assuming payment prompt sent to phone');
+          console.log('MeSomb SDK call timed out after', COLLECT_TIMEOUT_MS, 'ms - payment prompt should have been sent');
         } else {
           throw timeoutError;
         }
       }
       
-      // Handle timeout case - assume payment prompt was sent
+      // Handle timeout case - set to processing and let webhook handle it
       if (timedOut) {
         await supabase.from('transactions').update({
           status: 'processing',
@@ -289,8 +313,7 @@ serve(async (req) => {
           phoneNumber: cleanedPhone,
           service: service,
           message: 'Veuillez confirmer le paiement sur votre téléphone.',
-          status: 'processing',
-          timedOut: true
+          status: 'processing'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -311,26 +334,30 @@ serve(async (req) => {
       
       // Check if MeSomb clearly rejected the payment
       if (!isSuccess && mesombStatus === 'FAIL') {
-        console.log('MeSomb rejected payment, failing transaction atomically');
+        console.log('MeSomb rejected payment, marking as failed');
         
-        // Use atomic function to fail the transaction
-        await supabase.rpc('fail_payment_transaction', {
-          p_transaction_id: pendingTransaction.id,
-          p_reason: mesombMessage || 'MeSomb rejected payment request'
-        });
+        await supabase.from('transactions').update({
+          status: 'failed',
+          metadata: { 
+            ...transactionMetadata, 
+            mesomb_status: mesombStatus,
+            mesomb_message: mesombMessage,
+            failed_at: new Date().toISOString()
+          }
+        }).eq('id', pendingTransaction.id);
         
         return new Response(JSON.stringify({ 
           success: false, 
           error: mesombMessage || 'Payment was rejected. Please try again.',
-          transactionId: pendingTransaction.id
+          transactionId: pendingTransaction.id,
+          status: 'failed'
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      // Only set to "processing" if we got a valid response (successful or pending)
-      // and preferably have a provider reference
+      // Update to processing - webhook will handle completion
       await supabase.from('transactions').update({
         status: 'processing',
         provider_reference: providerRef,
@@ -345,16 +372,14 @@ serve(async (req) => {
       
       console.log('Transaction updated to processing, provider_ref:', providerRef);
       
-      // Return success with transactionId so user goes to processing page
+      // Return success - webhook will update the transaction when payment completes
       return new Response(JSON.stringify({
         success: true,
         transactionId: pendingTransaction.id,
         providerReference: providerRef,
         phoneNumber: cleanedPhone,
         service: service,
-        message: isSuccess 
-          ? 'Payment initiated. Please confirm on your phone.'
-          : mesombMessage || 'Please confirm the payment on your phone.',
+        message: 'Confirmez le paiement sur votre téléphone. La page se mettra à jour automatiquement.',
         status: 'processing'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -365,7 +390,7 @@ serve(async (req) => {
       const errorMessage = error instanceof Error ? error.message : 'Payment request failed';
       
       // On SDK error, still set to processing - user may receive payment prompt
-      // The background job will clean up truly failed transactions later
+      // Webhook will handle the final status
       await supabase.from('transactions').update({
         status: 'processing',
         metadata: { 
@@ -375,13 +400,13 @@ serve(async (req) => {
         }
       }).eq('id', pendingTransaction.id);
       
-      // Return success with transactionId so user can still wait for confirmation
+      // Return success so user can wait for confirmation
       return new Response(JSON.stringify({ 
         success: true,
         transactionId: pendingTransaction.id,
         phoneNumber: cleanedPhone,
         service: service,
-        message: 'Please check your phone for a payment prompt.',
+        message: 'Vérifiez votre téléphone pour le prompt de paiement.',
         status: 'processing'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
