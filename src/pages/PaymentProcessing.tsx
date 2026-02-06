@@ -10,8 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
 
-// 3 minute timeout for payment confirmation
-const PAYMENT_TIMEOUT_MS = 180000;
+// No timeout - wait indefinitely for webhook confirmation
 
 export default function PaymentProcessing() {
   const [searchParams] = useSearchParams();
@@ -23,7 +22,7 @@ export default function PaymentProcessing() {
   const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed'>('initiating');
   const [countdown, setCountdown] = useState(5);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
-  const [timeRemaining, setTimeRemaining] = useState(PAYMENT_TIMEOUT_MS / 1000);
+  
   const paymentInitiated = useRef(false);
   const realtimeChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -187,28 +186,6 @@ export default function PaymentProcessing() {
     };
   }, [user, transactionId, planId, phoneNumber, amount, navigate, initiatePayment, subscribeToTransaction, cleanupSubscription]);
 
-  // Countdown timer for waiting state
-  useEffect(() => {
-    if (status !== 'processing') return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setStatus('failed');
-          toast({
-            title: 'Délai expiré',
-            description: 'Le paiement n\'a pas été confirmé à temps. Veuillez réessayer.',
-            variant: 'destructive',
-          });
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [status, toast]);
 
   // Auto-redirect on success
   useEffect(() => {
@@ -248,12 +225,6 @@ export default function PaymentProcessing() {
     return phone;
   };
 
-  // Format time remaining
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
@@ -318,10 +289,6 @@ export default function PaymentProcessing() {
 
                 {status === 'processing' && (
                   <>
-                    <div className="bg-muted/30 p-3 rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">Temps restant</p>
-                      <p className="text-2xl font-mono font-bold text-primary">{formatTime(timeRemaining)}</p>
-                    </div>
                     
                     <p className="text-sm text-muted-foreground">
                       La page se mettra à jour automatiquement une fois le paiement confirmé
