@@ -146,12 +146,7 @@ export default function Payment() {
       return;
     }
 
-    // Handle test payment (670000000) synchronously
     const cleanedPhone = phoneNumber.replace(/\s/g, '');
-    if (cleanedPhone === '670000000') {
-      handleTestPayment();
-      return;
-    }
 
     // Navigate to processing page immediately with payment params
     const params = new URLSearchParams({
@@ -168,61 +163,6 @@ export default function Payment() {
       localStorage.removeItem('referral_affiliate_id');
     }
     navigate(`/payment-processing?${params.toString()}`);
-  };
-  const handleTestPayment = async () => {
-    if (!plan || !user) return;
-    setLoading(true);
-    try {
-      // Validate session before proceeding
-      const {
-        data: {
-          session
-        },
-        error: sessionError
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        toast({
-          title: 'Session expirée',
-          description: 'Veuillez vous reconnecter pour continuer le paiement.',
-          variant: 'destructive'
-        });
-        navigate('/auth?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search));
-        return;
-      }
-      const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('mesomb-payment', {
-        body: {
-          planId: plan.id,
-          phoneNumber: '670000000',
-          amount: plan.price,
-          referredBy: referralAffiliateId
-        }
-      });
-      if (data?.success && data?.testPayment) {
-        if (referralAffiliateId) {
-          localStorage.removeItem('referral_affiliate_id');
-        }
-        toast({
-          title: 'Test Payment Successful!',
-          description: 'Your subscription has been activated.'
-        });
-        navigate('/subscriptions');
-      } else {
-        throw new Error(data?.error || 'Test payment failed');
-      }
-    } catch (error) {
-      console.error('Test payment error:', error);
-      toast({
-        title: 'Error',
-        description: 'Test payment failed. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
   };
   if (!plan) {
     return <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
