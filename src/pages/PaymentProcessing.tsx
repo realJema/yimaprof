@@ -202,7 +202,7 @@ export default function PaymentProcessing() {
     }
   }, [planId, phoneNumber, amount, referredBy, user, navigate, subscribeToTransaction, t, toast, refreshSubscription]);
 
-  // Main effect to handle payment flow
+  // Main effect to handle payment flow - runs once on mount
   useEffect(() => {
     if (!user) {
       navigate('/auth');
@@ -229,11 +229,9 @@ export default function PaymentProcessing() {
       navigate('/subscriptions');
       return;
     }
-
-    return () => {
-      cleanupSubscription();
-    };
-  }, [user, transactionId, planId, phoneNumber, amount, navigate, initiatePayment, subscribeToTransaction, cleanupSubscription]);
+    // NOTE: No cleanup here - cleanup is handled by unmount effect below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
 
   // Auto-redirect on success
