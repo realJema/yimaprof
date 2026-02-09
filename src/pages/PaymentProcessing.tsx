@@ -34,7 +34,8 @@ export default function PaymentProcessing() {
   const referredBy = searchParams.get('referredBy');
 
   // Handle transaction status update (shared by Realtime and Polling)
-  const handleTransactionUpdate = useCallback(async (transaction: { status: string; metadata?: { failure_reason?: string } | null }) => {
+  // Returns true if status is terminal (completed/failed)
+  const handleTransactionUpdate = useCallback(async (transaction: { status: string; metadata?: { failure_reason?: string } | null }): Promise<boolean> => {
     console.log('Processing transaction update:', transaction.status);
     
     if (transaction.status === 'completed') {
@@ -44,6 +45,7 @@ export default function PaymentProcessing() {
         title: t('payment_success'),
         description: t('payment_success_desc'),
       });
+      return true;
     } else if (transaction.status === 'failed') {
       setStatus('failed');
       toast({
@@ -51,7 +53,9 @@ export default function PaymentProcessing() {
         description: transaction.metadata?.failure_reason || t('payment_failed_desc'),
         variant: 'destructive',
       });
+      return true;
     }
+    return false; // Not a terminal status
   }, [t, toast, refreshSubscription]);
 
   // Polling fallback ref to track interval
@@ -79,8 +83,10 @@ export default function PaymentProcessing() {
         async (payload) => {
           console.log('Realtime update received:', payload);
           if (!isResolvedRef.current) {
-            isResolvedRef.current = true;
-            await handleTransactionUpdate(payload.new as { status: string; metadata?: { failure_reason?: string } | null });
+            const isTerminal = await handleTransactionUpdate(payload.new as { status: string; metadata?: { failure_reason?: string } | null });
+            if (isTerminal) {
+              isResolvedRef.current = true;
+            }
           }
         }
       )
@@ -104,8 +110,10 @@ export default function PaymentProcessing() {
       } else if (data && (data.status === 'completed' || data.status === 'failed')) {
         console.log('Polling detected status change:', data.status);
         if (!isResolvedRef.current) {
-          isResolvedRef.current = true;
-          await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
+          const isTerminal = await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
+          if (isTerminal) {
+            isResolvedRef.current = true;
+          }
         }
         return; // Stop polling
       }
