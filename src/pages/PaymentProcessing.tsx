@@ -33,10 +33,39 @@ export default function PaymentProcessing() {
   const amount = searchParams.get('amount');
   const referredBy = searchParams.get('referredBy');
 
-  // Subscribe to transaction updates via Supabase Realtime
+  // Handle transaction status update (shared by Realtime and Polling)
+  const handleTransactionUpdate = useCallback(async (transaction: { status: string; metadata?: { failure_reason?: string } | null }) => {
+    console.log('Processing transaction update:', transaction.status);
+    
+    if (transaction.status === 'completed') {
+      setStatus('completed');
+      await refreshSubscription();
+      toast({
+        title: t('payment_success'),
+        description: t('payment_success_desc'),
+      });
+    } else if (transaction.status === 'failed') {
+      setStatus('failed');
+      toast({
+        title: t('payment_failed'),
+        description: transaction.metadata?.failure_reason || t('payment_failed_desc'),
+        variant: 'destructive',
+      });
+    }
+  }, [t, toast, refreshSubscription]);
+
+  // Polling fallback ref to track interval
+  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollIntervalRef = useRef(2000);
+  const isResolvedRef = useRef(false);
+
+  // Subscribe to transaction updates via Supabase Realtime + Polling Fallback
   const subscribeToTransaction = useCallback((txId: string) => {
     console.log('Subscribing to transaction updates:', txId);
+    isResolvedRef.current = false;
+    pollIntervalRef.current = 2000;
     
+    // Primary: Realtime subscription
     realtimeChannel.current = supabase
       .channel(`transaction-${txId}`)
       .on(
@@ -48,34 +77,54 @@ export default function PaymentProcessing() {
           filter: `id=eq.${txId}`
         },
         async (payload) => {
-          console.log('Transaction update received:', payload);
-          const newStatus = payload.new.status;
-          
-          if (newStatus === 'completed') {
-            setStatus('completed');
-            await refreshSubscription();
-            toast({
-              title: t('payment_success'),
-              description: t('payment_success_desc'),
-            });
-          } else if (newStatus === 'failed') {
-            setStatus('failed');
-            const metadata = payload.new.metadata as { failure_reason?: string } | null;
-            toast({
-              title: t('payment_failed'),
-              description: metadata?.failure_reason || t('payment_failed_desc'),
-              variant: 'destructive',
-            });
+          console.log('Realtime update received:', payload);
+          if (!isResolvedRef.current) {
+            isResolvedRef.current = true;
+            await handleTransactionUpdate(payload.new as { status: string; metadata?: { failure_reason?: string } | null });
           }
         }
       )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
       });
-  }, [t, toast, refreshSubscription]);
 
-  // Cleanup realtime subscription
+    // Fallback: Polling with exponential backoff
+    const poll = async () => {
+      if (isResolvedRef.current) return;
+      
+      console.log('Polling transaction status...');
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('status, metadata')
+        .eq('id', txId)
+        .single();
+
+      if (error) {
+        console.error('Polling error:', error);
+      } else if (data && (data.status === 'completed' || data.status === 'failed')) {
+        console.log('Polling detected status change:', data.status);
+        if (!isResolvedRef.current) {
+          isResolvedRef.current = true;
+          await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
+        }
+        return; // Stop polling
+      }
+
+      // Backoff: 2s -> 3s -> 4.5s -> 6.75s -> ... -> max 30s
+      pollIntervalRef.current = Math.min(pollIntervalRef.current * 1.5, 30000);
+      pollTimeoutRef.current = setTimeout(poll, pollIntervalRef.current);
+    };
+
+    // Start polling after initial delay
+    pollTimeoutRef.current = setTimeout(poll, pollIntervalRef.current);
+  }, [handleTransactionUpdate]);
+
+  // Cleanup realtime subscription and polling
   const cleanupSubscription = useCallback(() => {
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
     if (realtimeChannel.current) {
       console.log('Cleaning up realtime subscription');
       supabase.removeChannel(realtimeChannel.current);
