@@ -1,118 +1,153 @@
 
-# Fix: Return Immediately After Payment Initiation
 
-## Problem Identified
+# Fix: Enable Realtime on Transactions Table + Add Polling Fallback
 
-The edge function `mesomb-payment` is waiting for the MeSomb SDK's `makeCollect()` call to complete before returning to the frontend. This causes a 17+ second delay where:
+## Root Cause Identified
 
-1. Frontend shows "Initialisation du paiement..."
-2. MeSomb SDK is called and **blocks** waiting for user confirmation
-3. User receives USSD prompt on phone
-4. User confirms payment
-5. SDK finally returns
-6. Frontend receives response and shows "Processing"
+The `transactions` table is **NOT** added to the Supabase Realtime publication. Only `notifications` is enabled:
 
-The user sees the payment prompt on their phone **while the page still says "Initializing"**, which is confusing.
+```sql
+-- Current state in database
+SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime';
+-- Result: only "notifications"
+```
 
----
+This means when the webhook updates the transaction status to `failed` or `completed`, **no Realtime event is broadcast**, so the frontend never receives the update.
 
-## Solution: Fire-and-Forget Pattern
+## Additional Issue
 
-Modify the edge function to:
-1. Create the pending transaction
-2. Start the MeSomb SDK call **without awaiting** (fire-and-forget)
-3. Return immediately to the frontend with `status: 'processing'`
-4. Let the webhook handle the final status update
-
-This way, the frontend transitions to "Confirm on your phone" **before** the user receives the USSD prompt.
+The console logs show the subscription being "CLOSED" - this could be due to:
+1. React StrictMode causing double-mounting/unmounting
+2. Component re-renders causing cleanup to run prematurely
+3. Network instability causing the WebSocket to disconnect
 
 ---
 
-## Implementation
+## Solution: Two-Part Fix
 
-### Modify `supabase/functions/mesomb-payment/index.ts`
+### Part 1: Enable Realtime on Transactions Table
 
-```text
-BEFORE:
-  const response = await paymentOperation.makeCollect(collectRequest);
-  // ... wait for response, update transaction, return
+Add a database migration to enable Realtime broadcasting for the `transactions` table:
 
-AFTER:
-  // Fire-and-forget: Start the SDK call but don't await it
-  paymentOperation.makeCollect(collectRequest)
-    .then(async (response) => {
-      // Update transaction with MeSomb response (for debugging)
-      await supabase.from('transactions').update({
-        provider_reference: response.reference || response.transaction?.pk || null,
-        metadata: { 
-          ...transactionMetadata, 
-          mesomb_status: response.status,
-          mesomb_message: response.message,
-          sdk_returned_at: new Date().toISOString()
-        }
-      }).eq('id', pendingTransaction.id);
-    })
-    .catch((error) => {
-      console.error('MeSomb SDK error (background):', error);
-    });
-  
-  // Return immediately - don't wait for SDK response
-  return new Response(JSON.stringify({
-    success: true,
-    transactionId: pendingTransaction.id,
-    phoneNumber: cleanedPhone,
-    service: service,
-    message: 'Confirmez le paiement sur votre téléphone.',
-    status: 'processing'
-  }), { ... });
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
+```
+
+### Part 2: Add Polling Fallback (Following the Stack Overflow Pattern)
+
+As recommended in the provided solution, implement a hybrid approach with:
+- Primary: Realtime subscription
+- Fallback: Polling with exponential backoff
+
+This ensures reliability even if Realtime fails silently.
+
+---
+
+## Implementation Details
+
+### Database Migration
+
+```sql
+-- Enable realtime updates for transactions table
+ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
+```
+
+### Update PaymentProcessing.tsx
+
+Implement the combined Realtime + Polling pattern:
+
+```typescript
+useEffect(() => {
+  if (!transactionId) return;
+
+  let pollInterval = 2000; // Start at 2s
+  let lastSyncTimestamp: string | null = null;
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  // Primary: Realtime subscription
+  const channel = supabase
+    .channel(`transaction:${transactionId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'transactions',
+        filter: `id=eq.${transactionId}`
+      },
+      (payload) => {
+        handleTransactionUpdate(payload.new);
+        lastSyncTimestamp = payload.new.updated_at;
+        pollInterval = 2000; // Reset on realtime success
+      }
+    )
+    .subscribe();
+
+  // Fallback: Polling with exponential backoff
+  const poll = async () => {
+    const { data } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', transactionId)
+      .single();
+
+    if (data && (data.status === 'completed' || data.status === 'failed')) {
+      handleTransactionUpdate(data);
+      return; // Stop polling once resolved
+    }
+
+    // Backoff: 2s -> 3s -> 4.5s -> 6.75s -> ... -> max 30s
+    pollInterval = Math.min(pollInterval * 1.5, 30000);
+    timeoutId = setTimeout(poll, pollInterval);
+  };
+
+  // Start polling after initial delay
+  timeoutId = setTimeout(poll, pollInterval);
+
+  return () => {
+    clearTimeout(timeoutId);
+    supabase.removeChannel(channel);
+  };
+}, [transactionId]);
 ```
 
 ### Key Changes
 
 | Aspect | Before | After |
 |--------|--------|-------|
-| SDK Call | `await makeCollect()` (blocking) | `makeCollect().then()` (fire-and-forget) |
-| Response Time | 17+ seconds (waits for user) | < 1 second (immediate) |
-| Status on Return | After SDK completes | Immediately `processing` |
-| Error Handling | In main flow | Background logging only |
-
-### Flow After Fix
-
-```text
-1. User clicks Pay → Navigates to PaymentProcessing
-2. Frontend shows "Initialisation..."
-3. Edge function creates transaction
-4. Edge function starts makeCollect() (fire-and-forget)
-5. Edge function returns IMMEDIATELY (~200ms total)
-6. Frontend shows "Confirmez sur votre téléphone"
-7. MeSomb sends USSD prompt to phone
-8. User confirms payment
-9. Webhook receives notification, updates transaction
-10. Realtime pushes update to frontend
-11. Frontend shows "Paiement réussi!"
-```
+| Realtime | Only mechanism | Primary mechanism |
+| Polling | None | Fallback with exponential backoff |
+| Reliability | Depends on WebSocket | Works even if Realtime fails |
+| Server Load | Minimal | Low (exponential backoff) |
 
 ---
 
 ## Files to Modify
 
-- `supabase/functions/mesomb-payment/index.ts` - Change to fire-and-forget pattern
+1. **Database Migration** - Add `transactions` to Realtime publication
+2. **src/pages/PaymentProcessing.tsx** - Add polling fallback alongside Realtime
 
 ---
 
-## What Stays the Same
+## Flow After Fix
 
-- Transaction is created with `pending` status initially
-- Transaction is updated to `processing` immediately after creation
-- Webhook handles final status (`completed` or `failed`)
-- Realtime subscription notifies frontend
-- All existing validation and error handling for initial checks
+```text
+1. Transaction created (pending → processing)
+2. Frontend subscribes to Realtime + starts polling every 2s
+3. Webhook receives confirmation, updates to completed/failed
+4. EITHER:
+   a. Realtime broadcasts update → UI updates immediately
+   b. Polling detects status change → UI updates within backoff interval
+5. UI shows success/failure, polling stops, Realtime unsubscribed
+```
 
 ---
 
-## Edge Cases Handled
+## Technical Notes
 
-1. **SDK call fails**: Logged in background, webhook will still fire if MeSomb processed it
-2. **SDK call times out**: Deno runtime will clean up, webhook is authoritative
-3. **Network error**: User waits, webhook eventually updates status
-4. **Webhook never arrives**: Admin can manually resolve via admin panel
+- Polling starts at 2-second intervals
+- Backoff multiplier is 1.5x (gradual, not too aggressive)
+- Maximum interval is 30 seconds
+- Polling stops automatically once status is `completed` or `failed`
+- Both mechanisms update the same state, preventing race conditions
+
