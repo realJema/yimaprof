@@ -81,7 +81,11 @@ export default function PaymentProcessing() {
           filter: `id=eq.${txId}`
         },
         async (payload) => {
-          console.log('Realtime update received:', payload);
+          console.log('=== REALTIME WEBHOOK RESPONSE ===');
+          console.log('Event type:', payload.eventType);
+          console.log('Old data:', JSON.stringify(payload.old, null, 2));
+          console.log('New data:', JSON.stringify(payload.new, null, 2));
+          console.log('Full payload:', JSON.stringify(payload, null, 2));
           if (!isResolvedRef.current) {
             const isTerminal = await handleTransactionUpdate(payload.new as { status: string; metadata?: { failure_reason?: string } | null });
             if (isTerminal) {
@@ -90,32 +94,40 @@ export default function PaymentProcessing() {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('Realtime subscription status:', status);
+        if (err) console.error('Realtime subscription error:', err);
       });
 
     // Fallback: Polling with exponential backoff
     const poll = async () => {
       if (isResolvedRef.current) return;
       
-      console.log('Polling transaction status...');
+      console.log('=== POLLING CHECK ===');
       const { data, error } = await supabase
         .from('transactions')
-        .select('status, metadata')
+        .select('status, metadata, updated_at, provider_reference')
         .eq('id', txId)
         .single();
 
+      console.log('Polling response:', JSON.stringify({ data, error }, null, 2));
+
       if (error) {
         console.error('Polling error:', error);
-      } else if (data && (data.status === 'completed' || data.status === 'failed')) {
-        console.log('Polling detected status change:', data.status);
-        if (!isResolvedRef.current) {
-          const isTerminal = await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
-          if (isTerminal) {
-            isResolvedRef.current = true;
+      } else if (data) {
+        console.log('Transaction status:', data.status);
+        console.log('Transaction metadata:', JSON.stringify(data.metadata, null, 2));
+        
+        if (data.status === 'completed' || data.status === 'failed') {
+          console.log('=== TERMINAL STATUS DETECTED ===');
+          if (!isResolvedRef.current) {
+            const isTerminal = await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
+            if (isTerminal) {
+              isResolvedRef.current = true;
+            }
           }
+          return; // Stop polling
         }
-        return; // Stop polling
       }
 
       // Backoff: 2s -> 3s -> 4.5s -> 6.75s -> ... -> max 30s
