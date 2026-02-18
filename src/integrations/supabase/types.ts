@@ -1080,6 +1080,8 @@ export type Database = {
           mcq_score: number | null
           mcq_total: number | null
           time_spent_seconds: number | null
+          total_possible: number | null
+          total_score: number | null
           user_id: string
         }
         Insert: {
@@ -1092,6 +1094,8 @@ export type Database = {
           mcq_score?: number | null
           mcq_total?: number | null
           time_spent_seconds?: number | null
+          total_possible?: number | null
+          total_score?: number | null
           user_id: string
         }
         Update: {
@@ -1104,6 +1108,8 @@ export type Database = {
           mcq_score?: number | null
           mcq_total?: number | null
           time_spent_seconds?: number | null
+          total_possible?: number | null
+          total_score?: number | null
           user_id?: string
         }
         Relationships: [

@@ -58,6 +58,8 @@ export default function Payment() {
   const [referrerUsername, setReferrerUsername] = useState<string | null>(null);
   const [detectedCarrier, setDetectedCarrier] = useState<'MTN' | 'ORANGE' | null>(null);
   const planId = searchParams.get('planId');
+  const prefillPhone = searchParams.get('phone');
+  
   useEffect(() => {
     console.log('Payment component mounted, user:', user, 'planId:', planId);
     if (!user) {
@@ -72,7 +74,32 @@ export default function Payment() {
     }
     fetchPlan();
     fetchReferrer();
+    loadSavedPhone();
   }, [user, planId, navigate]);
+
+  // Load saved phone from profile or URL params
+  const loadSavedPhone = async () => {
+    // Priority: URL param > saved profile phone
+    if (prefillPhone) {
+      setPhoneNumber(prefillPhone);
+      setDetectedCarrier(detectCarrier(prefillPhone));
+      return;
+    }
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data?.phone) {
+        setPhoneNumber(data.phone);
+        setDetectedCarrier(detectCarrier(data.phone));
+      }
+    } catch (error) {
+      console.error('Error loading saved phone:', error);
+    }
+  };
   const fetchReferrer = async () => {
     const referralAffiliateId = localStorage.getItem('referral_affiliate_id');
     if (!referralAffiliateId) return;
@@ -127,7 +154,7 @@ export default function Payment() {
     const carrier = detectCarrier(value.replace(/\s/g, ''));
     setDetectedCarrier(carrier);
   };
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!plan || !user) return;
     if (!phoneNumber.trim()) {
       toast({
@@ -147,6 +174,16 @@ export default function Payment() {
     }
 
     const cleanedPhone = phoneNumber.replace(/\s/g, '');
+
+    // Save phone number to profile
+    try {
+      await supabase
+        .from('profiles')
+        .update({ phone: cleanedPhone })
+        .eq('id', user.id);
+    } catch (error) {
+      console.error('Error saving phone:', error);
+    }
 
     // Navigate to processing page immediately with payment params
     const params = new URLSearchParams({

@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LatexText } from '@/components/ui/latex-text';
+import { MarkdownText } from '@/components/ui/markdown-text';
 
 interface Answer {
   id: string;
@@ -130,14 +131,23 @@ export function ExamContentRenderer({
             return (
               <div key={item.id} className="bg-accent/30 p-4 rounded-lg border border-accent">
                 <div className="prose prose-sm max-w-none">
-                  <p className="text-sm text-foreground whitespace-pre-wrap"><LatexText text={item.text} /></p>
+                  <div className="text-sm text-foreground whitespace-pre-wrap"><MarkdownText text={item.text} /></div>
                 </div>
               </div>
             );
           }
 
-          // Images
+          // Images - only visible in correction/solution mode
           if (item.item_type === 'image') {
+            if (mode !== 'solution' && !showAnswers) {
+              return (
+                <div key={item.id} className="bg-muted/30 border border-dashed border-border rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground italic">
+                    {language === 'fr' ? '📷 Image visible dans la correction' : '📷 Image visible in correction'}
+                  </p>
+                </div>
+              );
+            }
             const asset = item.assets?.[0];
             return (
               <div key={item.id} className="space-y-2">
@@ -274,7 +284,7 @@ export function ExamContentRenderer({
                                 {language === 'fr' ? 'Réponse attendue / Points clés :' : 'Expected Answer / Key Points:'}
                               </h4>
                               <div className="text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap">
-                                <LatexText text={question.answers[0].text} />
+                                <MarkdownText text={question.answers[0].text} />
                               </div>
                               
                               {/* Rubric */}

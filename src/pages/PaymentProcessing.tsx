@@ -8,9 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
-import { Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
+import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
 
-// No timeout - wait indefinitely for webhook confirmation
+const TIMEOUT_SECONDS = 90;
 
 export default function PaymentProcessing() {
   const [searchParams] = useSearchParams();
@@ -19,22 +19,23 @@ export default function PaymentProcessing() {
   const { toast } = useToast();
   const { t } = useLanguage();
   const { refreshSubscription } = useSubscription();
-  const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed'>('initiating');
+  const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed' | 'timeout'>('initiating');
   const [countdown, setCountdown] = useState(5);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
+  const [verifying, setVerifying] = useState(false);
   
   const paymentInitiated = useRef(false);
   const realtimeChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Payment params (from Payment.tsx when no transactionId yet)
+  // Payment params
   const planId = searchParams.get('planId');
   const phoneNumber = searchParams.get('phone') || '';
   const carrier = searchParams.get('carrier') as 'MTN' | 'ORANGE' | null;
   const amount = searchParams.get('amount');
   const referredBy = searchParams.get('referredBy');
 
-  // Handle transaction status update (shared by Realtime and Polling)
-  // Returns true if status is terminal (completed/failed)
+  // Handle transaction status update
   const handleTransactionUpdate = useCallback(async (transaction: { status: string; metadata?: { failure_reason?: string } | null }): Promise<boolean> => {
     console.log('Processing transaction update:', transaction.status);
     
@@ -48,28 +49,21 @@ export default function PaymentProcessing() {
       return true;
     } else if (transaction.status === 'failed') {
       setStatus('failed');
-      toast({
-        title: t('payment_failed'),
-        description: transaction.metadata?.failure_reason || t('payment_failed_desc'),
-        variant: 'destructive',
-      });
       return true;
     }
-    return false; // Not a terminal status
+    return false;
   }, [t, toast, refreshSubscription]);
 
-  // Polling fallback ref to track interval
+  // Polling fallback
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIntervalRef = useRef(2000);
   const isResolvedRef = useRef(false);
 
-  // Subscribe to transaction updates via Supabase Realtime + Polling Fallback
   const subscribeToTransaction = useCallback((txId: string) => {
     console.log('Subscribing to transaction updates:', txId);
     isResolvedRef.current = false;
     pollIntervalRef.current = 2000;
     
-    // Primary: Realtime subscription
     realtimeChannel.current = supabase
       .channel(`transaction-${txId}`)
       .on(
@@ -82,10 +76,6 @@ export default function PaymentProcessing() {
         },
         async (payload) => {
           console.log('=== REALTIME WEBHOOK RESPONSE ===');
-          console.log('Event type:', payload.eventType);
-          console.log('Old data:', JSON.stringify(payload.old, null, 2));
-          console.log('New data:', JSON.stringify(payload.new, null, 2));
-          console.log('Full payload:', JSON.stringify(payload, null, 2));
           if (!isResolvedRef.current) {
             const isTerminal = await handleTransactionUpdate(payload.new as { status: string; metadata?: { failure_reason?: string } | null });
             if (isTerminal) {
@@ -94,73 +84,73 @@ export default function PaymentProcessing() {
           }
         }
       )
-      .subscribe((status, err) => {
-        console.log('Realtime subscription status:', status);
-        if (err) console.error('Realtime subscription error:', err);
-      });
+      .subscribe();
 
-    // Fallback: Polling with exponential backoff
+    // Polling fallback
     const poll = async () => {
       if (isResolvedRef.current) return;
       
-      console.log('=== POLLING CHECK ===');
       const { data, error } = await supabase
         .from('transactions')
         .select('status, metadata, updated_at, provider_reference')
         .eq('id', txId)
         .single();
 
-      console.log('Polling response:', JSON.stringify({ data, error }, null, 2));
-
-      if (error) {
-        console.error('Polling error:', error);
-      } else if (data) {
-        console.log('Transaction status:', data.status);
-        console.log('Transaction metadata:', JSON.stringify(data.metadata, null, 2));
-        
+      if (!error && data) {
         if (data.status === 'completed' || data.status === 'failed') {
-          console.log('=== TERMINAL STATUS DETECTED ===');
           if (!isResolvedRef.current) {
             const isTerminal = await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
             if (isTerminal) {
               isResolvedRef.current = true;
             }
           }
-          return; // Stop polling
+          return;
         }
       }
 
-      // Backoff: 2s -> 3s -> 4.5s -> 6.75s -> ... -> max 30s
       pollIntervalRef.current = Math.min(pollIntervalRef.current * 1.5, 30000);
       pollTimeoutRef.current = setTimeout(poll, pollIntervalRef.current);
     };
 
-    // Start polling after initial delay
     pollTimeoutRef.current = setTimeout(poll, pollIntervalRef.current);
   }, [handleTransactionUpdate]);
 
-  // Cleanup realtime subscription and polling
   const cleanupSubscription = useCallback(() => {
     if (pollTimeoutRef.current) {
       clearTimeout(pollTimeoutRef.current);
       pollTimeoutRef.current = null;
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     if (realtimeChannel.current) {
-      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(realtimeChannel.current);
       realtimeChannel.current = null;
     }
   }, []);
 
-  // Initiate payment via edge function
+  // Start timeout when processing begins
+  useEffect(() => {
+    if (status === 'processing') {
+      timeoutRef.current = setTimeout(() => {
+        if (!isResolvedRef.current) {
+          setStatus('timeout');
+        }
+      }, TIMEOUT_SECONDS * 1000);
+    }
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [status]);
+
+  // Initiate payment
   const initiatePayment = useCallback(async () => {
     if (!planId || !phoneNumber || !amount || !user) {
-      console.error('Missing payment parameters');
       navigate('/subscriptions');
       return;
     }
 
-    // Validate session before proceeding
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
       toast({
@@ -173,8 +163,6 @@ export default function PaymentProcessing() {
     }
 
     try {
-      console.log('Initiating payment...', { planId, phoneNumber, amount, referredBy });
-      
       const { data, error } = await supabase.functions.invoke('mesomb-payment', {
         body: {
           planId,
@@ -184,12 +172,9 @@ export default function PaymentProcessing() {
         }
       });
 
-      console.log('Payment initiation response:', { data, error });
-
       if (data?.transactionId) {
         setTransactionId(data.transactionId);
         
-        // Handle test payment (already completed)
         if (data.status === 'completed' || data.testPayment) {
           setStatus('completed');
           await refreshSubscription();
@@ -199,37 +184,23 @@ export default function PaymentProcessing() {
           });
         } else {
           setStatus('processing');
-          // Subscribe to realtime updates for this transaction
           subscribeToTransaction(data.transactionId);
         }
       } else {
-        console.error('Payment initiation failed:', error || data);
         setStatus('failed');
-        toast({
-          title: t('payment_failed'),
-          description: data?.error || error?.message || 'Failed to initiate payment',
-          variant: 'destructive',
-        });
       }
     } catch (error) {
-      console.error('Payment initiation error:', error);
       setStatus('failed');
-      toast({
-        title: t('payment_failed'),
-        description: 'Failed to initiate payment. Please try again.',
-        variant: 'destructive',
-      });
     }
   }, [planId, phoneNumber, amount, referredBy, user, navigate, subscribeToTransaction, t, toast, refreshSubscription]);
 
-  // Main effect to handle payment flow - runs once on mount
+  // Main effect
   useEffect(() => {
     if (!user) {
       navigate('/auth');
       return;
     }
 
-    // If we already have a transactionId (legacy flow), subscribe to updates
     if (transactionId && !paymentInitiated.current) {
       setStatus('processing');
       subscribeToTransaction(transactionId);
@@ -237,22 +208,18 @@ export default function PaymentProcessing() {
       return;
     }
 
-    // If we have payment params but no transactionId, initiate payment
     if (planId && phoneNumber && amount && !paymentInitiated.current) {
       paymentInitiated.current = true;
       initiatePayment();
       return;
     }
 
-    // No transactionId and no payment params - redirect
     if (!transactionId && !planId) {
       navigate('/subscriptions');
       return;
     }
-    // NOTE: No cleanup here - cleanup is handled by unmount effect below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
-
 
   // Auto-redirect on success
   useEffect(() => {
@@ -279,19 +246,53 @@ export default function PaymentProcessing() {
     };
   }, [cleanupSubscription]);
 
-  const handleRetry = () => {
-    cleanupSubscription();
-    navigate('/subscriptions');
+  // Manual verification
+  const handleVerify = async () => {
+    if (!transactionId) return;
+    setVerifying(true);
+    
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('status, metadata')
+      .eq('id', transactionId)
+      .single();
+
+    if (!error && data) {
+      if (data.status === 'completed') {
+        setStatus('completed');
+        await refreshSubscription();
+        toast({
+          title: t('payment_success'),
+          description: t('payment_success_desc'),
+        });
+      } else if (data.status === 'failed') {
+        setStatus('failed');
+      } else {
+        // Still processing - go back to processing and restart timeout
+        setStatus('processing');
+        toast({
+          title: 'Paiement en cours',
+          description: 'Le paiement n\'est pas encore confirmé. Veuillez patienter.',
+        });
+      }
+    }
+    setVerifying(false);
   };
 
-  // Format phone number for display
+  const handleRetry = () => {
+    cleanupSubscription();
+    const params = new URLSearchParams();
+    if (planId) params.set('planId', planId);
+    if (phoneNumber) params.set('phone', phoneNumber);
+    navigate(`/payment?${params.toString()}`);
+  };
+
   const formatPhone = (phone: string) => {
     if (phone.length === 9) {
       return `${phone.slice(0, 3)} ${phone.slice(3, 6)} ${phone.slice(6)}`;
     }
     return phone;
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6 flex items-center justify-center">
@@ -306,7 +307,10 @@ export default function PaymentProcessing() {
                 <CheckCircle className="h-10 w-10 text-green-500" />
               )}
               {status === 'failed' && (
-                <XCircle className="h-10 w-10 text-destructive" />
+                <AlertTriangle className="h-10 w-10 text-amber-500" />
+              )}
+              {status === 'timeout' && (
+                <AlertTriangle className="h-10 w-10 text-amber-500" />
               )}
             </div>
             
@@ -314,7 +318,8 @@ export default function PaymentProcessing() {
               {status === 'initiating' && 'Initialisation du paiement...'}
               {status === 'processing' && 'Confirmez sur votre téléphone'}
               {status === 'completed' && t('payment_success')}
-              {status === 'failed' && t('payment_failed')}
+              {status === 'failed' && 'Paiement non confirmé'}
+              {status === 'timeout' && 'Avez-vous effectué le paiement ?'}
             </CardTitle>
             
             <CardDescription>
@@ -331,11 +336,21 @@ export default function PaymentProcessing() {
               {status === 'completed' && (
                 <span>Redirection vers les examens dans {countdown} secondes...</span>
               )}
-              {status === 'failed' && t('payment_failed_desc')}
+              {status === 'failed' && (
+                <span className="text-amber-600 dark:text-amber-400">
+                  Vous n'avez pas confirmé votre paiement à temps
+                </span>
+              )}
+              {status === 'timeout' && (
+                <span className="text-amber-600 dark:text-amber-400">
+                  Vous n'avez pas confirmé votre paiement à temps
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Phone number display */}
             {(status === 'initiating' || status === 'processing') && phoneNumber && (
               <>
                 <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-center gap-3">
@@ -355,26 +370,90 @@ export default function PaymentProcessing() {
                 </div>
 
                 {status === 'processing' && (
-                  <>
+                  <div className="space-y-3">
+                    {/* Payment instructions */}
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-left space-y-2">
+                      <div className="flex items-start gap-2">
+                        <MessageCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <p className="text-sm text-foreground">
+                          Vous allez recevoir une notification sur votre téléphone
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Phone className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <p className="text-sm text-foreground">
+                          Composez <strong className="text-primary">#150*50#</strong> pour valider comme recommandé
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground pl-6">
+                        Veuillez patienter, la confirmation peut prendre quelques instants
+                      </p>
+                    </div>
                     
                     <p className="text-sm text-muted-foreground">
                       La page se mettra à jour automatiquement une fois le paiement confirmé
                     </p>
-                  </>
+                  </div>
                 )}
               </>
             )}
 
+            {/* Timeout state */}
+            {status === 'timeout' && (
+              <div className="space-y-4">
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Si vous avez déjà confirmé le paiement sur votre téléphone, cliquez sur "Vérifier" pour confirmer.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={handleVerify} 
+                    disabled={verifying}
+                    className="w-full" 
+                    size="lg"
+                  >
+                    {verifying ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Oui, vérifier mon paiement
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRetry}
+                    className="w-full" 
+                    size="lg"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Réessayer le paiement
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Completed */}
             {status === 'completed' && (
               <Button onClick={() => navigate('/exams2')} className="w-full" size="lg">
                 Accéder aux examens maintenant
               </Button>
             )}
 
+            {/* Failed - yellow warning style */}
             {status === 'failed' && (
-              <Button onClick={handleRetry} className="w-full" size="lg">
-                {t('try_again')}
-              </Button>
+              <div className="space-y-4">
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Le paiement n'a pas été confirmé. Vous pouvez réessayer.
+                  </p>
+                </div>
+                <Button onClick={handleRetry} className="w-full" size="lg">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Réessayer le paiement
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>

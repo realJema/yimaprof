@@ -39,6 +39,7 @@ interface Exam {
   academic_year_id: string;
   duration_id: string;
   establishment_id?: string;
+  series_id?: string;
   visibility?: string; // 'public' | 'free'
   classes?: {
     id: string;
@@ -75,6 +76,12 @@ interface Exam {
     name: string;
     type?: string;
     country?: string;
+  };
+  series?: {
+    code: string;
+    name: string;
+    name_en?: string;
+    name_fr?: string;
   };
 }
 interface SidebarQuestion {
@@ -226,7 +233,8 @@ export default function ExamViewer() {
           periods:period_id (name, name_en, name_fr),
           academic_years:academic_year_id (year_label, start_year, end_year),
           durations:duration_id (display_label, minutes),
-          establishments:establishment_id (name, type, country)
+          establishments:establishment_id (name, type, country),
+          series:series_id (code, name, name_en, name_fr)
         `).eq('id', examId).single();
       if (examError) throw examError;
       setExam(examData as any);
@@ -393,30 +401,106 @@ export default function ExamViewer() {
   const calculateScore = useCallback(() => {
     if (!exam?.content) return {
       correct: 0,
-      total: 0
+      total: 0,
+      earnedPoints: 0,
+      totalPoints: 0
     };
-    let correct = 0;
-    let total = 0;
+    let mcqCorrect = 0;
+    let mcqTotal = 0;
+    let earnedPoints = 0;
+    let totalPoints = 0;
     const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
-    const questions = items.filter((item: any) => item.item_type === 'question' && item.question_type === 'multiple_choice' || item.type === 'multiple_choice');
-    questions.forEach((question: any, index: number) => {
-      total++;
-      const userAnswer = userAnswers.find(a => a.questionIndex === index);
-      const correctAnswer = question.answers?.find((a: any) => a.is_correct);
-      if (correctAnswer && userAnswer?.answer === correctAnswer.text) {
-        correct++;
+    
+    // Build a flat list of all questions maintaining order
+    let questionIndex = 0;
+    items.forEach((item: any) => {
+      if (item.item_type !== 'question' && item.type !== 'multiple_choice' && item.type !== 'long_form') {
+        return;
       }
+      
+      const isMcq = item.question_type === 'multiple_choice' || item.type === 'multiple_choice';
+      const questionMarks = item.marks || 1;
+      totalPoints += questionMarks;
+      
+      if (isMcq) {
+        mcqTotal++;
+        const userAnswer = userAnswers.find(a => a.questionIndex === questionIndex);
+        const correctAnswer = item.answers?.find((a: any) => a.is_correct);
+        if (correctAnswer && userAnswer?.answer === correctAnswer.text) {
+          mcqCorrect++;
+          earnedPoints += questionMarks;
+        }
+      } else {
+        // Long-form: keyword/concept-based scoring
+        const userAnswer = userAnswers.find(a => a.questionIndex === questionIndex);
+        if (userAnswer?.answer && item.answers?.[0]) {
+          const scored = scoreLongForm(userAnswer.answer, item.answers[0], questionMarks);
+          earnedPoints += scored;
+        }
+      }
+      questionIndex++;
     });
+    
     return {
-      correct,
-      total
+      correct: mcqCorrect,
+      total: mcqTotal,
+      earnedPoints: Math.round(earnedPoints * 100) / 100,
+      totalPoints
     };
   }, [exam, userAnswers]);
+
+  // Score a long-form answer using keyword/concept matching
+  const scoreLongForm = (studentAnswer: string, expectedAnswer: any, maxPoints: number): number => {
+    const normalize = (text: string) => text.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+      .replace(/[^\w\s]/g, ' ') // remove punctuation
+      .replace(/\s+/g, ' ').trim();
+    
+    const studentNorm = normalize(studentAnswer);
+    
+    // If rubric criteria exist, score based on those
+    if (expectedAnswer.rubric && expectedAnswer.rubric.length > 0) {
+      let earned = 0;
+      let rubricTotal = 0;
+      
+      for (const criterion of expectedAnswer.rubric) {
+        rubricTotal += criterion.points;
+        const criteriaText = normalize(criterion.criteria);
+        // Extract key terms (words > 3 chars)
+        const keywords = criteriaText.split(' ').filter((w: string) => w.length > 3);
+        if (keywords.length === 0) continue;
+        
+        const matchCount = keywords.filter((kw: string) => studentNorm.includes(kw)).length;
+        const matchRatio = matchCount / keywords.length;
+        earned += criterion.points * matchRatio;
+      }
+      
+      // Scale to maxPoints if rubric total differs
+      if (rubricTotal > 0) {
+        return (earned / rubricTotal) * maxPoints;
+      }
+      return earned;
+    }
+    
+    // Fallback: compare against expected answer text using word overlap
+    if (expectedAnswer.text) {
+      const expectedNorm = normalize(expectedAnswer.text);
+      const expectedWords = [...new Set(expectedNorm.split(' ').filter((w: string) => w.length > 3))];
+      if (expectedWords.length === 0) return 0;
+      
+      const matchCount = expectedWords.filter((w: string) => studentNorm.includes(w)).length;
+      return (matchCount / expectedWords.length) * maxPoints;
+    }
+    
+    return 0;
+  };
 
   // Save evaluation to database (reliable: retries + offline queue)
   const saveEvaluation = useCallback(async (mcqScore: {
     correct: number;
     total: number;
+    earnedPoints?: number;
+    totalPoints?: number;
   } | null) => {
     if (!user || !examId) return {
       ok: false
@@ -427,6 +511,8 @@ export default function ExamViewer() {
       attempt_number: currentAttemptNumber,
       mcq_score: mcqScore?.correct ?? null,
       mcq_total: mcqScore?.total ?? null,
+      total_score: mcqScore?.earnedPoints ?? null,
+      total_possible: mcqScore?.totalPoints ?? null,
       time_spent_seconds: timeSpentSeconds,
       answers: userAnswers
     };
@@ -771,7 +857,11 @@ export default function ExamViewer() {
                 </Button>
               </CardContent>
             </Card>
-          </div>}
+              </div>}
+            {exam.series && <div className="bg-background/60 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Série' : 'Series'}</p>
+                <p className="text-sm font-medium">{exam.series.code}</p>
+              </div>}
 
         {/* Content */}
         <main className="flex-1 overflow-auto">
@@ -883,6 +973,9 @@ export default function ExamViewer() {
                 <FileText className="h-3.5 w-3.5" />
                 {anonymizeSchoolName({ id: exam.establishment_id, name: exam.establishments.name })}
               </span>}
+            {exam.series && <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                {language === 'fr' ? 'Série' : 'Series'} {exam.series.code}
+              </Badge>}
             {exam.classes && <span>{exam.classes.display_name}</span>}
             {exam.subjects && <span>{language === 'fr' ? exam.subjects.name_fr || exam.subjects.name : exam.subjects.name_en || exam.subjects.name}</span>}
             {exam.periods && <span>{language === 'fr' ? exam.periods.name_fr || exam.periods.name : exam.periods.name_en || exam.periods.name}</span>}
