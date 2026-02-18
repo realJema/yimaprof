@@ -1,153 +1,165 @@
 
 
-# Fix: Enable Realtime on Transactions Table + Add Polling Fallback
+# Implementation Plan: Payment UX, Exam Features, Scoring & Localization
 
-## Root Cause Identified
+This plan covers 6 areas of work across payment, exam display, scoring, rendering, and localization improvements.
 
-The `transactions` table is **NOT** added to the Supabase Realtime publication. Only `notifications` is enabled:
+---
 
+## 1. Payment Processing -- Timeout & UX Improvements
+
+### 1a. Add Timeout Prompt on Payment Processing Page
+**File:** `src/pages/PaymentProcessing.tsx`
+
+- Add a new status: `'timeout'` alongside existing `'initiating' | 'processing' | 'completed' | 'failed'`
+- After 90 seconds in `processing` state, transition to `timeout` status
+- Show a yellow warning card (not red) with:
+  - Yellow `AlertTriangle` icon (from lucide-react)
+  - Message: "Vous n'avez pas confirme votre paiement a temps" / "You haven't confirmed your payment in time"
+  - Question: "Avez-vous effectue le paiement ?" / "Have you completed the payment?"
+  - Two buttons:
+    - **"Oui, verifier"** -- triggers a manual poll of the transaction status. If still `processing`, show "Paiement non encore confirme" with option to wait more or retry
+    - **"Reessayer"** -- navigates back to `/payment?planId=xxx&phone=xxx` (prefilling phone)
+- The `failed` status UI will also use yellow/warning styling instead of red/destructive
+
+### 1b. Retry with Prefilled Phone Number
+**File:** `src/pages/Payment.tsx`
+
+- Read `phone` from URL search params on mount
+- If present, prefill the phone input and auto-detect carrier
+- On retry from timeout, navigate: `/payment?planId=xxx&phone=previousPhone`
+
+### 1c. Save Phone Number to Profile
+**File:** `src/pages/Payment.tsx`
+
+- On payment initiation (when navigating to processing), save the phone number to the user's `profiles` table (the `phone` column already exists)
+- On mount, if no phone in URL params, load the saved phone from the profile as default
+
+### 1d. Add Payment Instructions on Processing Page
+**File:** `src/pages/PaymentProcessing.tsx`
+
+- When `status === 'processing'`, show an instruction block below the phone number:
+  - "Vous allez recevoir une notification sur votre telephone"
+  - "Composez #150*50# pour valider comme recommande"
+  - "Veuillez patienter, la confirmation peut prendre quelques instants"
+
+---
+
+## 2. Exam Details -- Images Only in Corrections
+
+### File: `src/components/exam/ExamContentRenderer.tsx`
+
+- Modify the image rendering block (item_type === 'image') to check the current `mode`
+- Only render images when `mode === 'correction'` or `showAnswers === true`
+- In other modes (preview, evaluation), skip image items entirely or show a placeholder badge "Image visible dans la correction"
+
+---
+
+## 3. Exam Details -- Series Display & Filter
+
+### 3a. Display Series on Exam Cards
+**File:** `src/pages/Exams2.tsx`
+
+- The series data is already fetched in the exam query (`series:series(id, code, name, name_en, name_fr)`)
+- Add a `Badge` showing `exam.series?.code` (e.g., "A", "C", "D") on each exam card
+- Style with a distinct color to differentiate from other badges
+
+### 3b. Display Series on Exam Viewer
+**File:** `src/pages/ExamViewer.tsx`
+
+- The exam query already joins `series` data but the interface doesn't include it
+- Add `series_id` and `series` to the `Exam` interface
+- Display the series in both mobile and desktop info sections
+
+### 3c. Series Filter (Already Exists)
+- The series filter is already implemented in `Exams2.tsx` (lines 146, 278-291, 374-380)
+- No changes needed here
+
+---
+
+## 4. Scoring System -- Keyword-Based Long-Form Scoring
+
+### 4a. Implement Keyword/Concept Scoring for Long-Form Questions
+**File:** `src/pages/ExamViewer.tsx` (in `calculateScore`)
+
+- Expand `calculateScore` to handle both MCQ and long-form questions:
+  - **MCQ**: Keep existing exact-match logic
+  - **Long-form**: Score based on keywords/concepts from the answer's rubric criteria
+    - Normalize text (lowercase, remove accents/punctuation)
+    - For each rubric criterion, check if key terms appear in the student's answer
+    - Award partial points based on keyword matches (e.g., if 3 of 5 keywords found, award 60% of that criterion's points)
+    - If no rubric, check against the expected answer text using word overlap
+- Update the score object to include: `{ earnedPoints: number, totalPoints: number, mcqCorrect: number, mcqTotal: number }`
+
+### 4b. Update Results Dialog
+**File:** `src/components/exam/EvaluationResultsDialog.tsx`
+
+- Display combined score (points earned / total points) instead of just MCQ correct/total
+- Show breakdown: MCQ score + Long-form score
+- Keep the percentage-based color coding
+
+### 4c. Store Full Scores in Database
+**File:** `src/pages/ExamViewer.tsx` (in `saveEvaluation`)
+
+- The `user_evaluations` table already has `mcq_score` and `mcq_total` columns
+- We need two new columns for the full score
+
+**Database migration:**
 ```sql
--- Current state in database
-SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime';
--- Result: only "notifications"
+ALTER TABLE user_evaluations
+  ADD COLUMN IF NOT EXISTS total_score numeric,
+  ADD COLUMN IF NOT EXISTS total_possible numeric;
 ```
 
-This means when the webhook updates the transaction status to `failed` or `completed`, **no Realtime event is broadcast**, so the frontend never receives the update.
-
-## Additional Issue
-
-The console logs show the subscription being "CLOSED" - this could be due to:
-1. React StrictMode causing double-mounting/unmounting
-2. Component re-renders causing cleanup to run prematurely
-3. Network instability causing the WebSocket to disconnect
+- Save `total_score` and `total_possible` alongside existing `mcq_score` / `mcq_total`
 
 ---
 
-## Solution: Two-Part Fix
+## 5. Markdown Rendering in Exam Content
 
-### Part 1: Enable Realtime on Transactions Table
+### File: `src/components/exam/ExamContentRenderer.tsx`
 
-Add a database migration to enable Realtime broadcasting for the `transactions` table:
+- The `LatexText` component already handles LaTeX; extend text rendering to also support basic markdown
+- For text fields that may contain markdown (headings, instructions, passages, question text, answer text):
+  - Detect if text contains markdown syntax (e.g., `**bold**`, `*italic*`, `|table|`, `- list`)
+  - If markdown detected, render using a lightweight inline markdown parser
+  - Support: bold, italic, lists, tables, line breaks
+- Implementation: create a `<MarkdownText>` wrapper component or extend `<LatexText>` to handle both markdown and LaTeX
 
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
-```
-
-### Part 2: Add Polling Fallback (Following the Stack Overflow Pattern)
-
-As recommended in the provided solution, implement a hybrid approach with:
-- Primary: Realtime subscription
-- Fallback: Polling with exponential backoff
-
-This ensures reliability even if Realtime fails silently.
-
----
-
-## Implementation Details
-
-### Database Migration
-
-```sql
--- Enable realtime updates for transactions table
-ALTER PUBLICATION supabase_realtime ADD TABLE transactions;
-```
-
-### Update PaymentProcessing.tsx
-
-Implement the combined Realtime + Polling pattern:
-
-```typescript
-useEffect(() => {
-  if (!transactionId) return;
-
-  let pollInterval = 2000; // Start at 2s
-  let lastSyncTimestamp: string | null = null;
-  let timeoutId: ReturnType<typeof setTimeout>;
-
-  // Primary: Realtime subscription
-  const channel = supabase
-    .channel(`transaction:${transactionId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'transactions',
-        filter: `id=eq.${transactionId}`
-      },
-      (payload) => {
-        handleTransactionUpdate(payload.new);
-        lastSyncTimestamp = payload.new.updated_at;
-        pollInterval = 2000; // Reset on realtime success
-      }
-    )
-    .subscribe();
-
-  // Fallback: Polling with exponential backoff
-  const poll = async () => {
-    const { data } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('id', transactionId)
-      .single();
-
-    if (data && (data.status === 'completed' || data.status === 'failed')) {
-      handleTransactionUpdate(data);
-      return; // Stop polling once resolved
-    }
-
-    // Backoff: 2s -> 3s -> 4.5s -> 6.75s -> ... -> max 30s
-    pollInterval = Math.min(pollInterval * 1.5, 30000);
-    timeoutId = setTimeout(poll, pollInterval);
-  };
-
-  // Start polling after initial delay
-  timeoutId = setTimeout(poll, pollInterval);
-
-  return () => {
-    clearTimeout(timeoutId);
-    supabase.removeChannel(channel);
-  };
-}, [transactionId]);
-```
-
-### Key Changes
-
-| Aspect | Before | After |
-|--------|--------|-------|
-| Realtime | Only mechanism | Primary mechanism |
-| Polling | None | Fallback with exponential backoff |
-| Reliability | Depends on WebSocket | Works even if Realtime fails |
-| Server Load | Minimal | Low (exponential backoff) |
+### New file: `src/components/ui/markdown-text.tsx`
+- A component that renders markdown with basic formatting
+- Uses regex-based parsing for simple markdown (no heavy dependency needed)
+- Supports: `**bold**`, `*italic*`, `- lists`, `| tables |`, `\n` line breaks
+- Falls through to `<LatexText>` for LaTeX content
 
 ---
 
-## Files to Modify
+## 6. Localization -- Replace "Semestre" with "Trimestre"
 
-1. **Database Migration** - Add `transactions` to Realtime publication
-2. **src/pages/PaymentProcessing.tsx** - Add polling fallback alongside Realtime
+### File: `src/contexts/LanguageContext.tsx`
 
----
-
-## Flow After Fix
-
-```text
-1. Transaction created (pending → processing)
-2. Frontend subscribes to Realtime + starts polling every 2s
-3. Webhook receives confirmation, updates to completed/failed
-4. EITHER:
-   a. Realtime broadcasts update → UI updates immediately
-   b. Polling detects status change → UI updates within backoff interval
-5. UI shows success/failure, polling stops, Realtime unsubscribed
-```
+Two occurrences to fix:
+- Line 306: `periods: 'Periodes/Semestres'` --> `periods: 'Periodes/Trimestres'`
+- Line 727: `examPeriod: 'Periode/Semestre'` --> `examPeriod: 'Periode/Trimestre'`
 
 ---
 
-## Technical Notes
+## Technical Summary
 
-- Polling starts at 2-second intervals
-- Backoff multiplier is 1.5x (gradual, not too aggressive)
-- Maximum interval is 30 seconds
-- Polling stops automatically once status is `completed` or `failed`
-- Both mechanisms update the same state, preventing race conditions
+| Area | Files Modified | New Files | DB Changes |
+|------|---------------|-----------|------------|
+| Payment timeout & UX | `PaymentProcessing.tsx`, `Payment.tsx` | None | None |
+| Images in corrections only | `ExamContentRenderer.tsx` | None | None |
+| Series display | `ExamViewer.tsx`, `Exams2.tsx` | None | None |
+| Long-form scoring | `ExamViewer.tsx`, `EvaluationResultsDialog.tsx` | None | Add `total_score`, `total_possible` columns |
+| Markdown rendering | `ExamContentRenderer.tsx` | `markdown-text.tsx` | None |
+| Localization fix | `LanguageContext.tsx` | None | None |
+
+### Implementation Order
+1. Localization fix (quick win, 2 lines)
+2. Images in corrections only (simple conditional)
+3. Series display on exam viewer
+4. Payment timeout & UX improvements
+5. Markdown rendering
+6. Long-form scoring system (most complex)
 
