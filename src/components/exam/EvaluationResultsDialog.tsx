@@ -1,13 +1,13 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EvaluationResultsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  score: { correct: number; total: number } | null;
+  score: { correct: number; total: number; earnedPoints?: number; totalPoints?: number } | null;
   hasMcq: boolean;
   timeSpentSeconds: number;
   attemptNumber: number;
@@ -35,7 +35,10 @@ export function EvaluationResultsDialog({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const percentage = score && score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
+  const hasFullScore = score && typeof score.earnedPoints === 'number' && typeof score.totalPoints === 'number' && score.totalPoints > 0;
+  const percentage = hasFullScore 
+    ? Math.round((score.earnedPoints! / score.totalPoints!) * 100) 
+    : (score && score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0);
   
   const getScoreColor = () => {
     if (percentage >= 80) return 'text-emerald-600 dark:text-emerald-400';
@@ -61,7 +64,7 @@ export function EvaluationResultsDialog({
         </DialogHeader>
         
         <div className="py-6">
-          {hasMcq && score ? (
+          {(hasMcq || hasFullScore) && score ? (
             <div className="space-y-6">
               {/* Score Circle */}
               <div className="flex justify-center">
@@ -81,14 +84,29 @@ export function EvaluationResultsDialog({
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <Target className="h-5 w-5 mx-auto mb-1 text-primary" />
-                  <p className="text-lg font-semibold">{score.correct}/{score.total}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === 'fr' ? 'Correct' : 'Correct'}
-                  </p>
-                </div>
+              <div className={cn("grid gap-4 text-center", hasFullScore && hasMcq ? "grid-cols-2" : "grid-cols-3")}>
+                {/* Total Score (if available) */}
+                {hasFullScore && (
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <Award className="h-5 w-5 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-semibold">{score.earnedPoints}/{score.totalPoints}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'fr' ? 'Score total' : 'Total Score'}
+                    </p>
+                  </div>
+                )}
+                
+                {/* MCQ Score */}
+                {hasMcq && (
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <Target className="h-5 w-5 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-semibold">{score.correct}/{score.total}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'fr' ? 'QCM' : 'MCQ'}
+                    </p>
+                  </div>
+                )}
+                
                 <div className="bg-muted/50 rounded-lg p-3">
                   <Clock className="h-5 w-5 mx-auto mb-1 text-primary" />
                   <p className="text-lg font-semibold">{formatTime(timeSpentSeconds)}</p>
@@ -112,8 +130,8 @@ export function EvaluationResultsDialog({
               </div>
               <DialogDescription className="text-base">
                 {language === 'fr' 
-                  ? 'Cette épreuve ne contient pas de QCM à noter automatiquement. Veuillez revoir vos réponses avec la correction.'
-                  : 'This exam has no MCQ questions to score automatically. Please review your answers with the correction.'
+                  ? 'Cette épreuve ne contient pas de questions à noter automatiquement. Veuillez revoir vos réponses avec la correction.'
+                  : 'This exam has no questions to score automatically. Please review your answers with the correction.'
                 }
               </DialogDescription>
               

@@ -857,7 +857,7 @@ const Exams2 = () => {
                         <Card className={`h-full min-h-[160px] hover:shadow-lg transition-all cursor-pointer group border-2 ${cardColor}`}>
                           <CardContent className="p-4 flex flex-col h-full">
                             {/* Badges at top */}
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
                               {exam.visibility === 'free' && (
                                 <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
                                   {language === 'fr' ? 'Gratuit' : 'Free'}
@@ -866,6 +866,11 @@ const Exams2 = () => {
                               {exam.subject && (
                                 <Badge variant="secondary" className="text-xs font-medium">
                                   {subjectName}
+                                </Badge>
+                              )}
+                              {exam.series && (
+                                <Badge variant="outline" className="text-xs font-medium bg-primary/5 text-primary border-primary/20">
+                                  {language === 'fr' ? 'Série' : 'Series'} {exam.series.code}
                                 </Badge>
                               )}
                             </div>
