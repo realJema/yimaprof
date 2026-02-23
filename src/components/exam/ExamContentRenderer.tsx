@@ -26,6 +26,15 @@ interface SubQuestion {
   answers?: Answer[];
 }
 
+interface MediaItem {
+  id: string;
+  role: 'question_figure' | 'answer_figure';
+  type: string;
+  url: string;
+  alt?: string;
+  caption?: string;
+}
+
 interface Question {
   id: string;
   item_type: 'question';
@@ -37,6 +46,8 @@ interface Question {
   sub_questions?: SubQuestion[];
   marks?: number;
   order: number;
+  media?: MediaItem[];
+  explanatory_note?: string;
 }
 
 interface ContentItem {
@@ -137,17 +148,8 @@ export function ExamContentRenderer({
             );
           }
 
-          // Images - only visible in correction/solution mode
+          // Standalone Images - always visible (they are exam figures, not answer-specific)
           if (item.item_type === 'image') {
-            if (mode !== 'solution' && !showAnswers) {
-              return (
-                <div key={item.id} className="bg-muted/30 border border-dashed border-border rounded-lg p-4 text-center">
-                  <p className="text-sm text-muted-foreground italic">
-                    {language === 'fr' ? '📷 Image visible dans la correction' : '📷 Image visible in correction'}
-                  </p>
-                </div>
-              );
-            }
             const asset = item.assets?.[0];
             return (
               <div key={item.id} className="space-y-2">
@@ -205,6 +207,26 @@ export function ExamContentRenderer({
                     <p className="text-xs text-muted-foreground italic">
                       ({language === 'fr' ? 'Référez-vous à' : 'Refer to'} {question.context_ref})
                     </p>
+                  )}
+
+                  {/* Question Figure Media - always visible */}
+                  {question.media && question.media.filter(m => m.role === 'question_figure').length > 0 && (
+                    <div className="space-y-2 ml-8">
+                      {question.media.filter(m => m.role === 'question_figure').map((mediaItem) => (
+                        <div key={mediaItem.id} className="space-y-1">
+                          {mediaItem.caption && (
+                            <p className="text-xs font-medium text-muted-foreground"><LatexText text={mediaItem.caption} /></p>
+                          )}
+                          <div className="border rounded-lg overflow-hidden bg-background">
+                            <img
+                              src={mediaItem.url}
+                              alt={mediaItem.alt || 'Question figure'}
+                              className="max-w-full h-auto"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
 
                   {/* Multiple Choice Answers */}
@@ -341,6 +363,38 @@ export function ExamContentRenderer({
                             )}
                           </div>
                       ) : null}
+                    </div>
+                  )}
+
+                  {/* Answer Figure Media - only visible in solution/showAnswers mode */}
+                  {showAnswers && question.media && question.media.filter(m => m.role === 'answer_figure').length > 0 && (
+                    <div className="space-y-2 ml-8">
+                      {question.media.filter(m => m.role === 'answer_figure').map((mediaItem) => (
+                        <div key={mediaItem.id} className="space-y-1 bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                          {mediaItem.caption && (
+                            <p className="text-xs font-medium text-green-800 dark:text-green-300"><LatexText text={mediaItem.caption} /></p>
+                          )}
+                          <div className="border rounded-lg overflow-hidden bg-background">
+                            <img
+                              src={mediaItem.url}
+                              alt={mediaItem.alt || 'Answer figure'}
+                              className="max-w-full h-auto"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Explanatory Note - only visible in solution/showAnswers mode */}
+                  {showAnswers && question.explanatory_note && (
+                    <div className="ml-8 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-1 text-xs">
+                        {language === 'fr' ? '💡 Note explicative :' : '💡 Explanatory Note:'}
+                      </h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-400 whitespace-pre-wrap">
+                        <MarkdownText text={question.explanatory_note} />
+                      </p>
                     </div>
                   )}
 

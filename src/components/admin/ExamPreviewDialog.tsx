@@ -363,7 +363,7 @@ export function ExamPreviewDialog({ exam, open, onOpenChange, onUpdated }: ExamP
           
           <TabsContent value="content" className="flex-1 overflow-y-auto mt-4 pr-2">
             {exam.content ? (
-              <ExamContentRenderer content={exam.content} showAnswers={true} />
+              <ExamContentRenderer content={exam.content} showAnswers={true} mode="solution" />
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
