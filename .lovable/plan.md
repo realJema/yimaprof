@@ -2,53 +2,44 @@
 
 # Fix: Always Score All Questions (MCQ + Long-Form)
 
-## Root Cause
+## Problem
 
-In `handleSubmitEvaluation` (line 599-601 of `ExamViewer.tsx`):
+Line 599-600 in `ExamViewer.tsx`:
 ```
 const hasMcq = hasMcqQuestions();
 const mcqScore = hasMcq ? calculateScore() : null;
 ```
 
-When an exam has zero MCQ questions (all long-form), `hasMcq` is `false`, so `calculateScore()` is **never called**. The score is set to `null`, triggering the "no auto-scoreable questions" message in the results dialog.
+When an exam has zero MCQ questions, `hasMcq` is `false`, so `calculateScore()` is never called. The score stays `null`, which triggers the "no auto-scoreable questions" fallback in the results dialog.
 
-## Fix
+## Solution
 
-### 1. ExamViewer.tsx -- Always calculate score
+A single, focused change in `src/pages/ExamViewer.tsx`:
 
-**Replace** `hasMcqQuestions()` with a broader `hasScorable()` check that returns true if ANY question exists (MCQ or long-form with answers). Then always call `calculateScore()`.
+1. **Add a `hasScorableQuestions` function** that returns `true` if the exam has ANY question (MCQ or long-form) -- not just MCQs.
 
-Changes:
-- Rename/replace `hasMcqQuestions` with `hasScorableQuestions` that checks for any question item (MCQ or long-form with an answer)
-- In `handleSubmitEvaluation`, always call `calculateScore()` when scorable questions exist
-- Pass `hasMcq` separately to the results dialog (for display purposes only)
+2. **Update `handleSubmitEvaluation`** (lines 599-601): always call `calculateScore()` when scorable questions exist, regardless of MCQ presence.
 
+3. Keep `hasMcqQuestions()` only for the results dialog layout (to decide whether to show the MCQ breakdown row).
+
+### Before
 ```typescript
-// Before
 const hasMcq = hasMcqQuestions();
 const mcqScore = hasMcq ? calculateScore() : null;
-
-// After
-const scorable = hasScorableQuestions();
-const computedScore = scorable ? calculateScore() : null;
-const hasMcq = hasMcqQuestions(); // still needed for dialog layout
+setScore(mcqScore);
 ```
 
-### 2. EvaluationResultsDialog.tsx -- Fix display logic
+### After
+```typescript
+const hasScorable = hasScorableQuestions();
+const computedScore = hasScorable ? calculateScore() : null;
+setScore(computedScore);
+```
 
-The dialog currently shows the "no questions" message when `!hasMcq && !hasFullScore`. After the fix, `hasFullScore` will be true whenever there are scorable questions (even if zero MCQs), so the score circle and stats will display correctly.
+No changes needed in `EvaluationResultsDialog.tsx` -- it already displays the total score circle when `hasFullScore` is true (i.e., when `earnedPoints` and `totalPoints` are present), which will now always be the case for exams with any questions.
 
-No changes needed in the dialog itself -- the existing logic already handles the case where `hasFullScore` is true and `hasMcq` is false (it shows total score without MCQ breakdown).
-
-### 3. saveEvaluation -- Pass correct score
-
-Update the `saveEvaluation` call to always pass the computed score, setting `mcq_score`/`mcq_total` to the MCQ subset values (which may be 0/0 if no MCQs).
-
-### Files Modified
+### File Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/ExamViewer.tsx` | Add `hasScorableQuestions`, always call `calculateScore`, update `handleSubmitEvaluation` and `saveEvaluation` calls |
-
-This is a small, focused fix -- the scoring logic (`calculateScore` and `scoreLongForm`) already works correctly for both question types. The only issue is the gate that prevents it from being called.
-
+| `src/pages/ExamViewer.tsx` | Add `hasScorableQuestions`, update scoring gate in `handleSubmitEvaluation` |
