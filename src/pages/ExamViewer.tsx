@@ -398,6 +398,15 @@ export default function ExamViewer() {
     const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
     return items.some((item: any) => item.item_type === 'question' && item.question_type === 'multiple_choice' || item.type === 'multiple_choice');
   }, [exam]);
+
+  // Check if exam has ANY scorable questions (MCQ or long-form with answers)
+  const hasScorableQuestions = useCallback(() => {
+    if (!exam?.content) return false;
+    const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
+    return items.some((item: any) => 
+      item.item_type === 'question' || item.type === 'multiple_choice' || item.type === 'long_form'
+    );
+  }, [exam]);
   const calculateScore = useCallback(() => {
     if (!exam?.content) return {
       correct: 0,
@@ -596,9 +605,9 @@ export default function ExamViewer() {
 
     // Stop time immediately
     setEvaluationPaused(true);
-    const hasMcq = hasMcqQuestions();
-    const mcqScore = hasMcq ? calculateScore() : null;
-    setScore(mcqScore);
+    const hasScorable = hasScorableQuestions();
+    const computedScore = hasScorable ? calculateScore() : null;
+    setScore(computedScore);
     setSubmitted(true);
     setEvaluationActive(false);
 
@@ -612,7 +621,7 @@ export default function ExamViewer() {
     }
 
     // Save to database (retries/queue). If queued, the history will appear once sync happens.
-    await saveEvaluation(mcqScore);
+    await saveEvaluation(computedScore);
 
     // Once submitted, clear local session so it can't be resumed or re-submitted accidentally.
     if (examId) clearEvaluationSession(user?.id ?? null, examId);
