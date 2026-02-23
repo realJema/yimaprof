@@ -26,6 +26,15 @@ interface SubQuestion {
   answers?: Answer[];
 }
 
+interface MediaItem {
+  id: string;
+  role: 'question_figure' | 'answer_figure';
+  type: string;
+  url: string;
+  alt?: string;
+  caption?: string;
+}
+
 interface Question {
   id: string;
   item_type: 'question';
@@ -37,6 +46,8 @@ interface Question {
   sub_questions?: SubQuestion[];
   marks?: number;
   order: number;
+  media?: MediaItem[];
+  explanatory_note?: string;
 }
 
 interface ContentItem {
@@ -228,7 +239,7 @@ export function EditableExamContentRenderer({
     });
   };
 
-  const handleTextChange = (itemId: string, newText: string, field: 'text' | 'paper_number' = 'text') => {
+  const handleTextChange = (itemId: string, newText: string, field: 'text' | 'paper_number' | 'explanatory_note' = 'text') => {
     let updatedContent;
     
     // Handle array format
@@ -605,6 +616,23 @@ export function EditableExamContentRenderer({
                     </p>
                   )}
 
+                  {/* Question Figure Media */}
+                  {question.media && question.media.filter(m => m.role === 'question_figure').length > 0 && (
+                    <div className="space-y-2 ml-8">
+                      {question.media.filter(m => m.role === 'question_figure').map((mediaItem) => (
+                        <div key={mediaItem.id} className="space-y-1 border rounded-lg p-2 bg-muted/30">
+                          {mediaItem.caption && (
+                            <p className="text-xs font-medium text-muted-foreground">{mediaItem.caption}</p>
+                          )}
+                          <div className="border rounded-lg overflow-hidden bg-background">
+                            <img src={mediaItem.url} alt={mediaItem.alt || 'Question figure'} className="max-w-full h-auto" />
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">📷 Question Figure</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Multiple Choice Answers */}
                   {question.question_type === 'multiple_choice' && question.answers && (
                     <div className="space-y-2 ml-8">
@@ -701,6 +729,38 @@ export function EditableExamContentRenderer({
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Answer Figure Media */}
+                  {showAnswers && question.media && question.media.filter(m => m.role === 'answer_figure').length > 0 && (
+                    <div className="space-y-2 ml-8">
+                      {question.media.filter(m => m.role === 'answer_figure').map((mediaItem) => (
+                        <div key={mediaItem.id} className="space-y-1 border rounded-lg p-2 bg-primary/5 border-primary/20">
+                          {mediaItem.caption && (
+                            <p className="text-xs font-medium text-muted-foreground">{mediaItem.caption}</p>
+                          )}
+                          <div className="border rounded-lg overflow-hidden bg-background">
+                            <img src={mediaItem.url} alt={mediaItem.alt || 'Answer figure'} className="max-w-full h-auto" />
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">📷 Answer Figure</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Explanatory Note */}
+                  {showAnswers && question.explanatory_note && (
+                    <div className="ml-6 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 Explanatory Note:</p>
+                      <div
+                        className="text-sm text-amber-700 dark:text-amber-400 whitespace-pre-wrap outline-none hover:bg-amber-100/50 dark:hover:bg-amber-900/50 px-2 py-1 rounded transition-colors"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => handleTextChange(question.id, e.currentTarget.textContent || '', 'explanatory_note')}
+                      >
+                        {question.explanatory_note}
+                      </div>
                     </div>
                   )}
                 </div>
