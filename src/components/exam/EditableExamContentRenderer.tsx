@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Edit2, Image, Plus, Trash2, Upload } from 'lucide-react';
+import { CheckCircle, Edit2, Image, ImagePlus, Plus, Trash2, Upload, BookOpen } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { LatexText } from '@/components/ui/latex-text';
 import { supabase } from '@/integrations/supabase/client';
@@ -237,6 +237,65 @@ export function EditableExamContentRenderer({
       title: 'Item deleted',
       description: 'The item has been removed from the exam content',
     });
+  };
+
+  const handleAddMediaToQuestion = async (questionId: string, file: File, role: 'question_figure' | 'answer_figure') => {
+    try {
+      if (!file.type.startsWith('image/')) {
+        toast({ title: 'Invalid file type', description: 'Please select an image file', variant: 'destructive' });
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: 'File too large', description: 'Max 10MB', variant: 'destructive' });
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('exam-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('exam-images').getPublicUrl(fileName);
+
+      const caption = role === 'question_figure' ? 'Question figure' : 'Solution figure';
+      const newMedia: MediaItem = {
+        id: generateId(),
+        role,
+        type: 'image',
+        url: urlData.publicUrl,
+        alt: caption,
+        caption,
+      };
+
+      const items = getItems();
+      const updatedItems = items.map((item: any) => {
+        if (item.id === questionId) {
+          return { ...item, media: [...(item.media || []), newMedia] };
+        }
+        return item;
+      });
+      updateItems(updatedItems);
+
+      toast({ title: 'Image added', description: `${role === 'question_figure' ? 'Question' : 'Solution'} figure uploaded` });
+    } catch (error: any) {
+      console.error('Media upload error:', error);
+      toast({ title: 'Upload failed', description: error.message || 'Failed to upload', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteMedia = (questionId: string, mediaId: string) => {
+    const items = getItems();
+    const updatedItems = items.map((item: any) => {
+      if (item.id === questionId && item.media) {
+        return { ...item, media: item.media.filter((m: MediaItem) => m.id !== mediaId) };
+      }
+      return item;
+    });
+    updateItems(updatedItems);
+    toast({ title: 'Image removed' });
   };
 
   const handleTextChange = (itemId: string, newText: string, field: 'text' | 'paper_number' | 'explanatory_note' = 'text') => {
@@ -620,14 +679,23 @@ export function EditableExamContentRenderer({
                   {question.media && question.media.filter(m => m.role === 'question_figure').length > 0 && (
                     <div className="space-y-2 ml-8">
                       {question.media.filter(m => m.role === 'question_figure').map((mediaItem) => (
-                        <div key={mediaItem.id} className="space-y-1 border rounded-lg p-2 bg-muted/30">
+                        <div key={mediaItem.id} className="space-y-1 border rounded-lg p-2 bg-muted/30 relative group/media">
                           {mediaItem.caption && (
                             <p className="text-xs font-medium text-muted-foreground">{mediaItem.caption}</p>
                           )}
                           <div className="border rounded-lg overflow-hidden bg-background">
                             <img src={mediaItem.url} alt={mediaItem.alt || 'Question figure'} className="max-w-full h-auto" />
                           </div>
-                          <Badge variant="outline" className="text-[10px]">📷 Question Figure</Badge>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px]">📷 Question Figure</Badge>
+                            <button
+                              onClick={() => handleDeleteMedia(question.id, mediaItem.id)}
+                              className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover/media:opacity-100"
+                              title="Remove image"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -736,18 +804,63 @@ export function EditableExamContentRenderer({
                   {showAnswers && question.media && question.media.filter(m => m.role === 'answer_figure').length > 0 && (
                     <div className="space-y-2 ml-8">
                       {question.media.filter(m => m.role === 'answer_figure').map((mediaItem) => (
-                        <div key={mediaItem.id} className="space-y-1 border rounded-lg p-2 bg-primary/5 border-primary/20">
+                        <div key={mediaItem.id} className="space-y-1 border rounded-lg p-2 bg-primary/5 border-primary/20 relative group/media">
                           {mediaItem.caption && (
                             <p className="text-xs font-medium text-muted-foreground">{mediaItem.caption}</p>
                           )}
                           <div className="border rounded-lg overflow-hidden bg-background">
                             <img src={mediaItem.url} alt={mediaItem.alt || 'Answer figure'} className="max-w-full h-auto" />
                           </div>
-                          <Badge variant="outline" className="text-[10px]">📷 Answer Figure</Badge>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px]">📷 Answer Figure</Badge>
+                            <button
+                              onClick={() => handleDeleteMedia(question.id, mediaItem.id)}
+                              className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover/media:opacity-100"
+                              title="Remove image"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  {/* Image Upload Buttons: Question vs Solution */}
+                  <div className="flex items-center gap-2 ml-8 pt-2">
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAddMediaToQuestion(question.id, file, 'question_figure');
+                          e.target.value = '';
+                        }}
+                      />
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-dashed border-muted-foreground/40 hover:border-primary/60 hover:bg-muted/50 text-muted-foreground hover:text-primary transition-colors">
+                        <ImagePlus className="h-3.5 w-3.5" />
+                        Question Image
+                      </span>
+                    </label>
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleAddMediaToQuestion(question.id, file, 'answer_figure');
+                          e.target.value = '';
+                        }}
+                      />
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors">
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Solution Image
+                      </span>
+                    </label>
+                  </div>
 
                   {/* Explanatory Note */}
                   {showAnswers && question.explanatory_note && (
