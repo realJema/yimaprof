@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Edit2, Image, ImagePlus, Plus, Trash2, Upload, BookOpen } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { CheckCircle, Edit2, ImagePlus, Plus, Trash2, Upload, BookOpen } from 'lucide-react';
+import { useState } from 'react';
 import { LatexText } from '@/components/ui/latex-text';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -78,8 +78,6 @@ export function EditableExamContentRenderer({
   showAnswers = false
 }: EditableExamContentRendererProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [uploadingAtIndex, setUploadingAtIndex] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   if (!content) {
@@ -100,76 +98,6 @@ export function EditableExamContentRenderer({
       onContentChange(newItems);
     } else if (content.questions && Array.isArray(content.questions)) {
       onContentChange({ ...content, questions: newItems });
-    }
-  };
-
-  const handleAddImage = async (file: File, afterOrder: number, caption: string = '') => {
-    try {
-      // Validate file
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: 'Invalid file type',
-          description: 'Please select an image file',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Please select an image smaller than 10MB',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Upload to Supabase
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('exam-images')
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('exam-images')
-        .getPublicUrl(fileName);
-
-      // Create new image item
-      const items = getItems();
-      const newOrder = afterOrder + 0.5; // Insert between items
-      
-      const newImageItem = {
-        id: generateId(),
-        item_type: 'image',
-        text: caption || `Figure ${items.filter(i => i.item_type === 'image').length + 1}`,
-        assets: [{ type: 'image', url: urlData.publicUrl, alt: caption || 'Exam figure' }],
-        order: newOrder,
-      };
-
-      // Insert and re-order
-      const updatedItems = [...items, newImageItem]
-        .sort((a, b) => a.order - b.order)
-        .map((item, idx) => ({ ...item, order: idx + 1 }));
-
-      updateItems(updatedItems);
-
-      toast({
-        title: 'Image added',
-        description: 'The image has been inserted into the exam content',
-      });
-    } catch (error: any) {
-      console.error('Image upload error:', error);
-      toast({
-        title: 'Upload failed',
-        description: error.message || 'Failed to upload image',
-        variant: 'destructive',
-      });
-    } finally {
-      setUploadingAtIndex(null);
     }
   };
 
@@ -420,38 +348,8 @@ export function EditableExamContentRenderer({
     const sortedItems = [...items].sort((a, b) => a.order - b.order);
     let questionNumber = 0;
 
-    const renderAddImageButton = (afterOrder: number) => (
-      <div className="flex justify-center py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <label className="cursor-pointer">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const caption = prompt('Enter image caption (optional):') || '';
-                handleAddImage(file, afterOrder, caption);
-              }
-              e.target.value = '';
-            }}
-          />
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded border border-dashed border-muted-foreground/30 hover:border-primary/50">
-            <Plus className="h-3 w-3" />
-            <Image className="h-3 w-3" />
-            Add Image Here
-          </span>
-        </label>
-      </div>
-    );
-
     return (
       <div className="space-y-6">
-        {/* Add image at the beginning */}
-        <div className="group">
-          {renderAddImageButton(0)}
-        </div>
-
         {sortedItems.map((item, index) => {
           // Headings
           if (item.item_type === 'heading') {
@@ -478,7 +376,8 @@ export function EditableExamContentRenderer({
                     </button>
                   </div>
                 </div>
-                {renderAddImageButton(item.order)}
+
+
               </div>
             );
           }
@@ -511,7 +410,8 @@ export function EditableExamContentRenderer({
                     </button>
                   </div>
                 </div>
-                {renderAddImageButton(item.order)}
+
+
               </div>
             );
           }
@@ -543,7 +443,8 @@ export function EditableExamContentRenderer({
                     </button>
                   </div>
                 </div>
-                {renderAddImageButton(item.order)}
+
+
               </div>
             );
           }
@@ -602,7 +503,8 @@ export function EditableExamContentRenderer({
                     </Button>
                   </div>
                 </div>
-                {renderAddImageButton(item.order)}
+
+
               </div>
             );
           }
@@ -879,7 +781,7 @@ export function EditableExamContentRenderer({
                 </div>
                 <Edit2 className="h-3 w-3 text-muted-foreground absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              {renderAddImageButton(item.order)}
+              
             </div>
           );
         }
