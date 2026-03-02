@@ -20,6 +20,7 @@ import { EvaluationTimer } from '@/components/exam/EvaluationTimer';
 import { EvaluationControls } from '@/components/exam/EvaluationControls';
 import { EvaluationResultsDialog } from '@/components/exam/EvaluationResultsDialog';
 import { EvaluationExitDialog } from '@/components/exam/EvaluationExitDialog';
+import { ExamReviewSection } from '@/components/exam/ExamReviewSection';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { clearEvaluationSession, enqueuePendingSubmission, loadEvaluationSession, saveEvaluationSession, setLastActiveExamRoute, type EvaluationSession } from '@/lib/evaluationSession';
@@ -1131,6 +1132,9 @@ export default function ExamViewer() {
                   </CardContent>
                 </Card>}
             </div>
+
+            {/* Review Section - Correction Mode Only */}
+            {mode === 'correction' && <ExamReviewSection examId={examId!} />}
           </div>
         </main>
 
