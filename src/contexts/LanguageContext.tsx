@@ -778,7 +778,7 @@ const translations = {
     of_exams: 'sur',
     
     // Footer
-    about_yima: 'YIMA est une plateforme éducative dédiée à l\'excellence académique en Afrique. Nous rendons l\'éducation accessible en fournissant des ressources d\'examen de qualité.',
+    about_yima: 'Yimaprof est une plateforme éducative dédiée à l\'excellence académique en Afrique. Nous rendons l\'éducation accessible en fournissant des ressources d\'examen de qualité.',
     platform: 'Plateforme',
     company: 'Entreprise',
     stay_updated: 'Restez informé',
