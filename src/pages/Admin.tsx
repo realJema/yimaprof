@@ -141,6 +141,7 @@ export default function Admin() {
     { id: 'notifications', label: t('notifications'), icon: Shield },
     { id: 'feedback', label: t('user_feedback'), icon: MessageSquare },
     { id: 'forum', label: 'Forum', icon: MessageCircle },
+    { id: 'ai-usage', label: language === 'fr' ? 'Utilisation IA' : 'AI Usage', icon: Bot },
   ];
 
   return (
