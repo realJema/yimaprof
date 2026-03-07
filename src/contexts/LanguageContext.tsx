@@ -1055,7 +1055,7 @@ const translations = {
     step_3_desc: 'Browse our extensive library of papers',
     step_4_title: 'Start Practicing',
     step_4_desc: 'Download and study at your own pace',
-    why_choose: 'Why Choose YIMA?',
+    why_choose: 'Why Choose Yimaprof?',
     why_choose_subtitle: 'Everything you need to excel in your exams',
     advanced_search: 'Advanced Search',
     advanced_search_desc: 'Easily find exams by subject, year, and level',
