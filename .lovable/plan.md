@@ -1,47 +1,80 @@
 
 
-# Add AI Usage Tracking to Admin Dashboard
+# Add Exam Review & Rating Section (Correction Mode Only)
 
 ## Overview
-Create a database table to log every AI request (help-chat, ai-grade), then display daily usage stats in the admin dashboard.
+Add a star rating and comment review system for exams, visible only when correction mode is active. Users can leave one review per exam with a 1-5 star rating and optional comment. Other users' reviews are also displayed.
 
-## Changes
+## Database Changes
 
-### 1. New DB table: `ai_usage_logs`
+### New table: `exam_reviews`
 ```sql
-CREATE TABLE public.ai_usage_logs (
+CREATE TABLE public.exam_reviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  function_name text NOT NULL,  -- 'help-chat' or 'ai-grade'
-  user_ip text,
-  tokens_estimate integer,
-  status text DEFAULT 'success',
-  created_at timestamptz DEFAULT now()
+  exam_id uuid NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (exam_id, user_id)
 );
-ALTER TABLE public.ai_usage_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins can view ai_usage_logs" ON public.ai_usage_logs FOR SELECT USING (is_admin(auth.uid()));
-CREATE POLICY "Edge functions can insert" ON public.ai_usage_logs FOR INSERT WITH CHECK (true);
-CREATE INDEX idx_ai_usage_created ON public.ai_usage_logs(created_at);
+
+ALTER TABLE public.exam_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Anyone authenticated can view reviews
+CREATE POLICY "Anyone can view reviews" ON public.exam_reviews FOR SELECT TO authenticated USING (true);
+-- Users can insert their own review
+CREATE POLICY "Users can insert own review" ON public.exam_reviews FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+-- Users can update their own review
+CREATE POLICY "Users can update own review" ON public.exam_reviews FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+-- Users can delete their own review
+CREATE POLICY "Users can delete own review" ON public.exam_reviews FOR DELETE TO authenticated USING (auth.uid() = user_id);
 ```
 
-### 2. Update edge functions to log usage
-Both `help-chat/index.ts` and `ai-grade/index.ts` will insert a row into `ai_usage_logs` after each request (function name, status, timestamp). Uses the Supabase service role key for insert.
+## New Component: `src/components/exam/ExamReviewSection.tsx`
 
-### 3. New component: `src/components/admin/AIUsageStats.tsx`
-- Queries `ai_usage_logs` grouped by day (last 30 days) and by function name
-- Shows summary cards: total requests today, total this month, breakdown by function
-- Recharts bar chart showing daily request counts (already installed)
+A self-contained component that:
+- Accepts `examId` and `isVisible` (only renders when correction mode is active)
+- Fetches existing reviews for the exam (with profile info for display)
+- Shows the current user's review form (star picker + textarea)
+- If user already reviewed, shows their review with an edit option
+- Displays average rating and total review count at the top
+- Lists all reviews with star display, comment, username, and date
+- Star rating: interactive clickable stars (1-5) using Lucide `Star` icon (filled/outline)
 
-### 4. Add to Admin dashboard
-- Add "AI Usage" nav item in `Admin.tsx`
-- Render `AIUsageStats` component in that tab
+### UI Layout
+```text
+┌──────────────────────────────────────┐
+│ ⭐ Reviews & Ratings                │
+│ Average: ★★★★☆ (4.2) · 12 reviews  │
+├──────────────────────────────────────┤
+│ Your Review                          │
+│ ★★★★☆  (click to rate)             │
+│ [Comment textarea...............]    │
+│                    [Submit Review]   │
+├──────────────────────────────────────┤
+│ User A · ★★★★★ · 2 days ago        │
+│ "Great exam, very helpful!"         │
+│──────────────────────────────────────│
+│ User B · ★★★☆☆ · 1 week ago        │
+│ "Could use more detailed solutions" │
+└──────────────────────────────────────┘
+```
+
+## Integration: `src/pages/ExamViewer.tsx`
+
+- Import `ExamReviewSection`
+- Place it after the exam content div (line ~1133), inside the container, only when `mode === 'correction'`
+```tsx
+{mode === 'correction' && <ExamReviewSection examId={examId!} />}
+```
 
 ## Files
 
 | File | Action |
 |------|--------|
-| Migration | New `ai_usage_logs` table |
-| `supabase/functions/help-chat/index.ts` | Add usage logging after response |
-| `supabase/functions/ai-grade/index.ts` | Add usage logging after response |
-| `src/components/admin/AIUsageStats.tsx` | New dashboard component with chart |
-| `src/pages/Admin.tsx` | Add AI Usage tab |
+| Migration SQL | Create `exam_reviews` table with RLS |
+| `src/components/exam/ExamReviewSection.tsx` | New component |
+| `src/pages/ExamViewer.tsx` | Add review section in correction mode |
 

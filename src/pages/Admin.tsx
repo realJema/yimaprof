@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 
@@ -29,6 +29,7 @@ import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
 import ForumModeration from '@/components/admin/ForumModeration';
 import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
 import { SeriesManagement } from '@/components/admin/SeriesManagement';
+import { AIUsageStats } from '@/components/admin/AIUsageStats';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -140,6 +141,7 @@ export default function Admin() {
     { id: 'notifications', label: t('notifications'), icon: Shield },
     { id: 'feedback', label: t('user_feedback'), icon: MessageSquare },
     { id: 'forum', label: 'Forum', icon: MessageCircle },
+    { id: 'ai-usage', label: language === 'fr' ? 'Utilisation IA' : 'AI Usage', icon: Bot },
   ];
 
   return (
@@ -329,6 +331,7 @@ export default function Admin() {
             {activeTab === 'notifications' && <NotificationComposer />}
             {activeTab === 'feedback' && <FeedbackViewer />}
             {activeTab === 'forum' && <ForumModeration />}
+            {activeTab === 'ai-usage' && <AIUsageStats />}
           </div>
         </div>
       </div>

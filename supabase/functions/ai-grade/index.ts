@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,10 +17,25 @@ Rules:
 - Provide brief, constructive feedback in the same language as the question (1-2 sentences)
 - Focus feedback on what was correct/incorrect and what was missing`;
 
+async function logUsage(functionName: string, status: string, userIp?: string) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) return;
+    const sb = createClient(supabaseUrl, serviceRoleKey);
+    await sb.from("ai_usage_logs").insert({ function_name: functionName, status, user_ip: userIp });
+  } catch (e) {
+    console.error("Failed to log AI usage:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const userIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+  let status = "success";
 
   try {
     const { questions } = await req.json();
@@ -34,7 +50,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Build the user prompt with all questions
     const questionsPrompt = questions.map((q: any, i: number) => 
       `Question ${i + 1} (${q.maxPoints} points):\n${q.questionText}\n\nExpected Answer:\n${q.expectedAnswer}\n${q.rubric ? `\nRubric:\n${q.rubric}` : ''}\n\nStudent Answer:\n${q.studentAnswer || '(no answer)'}`
     ).join('\n\n---\n\n');
@@ -86,6 +101,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      status = `error_${response.status}`;
+      logUsage("ai-grade", status, userIp);
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
           status: 429,
@@ -108,10 +126,11 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       console.error("No tool call in response:", JSON.stringify(data));
+      status = "error_no_tool_call";
+      logUsage("ai-grade", status, userIp);
       return new Response(JSON.stringify({ error: "AI did not return structured grades" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -120,10 +139,14 @@ serve(async (req) => {
 
     const grades = JSON.parse(toolCall.function.arguments);
     
+    logUsage("ai-grade", "success", userIp);
+
     return new Response(JSON.stringify(grades), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    status = "error";
+    logUsage("ai-grade", status, userIp);
     console.error("ai-grade error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,

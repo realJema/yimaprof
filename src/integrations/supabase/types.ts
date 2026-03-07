@@ -145,6 +145,33 @@ export type Database = {
           },
         ]
       }
+      ai_usage_logs: {
+        Row: {
+          created_at: string | null
+          function_name: string
+          id: string
+          status: string | null
+          tokens_estimate: number | null
+          user_ip: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          function_name: string
+          id?: string
+          status?: string | null
+          tokens_estimate?: number | null
+          user_ip?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          function_name?: string
+          id?: string
+          status?: string | null
+          tokens_estimate?: number | null
+          user_ip?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
