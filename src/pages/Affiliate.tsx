@@ -663,8 +663,59 @@ export default function Affiliate() {
         </CardContent>
       </Card>
 
+      {/* Recent Referrals */}
+      {recentReferrals.length > 0 && (
+        <Card className="mb-8 border-border/50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-primary" />
+                {language === 'fr' ? 'Filleuls Récents' : 'Recent Referrals'}
+              </CardTitle>
+              {earnings.length > 5 && (
+                <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => {
+                  document.getElementById('earnings-history')?.scrollIntoView({ behavior: 'smooth' });
+                }}>
+                  {language === 'fr' ? 'Voir tout' : 'View all'}
+                  <ArrowUpRight className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentReferrals.map((earning) => {
+                const name = earning.referred_user?.first_name || earning.referred_user?.last_name
+                  ? `${earning.referred_user.first_name || ''} ${earning.referred_user.last_name || ''}`.trim()
+                  : earning.referred_user?.email || 'Unknown';
+                const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                return (
+                  <div key={earning.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{name}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(earning.created_at)}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold">{earning.amount.toLocaleString()} XOF</p>
+                      <Badge variant={earning.status === 'paid' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                        {earning.status === 'paid' 
+                          ? (language === 'fr' ? 'Payé' : 'Paid')
+                          : (language === 'fr' ? 'En attente' : 'Pending')}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Earnings Table */}
-      <Card className="border-border/50">
+      <Card id="earnings-history" className="border-border/50">
         <CardHeader>
           <CardTitle>{language === 'fr' ? 'Historique des Gains' : 'Earnings History'}</CardTitle>
           <CardDescription>
