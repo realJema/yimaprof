@@ -571,7 +571,7 @@ const translations = {
     terms_disclaimer_title: 'Clause de non-responsabilité',
     terms_disclaimer: 'Le Service est fourni "tel quel" sans garanties d\'aucune sorte. Nous ne garantissons pas que le Service sera ininterrompu, sécurisé ou exempt d\'erreurs.',
     terms_limitation_title: 'Limitation de responsabilité',
-    terms_limitation: 'YIMA ne sera pas responsable des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs résultant de votre utilisation ou de votre incapacité à utiliser le Service.',
+    terms_limitation: 'Yimaprof ne sera pas responsable des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs résultant de votre utilisation ou de votre incapacité à utiliser le Service.',
     terms_governing_law_title: 'Droit applicable',
     terms_governing_law: 'Ces Conditions sont régies par les lois du Cameroun. Tout litige sera résolu devant les tribunaux du Cameroun.',
     terms_changes_title: 'Modifications des conditions',
