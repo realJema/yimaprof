@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // Import admin components
 import { AdminStats } from '@/components/admin/AdminStats';
@@ -38,13 +38,13 @@ function ConfigSection({ title, children, defaultOpen = false }: { title: string
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card className="border-border/50">
         <CollapsibleTrigger asChild>
-          <button className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
-            <h3 className="text-lg font-semibold">{title}</h3>
+          <button className="w-full px-4 md:px-6 py-3 md:py-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+            <h3 className="text-base md:text-lg font-semibold">{title}</h3>
             {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-4 md:pb-6">
             {children}
           </div>
         </CollapsibleContent>
@@ -61,12 +61,20 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (user) {
       checkAdminAccess();
     }
   }, [user]);
+
+  // Scroll active mobile tab into view
+  useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeTab]);
 
   const checkAdminAccess = async () => {
     try {
@@ -132,41 +140,42 @@ export default function Admin() {
 
   const navItems = [
     { id: 'overview', label: t('overview'), icon: BarChart3 },
-    { id: 'users', label: t('users'), icon: Shield },
-    { id: 'affiliates', label: language === 'fr' ? 'Affiliés' : 'Affiliates', icon: Users },
-    { id: 'config', label: t('system_configuration'), icon: Shield },
-    { id: 'plans', label: t('plans'), icon: Shield },
-    { id: 'subscriptions', label: t('subscriptions'), icon: Shield },
-    { id: 'transactions', label: t('transactions'), icon: Shield },
-    { id: 'notifications', label: t('notifications'), icon: Shield },
-    { id: 'feedback', label: t('user_feedback'), icon: MessageSquare },
+    { id: 'users', label: t('users'), icon: Users },
+    { id: 'affiliates', label: language === 'fr' ? 'Affiliés' : 'Affiliates', icon: Heart },
+    { id: 'config', label: language === 'fr' ? 'Config' : 'Config', icon: Settings },
+    { id: 'plans', label: t('plans'), icon: CreditCard },
+    { id: 'subscriptions', label: language === 'fr' ? 'Abonnements' : 'Subs', icon: Shield },
+    { id: 'transactions', label: language === 'fr' ? 'Paiements' : 'Payments', icon: Receipt },
+    { id: 'notifications', label: language === 'fr' ? 'Notifs' : 'Notifs', icon: Bell },
+    { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'forum', label: 'Forum', icon: MessageCircle },
-    { id: 'ai-usage', label: language === 'fr' ? 'Utilisation IA' : 'AI Usage', icon: Bot },
+    { id: 'ai-usage', label: 'IA', icon: Bot },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
+      {/* Header - compact on mobile */}
       <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                {t('admin_dashboard')}
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold text-foreground flex items-center gap-2">
+                <Shield className="h-5 w-5 md:h-6 md:w-6 text-primary shrink-0" />
+                <span className="truncate">{t('admin_dashboard')}</span>
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1 hidden sm:block">
                 {t('platform_management')}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
               <Link to="/admin/exams">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  {t('manage_exams')}
+                <Button variant="outline" size="sm" className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm">
+                  <BookOpen className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <span className="hidden sm:inline">{t('manage_exams')}</span>
+                  <span className="sm:hidden">{language === 'fr' ? 'Examens' : 'Exams'}</span>
                 </Button>
               </Link>
-              <Badge variant="secondary" className="flex items-center gap-2">
+              <Badge variant="secondary" className="items-center gap-1.5 hidden md:flex">
                 <BarChart3 className="h-4 w-4" />
                 {t('admin_access')}
               </Badge>
@@ -175,9 +184,32 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* Mobile Navigation - horizontal scrollable pills */}
+      <div className="lg:hidden sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border">
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1.5 px-3 py-2.5 min-w-max">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                ref={activeTab === item.id ? activeTabRef : null}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+                  activeTab === item.id
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
-        {/* Floating Sidebar Toggle Button */}
+      <div className="max-w-7xl mx-auto p-3 md:p-6">
+        {/* Floating Sidebar Toggle Button - desktop only */}
         <Button
           variant="outline"
           size="sm"
@@ -198,25 +230,7 @@ export default function Admin() {
           )}
         </Button>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Mobile Navigation Tabs */}
-          <div className="lg:hidden">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto gap-2 bg-transparent p-0">
-                {navItems.map((item) => (
-                  <TabsTrigger
-                    key={item.id}
-                    value={item.id}
-                    className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-2 text-xs sm:text-sm"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{item.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
           {/* Desktop Left Sidebar Navigation */}
           {sidebarVisible && (
             <Card className="hidden lg:block w-64 h-fit sticky top-6 border-border/50 bg-card/95 backdrop-blur-sm shadow-medium">
@@ -242,15 +256,15 @@ export default function Admin() {
           )}
 
           {/* Right Content Area */}
-          <div className="flex-1 space-y-6 min-w-0">
+          <div className="flex-1 space-y-4 md:space-y-6 min-w-0">
             {activeTab === 'overview' && (
               <>
                 <AdminStats />
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                    <CardContent className="pt-6">
-                      <h3 className="text-lg font-semibold mb-4">{t('platform_overview')}</h3>
-                      <div className="space-y-4 text-sm">
+                    <CardContent className="pt-4 md:pt-6">
+                      <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">{t('platform_overview')}</h3>
+                      <div className="space-y-3 md:space-y-4 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('total_revenue')}</span>
                           <span className="font-medium">{t('updated_realtime')}</span>
@@ -268,8 +282,8 @@ export default function Admin() {
                   </Card>
 
                   <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                    <CardContent className="pt-6">
-                      <h3 className="text-lg font-semibold mb-4">{t('quick_navigation')}</h3>
+                    <CardContent className="pt-4 md:pt-6">
+                      <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">{t('quick_navigation')}</h3>
                       <div className="space-y-3 text-sm">
                         <p className="text-muted-foreground">{t('quick_nav_desc')}</p>
                         <ul className="space-y-1 text-muted-foreground">
@@ -289,8 +303,8 @@ export default function Admin() {
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'affiliates' && <AffiliateManagement />}
             {activeTab === 'config' && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold mb-6">{t('system_configuration')}</h2>
+              <div className="space-y-3 md:space-y-4">
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">{t('system_configuration')}</h2>
                 
                 <ConfigSection title={t('classes')}>
                   <ClassManagement />
