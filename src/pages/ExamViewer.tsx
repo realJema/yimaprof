@@ -134,7 +134,16 @@ export default function ExamViewer() {
   const [score, setScore] = useState<{
     correct: number;
     total: number;
+    earnedPoints?: number;
+    totalPoints?: number;
   } | null>(null);
+  const [aiGrading, setAiGrading] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<Array<{
+    questionIndex: number;
+    score: number;
+    maxPoints: number;
+    feedback: string;
+  }> | null>(null);
 
   // Resumable evaluation state
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
