@@ -495,9 +495,9 @@ const translations = {
     innovation: 'Innovation',
     innovation_desc: 'Utiliser la technologie pour transformer l\'apprentissage',
     our_story: 'Notre Histoire',
-    story_paragraph_1: 'YIMA a été fondée avec une vision simple mais puissante : donner à chaque étudiant africain l\'accès aux ressources dont il a besoin pour réussir. Nous avons commencé par reconnaître le défi auquel sont confrontés de nombreux étudiants pour accéder aux sujets d\'examen passés et aux matériels d\'étude.',
+    story_paragraph_1: 'Yimaprof a été fondée avec une vision simple mais puissante : donner à chaque étudiant africain l\'accès aux ressources dont il a besoin pour réussir. Nous avons commencé par reconnaître le défi auquel sont confrontés de nombreux étudiants pour accéder aux sujets d\'examen passés et aux matériels d\'étude.',
     story_paragraph_2: 'Depuis notre lancement, nous sommes devenus la plateforme de référence pour les sujets d\'examen dans les systèmes éducatifs francophones et anglophones. Notre collection s\'est développée pour inclure des milliers de sujets couvrant plusieurs années, niveaux et matières.',
-    story_paragraph_3: 'Aujourd\'hui, YIMA sert des milliers d\'étudiants dans toute l\'Afrique, les aidant à se préparer efficacement pour leurs examens. Nous continuons d\'innover et d\'élargir nos offres pour mieux servir la communauté éducative.',
+    story_paragraph_3: 'Aujourd\'hui, Yimaprof sert des milliers d\'étudiants dans toute l\'Afrique, les aidant à se préparer efficacement pour leurs examens. Nous continuons d\'innover et d\'élargir nos offres pour mieux servir la communauté éducative.',
     join_us_description: 'Rejoignez notre communauté grandissante d\'étudiants et commencez votre parcours vers la réussite académique dès aujourd\'hui.',
 
     // Contact Page
