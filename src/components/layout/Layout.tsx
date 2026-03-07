@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import ResumeExamWatcher from '@/components/exam/ResumeExamWatcher';
+import HelpChatBubble from '@/components/chat/HelpChatBubble';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,6 +25,7 @@ export default function Layout({ children }: LayoutProps) {
         <ResumeExamWatcher />
         {children}
       </main>
+      <HelpChatBubble />
       {!hideFooter && <Footer className="mt-10" />}
     </div>
   );

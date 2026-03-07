@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.admin-resolve-transaction]
 verify_jwt = true
+
+[functions.help-chat]
+verify_jwt = false
