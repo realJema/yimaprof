@@ -518,7 +518,7 @@ const translations = {
     faq_3_answer: 'Oui, les abonnés peuvent télécharger les examens pour étudier hors ligne à tout moment.',
 
     // Privacy Page
-    privacy_intro: 'YIMA ("nous", "notre" ou "nos") exploite le site web yima.cm et l\'application mobile YIMA (ci-après dénommés le "Service"). Cette page vous informe de nos politiques concernant la collecte, l\'utilisation et la divulgation des données personnelles lorsque vous utilisez notre Service.',
+    privacy_intro: 'Yimaprof ("nous", "notre" ou "nos") exploite le site web yimaprof.com et l\'application mobile Yimaprof (ci-après dénommés le "Service"). Cette page vous informe de nos politiques concernant la collecte, l\'utilisation et la divulgation des données personnelles lorsque vous utilisez notre Service.',
     privacy_data_collection_title: 'Collecte et utilisation des données',
     privacy_data_collection: 'Nous collectons plusieurs types d\'informations à des fins diverses pour fournir et améliorer notre Service pour vous.',
     privacy_types_title: 'Types de données collectées',
