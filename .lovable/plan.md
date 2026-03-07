@@ -1,47 +1,80 @@
 
 
-# Add Affiliate Dashboard Widget with Earnings Statistics & Recent Referrals
+# Add Exam Review & Rating Section (Correction Mode Only)
 
-## Current State
-The affiliate page (approved view) already has:
-- 3 stats cards: Total Earned, Pending, Referrals count
-- Affiliate link section
-- Full earnings history table
+## Overview
+Add a star rating and comment review system for exams, visible only when correction mode is active. Users can leave one review per exam with a 1-5 star rating and optional comment. Other users' reviews are also displayed.
 
-## What to Add
-Enhance the approved affiliate dashboard with richer statistics and a dedicated recent referrals widget:
+## Database Changes
 
-### 1. Enhanced Stats Cards (replace existing 3-card grid)
-Expand to a 4-card grid:
-- **Total Earned** (existing) — keep as-is
-- **Paid Out** — new card showing paid earnings with green styling
-- **Pending Payout** — existing pending card
-- **Total Referrals** — existing, add conversion context (e.g., "X this month")
+### New table: `exam_reviews`
+```sql
+CREATE TABLE public.exam_reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  exam_id uuid NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (exam_id, user_id)
+);
 
-### 2. New "Earnings Overview" Card (after stats, before affiliate link)
-A summary card with:
-- A simple bar/progress showing paid vs pending proportion
-- Average commission per referral
-- Most recent earning date
-- Month-over-month earnings (current month total vs last month)
+ALTER TABLE public.exam_reviews ENABLE ROW LEVEL SECURITY;
 
-### 3. New "Recent Referrals" Card (after affiliate link, before full history table)
-- Shows last 5 referrals in a compact list format (avatar placeholder, name, amount, date, status badge)
-- "View all" link scrolls to the full earnings table below
-- More visual than the table — uses a list with icons
+-- Anyone authenticated can view reviews
+CREATE POLICY "Anyone can view reviews" ON public.exam_reviews FOR SELECT TO authenticated USING (true);
+-- Users can insert their own review
+CREATE POLICY "Users can insert own review" ON public.exam_reviews FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+-- Users can update their own review
+CREATE POLICY "Users can update own review" ON public.exam_reviews FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+-- Users can delete their own review
+CREATE POLICY "Users can delete own review" ON public.exam_reviews FOR DELETE TO authenticated USING (auth.uid() = user_id);
+```
 
-## Files to Modify
+## New Component: `src/components/exam/ExamReviewSection.tsx`
 
-| File | Change |
+A self-contained component that:
+- Accepts `examId` and `isVisible` (only renders when correction mode is active)
+- Fetches existing reviews for the exam (with profile info for display)
+- Shows the current user's review form (star picker + textarea)
+- If user already reviewed, shows their review with an edit option
+- Displays average rating and total review count at the top
+- Lists all reviews with star display, comment, username, and date
+- Star rating: interactive clickable stars (1-5) using Lucide `Star` icon (filled/outline)
+
+### UI Layout
+```text
+┌──────────────────────────────────────┐
+│ ⭐ Reviews & Ratings                │
+│ Average: ★★★★☆ (4.2) · 12 reviews  │
+├──────────────────────────────────────┤
+│ Your Review                          │
+│ ★★★★☆  (click to rate)             │
+│ [Comment textarea...............]    │
+│                    [Submit Review]   │
+├──────────────────────────────────────┤
+│ User A · ★★★★★ · 2 days ago        │
+│ "Great exam, very helpful!"         │
+│──────────────────────────────────────│
+│ User B · ★★★☆☆ · 1 week ago        │
+│ "Could use more detailed solutions" │
+└──────────────────────────────────────┘
+```
+
+## Integration: `src/pages/ExamViewer.tsx`
+
+- Import `ExamReviewSection`
+- Place it after the exam content div (line ~1133), inside the container, only when `mode === 'correction'`
+```tsx
+{mode === 'correction' && <ExamReviewSection examId={examId!} />}
+```
+
+## Files
+
+| File | Action |
 |------|--------|
-| `src/pages/Affiliate.tsx` | Add paid stats card, earnings overview card, recent referrals widget |
-
-No database changes needed — all data is already fetched from `affiliate_earnings`.
-
-## Implementation Details
-
-- Compute `paidEarnings` (already exists), `currentMonthEarnings`, `lastMonthEarnings`, `avgCommission` from the existing `earnings` array
-- Progress bar showing paid/pending split uses the existing `Progress` component
-- Recent referrals widget slices `earnings.slice(0, 5)` and renders a compact card list
-- All text bilingual (fr/en) following existing patterns
+| Migration SQL | Create `exam_reviews` table with RLS |
+| `src/components/exam/ExamReviewSection.tsx` | New component |
+| `src/pages/ExamViewer.tsx` | Add review section in correction mode |
 
