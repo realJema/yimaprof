@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Search, Download, Users, Star, CheckCircle, Globe, Smartphone, GraduationCap, Target, Zap, Shield } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 
