@@ -1350,7 +1350,7 @@ const translations = {
     terms_disclaimer_title: 'Disclaimer',
     terms_disclaimer: 'The Service is provided "as is" without warranties of any kind. We do not guarantee that the Service will be uninterrupted, secure, or error-free.',
     terms_limitation_title: 'Limitation of Liability',
-    terms_limitation: 'YIMA shall not be liable for any indirect, incidental, special, consequential or punitive damages resulting from your use of or inability to use the Service.',
+    terms_limitation: 'Yimaprof shall not be liable for any indirect, incidental, special, consequential or punitive damages resulting from your use of or inability to use the Service.',
     terms_governing_law_title: 'Governing Law',
     terms_governing_law: 'These Terms are governed by the laws of Cameroon. Any disputes will be resolved in the courts of Cameroon.',
     terms_changes_title: 'Changes to Terms',
