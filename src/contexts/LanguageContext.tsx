@@ -1321,9 +1321,9 @@ const translations = {
     // Terms Page
     terms_last_updated: 'Last updated: January 2025',
     terms_acceptance_title: 'Acceptance of Terms',
-    terms_acceptance: 'By accessing and using YIMA, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our Service.',
+    terms_acceptance: 'By accessing and using Yimaprof, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our Service.',
     terms_description_title: 'Service Description',
-    terms_description: 'YIMA provides an online platform for accessing exam papers, study materials, and related educational resources for Francophone and Anglophone educational systems in Africa.',
+    terms_description: 'Yimaprof provides an online platform for accessing exam papers, study materials, and related educational resources for Francophone and Anglophone educational systems in Africa.',
     terms_user_accounts_title: 'User Accounts',
     terms_user_accounts: 'To access certain features of the Service, you will need to create an account. You agree to:',
     terms_account_accuracy: 'Provide accurate, current, and complete information',
