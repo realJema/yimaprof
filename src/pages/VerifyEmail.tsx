@@ -30,9 +30,8 @@ export default function VerifyEmail() {
             <ArrowLeft className="h-4 w-4" />
             {language === 'fr' ? 'Retour à l\'accueil' : 'Back to home'}
           </Link>
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">YIMA</h1>
+          <div className="flex items-center justify-center mb-4">
+            <Logo size="xl" />
           </div>
         </div>
 

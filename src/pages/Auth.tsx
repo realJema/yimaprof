@@ -186,7 +186,7 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-center">
               {activeTab === "signup" 
-                ? "Rejoignez des milliers d'étudiants qui réussissent avec YIMA"
+                ? "Rejoignez des milliers d'étudiants qui réussissent avec Yimaprof"
                 : "Accédez à votre espace d'apprentissage"
               }
             </CardDescription>
