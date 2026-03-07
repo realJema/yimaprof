@@ -288,7 +288,7 @@ const translations = {
     francophone: 'Francophone',
     anglophone: 'Anglophone',
     cta_title: 'Prêt à commencer votre parcours d\'apprentissage ?',
-    cta_subtitle: 'Rejoignez des milliers d\'étudiants qui réussissent avec YIMA',
+    cta_subtitle: 'Rejoignez des milliers d\'étudiants qui réussissent avec Yimaprof',
     explore_now: 'Explorer maintenant',
     create_account: 'Créer un compte',
     view_subscriptions: 'Voir les abonnements',
