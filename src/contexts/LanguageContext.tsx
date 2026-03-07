@@ -1262,8 +1262,8 @@ const translations = {
 
     // About Page
     about: 'About',
-    about_title: 'About YIMA',
-    about_description: 'YIMA is an educational platform dedicated to academic excellence in Africa. We make education accessible by providing quality exam resources to students in both Francophone and Anglophone systems.',
+    about_title: 'About Yimaprof',
+    about_description: 'Yimaprof is an educational platform dedicated to academic excellence in Africa. We make education accessible by providing quality exam resources to students in both Francophone and Anglophone systems.',
     our_mission: 'Our Mission',
     mission_description: 'Our mission is to democratize access to quality educational resources across Africa. We believe every student deserves the best opportunities to succeed in their exams and reach their full academic potential.',
     our_values: 'Our Values',
