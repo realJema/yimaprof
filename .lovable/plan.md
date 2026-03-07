@@ -1,80 +1,54 @@
 
 
-# Add Exam Review & Rating Section (Correction Mode Only)
+# Add AI Chat Bubble for Platform Guidance
 
 ## Overview
-Add a star rating and comment review system for exams, visible only when correction mode is active. Users can leave one review per exam with a 1-5 star rating and optional comment. Other users' reviews are also displayed.
+Add a floating chat bubble (bottom-right corner) powered by Lovable AI that helps users understand how to use the platform. The chatbot will have a system prompt with knowledge about YimaProf's features and will stream responses.
 
-## Database Changes
+## Architecture
 
-### New table: `exam_reviews`
-```sql
-CREATE TABLE public.exam_reviews (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  exam_id uuid NOT NULL REFERENCES public.exams(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL,
-  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE (exam_id, user_id)
-);
+### 1. Edge Function: `supabase/functions/help-chat/index.ts`
+- Receives conversation messages from client
+- Prepends a system prompt describing YimaProf features (exams, subscriptions, corrections, evaluations, forum, affiliate system)
+- Streams response from Lovable AI Gateway using `google/gemini-3-flash-preview`
+- Handles CORS, 429/402 errors
 
-ALTER TABLE public.exam_reviews ENABLE ROW LEVEL SECURITY;
+### 2. New Component: `src/components/chat/HelpChatBubble.tsx`
+- Floating button (bottom-right, `MessageCircle` icon) with open/close toggle
+- Chat panel: message list + input field
+- Streams AI responses token-by-token
+- Bilingual welcome message (fr/en) based on language context
+- Persists conversation in component state (resets on page reload)
+- Auto-scrolls to latest message
 
--- Anyone authenticated can view reviews
-CREATE POLICY "Anyone can view reviews" ON public.exam_reviews FOR SELECT TO authenticated USING (true);
--- Users can insert their own review
-CREATE POLICY "Users can insert own review" ON public.exam_reviews FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
--- Users can update their own review
-CREATE POLICY "Users can update own review" ON public.exam_reviews FOR UPDATE TO authenticated USING (auth.uid() = user_id);
--- Users can delete their own review
-CREATE POLICY "Users can delete own review" ON public.exam_reviews FOR DELETE TO authenticated USING (auth.uid() = user_id);
-```
+### 3. Integration: `src/components/layout/Layout.tsx`
+- Add `<HelpChatBubble />` alongside the existing `<ResumeExamWatcher />`
 
-## New Component: `src/components/exam/ExamReviewSection.tsx`
-
-A self-contained component that:
-- Accepts `examId` and `isVisible` (only renders when correction mode is active)
-- Fetches existing reviews for the exam (with profile info for display)
-- Shows the current user's review form (star picker + textarea)
-- If user already reviewed, shows their review with an edit option
-- Displays average rating and total review count at the top
-- Lists all reviews with star display, comment, username, and date
-- Star rating: interactive clickable stars (1-5) using Lucide `Star` icon (filled/outline)
-
-### UI Layout
+## UI Layout
 ```text
-┌──────────────────────────────────────┐
-│ ⭐ Reviews & Ratings                │
-│ Average: ★★★★☆ (4.2) · 12 reviews  │
-├──────────────────────────────────────┤
-│ Your Review                          │
-│ ★★★★☆  (click to rate)             │
-│ [Comment textarea...............]    │
-│                    [Submit Review]   │
-├──────────────────────────────────────┤
-│ User A · ★★★★★ · 2 days ago        │
-│ "Great exam, very helpful!"         │
-│──────────────────────────────────────│
-│ User B · ★★★☆☆ · 1 week ago        │
-│ "Could use more detailed solutions" │
-└──────────────────────────────────────┘
-```
-
-## Integration: `src/pages/ExamViewer.tsx`
-
-- Import `ExamReviewSection`
-- Place it after the exam content div (line ~1133), inside the container, only when `mode === 'correction'`
-```tsx
-{mode === 'correction' && <ExamReviewSection examId={examId!} />}
+                              ┌─────────────────────┐
+                              │ 💬 YimaProf Help    │
+                              ├─────────────────────┤
+                              │ Welcome! How can I  │
+                              │ help you today?     │
+                              │                     │
+                              │ User: How do I...   │
+                              │ Bot: You can...     │
+                              ├─────────────────────┤
+                              │ [Type a message...] │
+                              └─────────────────────┘
+                                              [💬] ← floating button
 ```
 
 ## Files
 
 | File | Action |
 |------|--------|
-| Migration SQL | Create `exam_reviews` table with RLS |
-| `src/components/exam/ExamReviewSection.tsx` | New component |
-| `src/pages/ExamViewer.tsx` | Add review section in correction mode |
+| `supabase/functions/help-chat/index.ts` | New edge function |
+| `supabase/config.toml` | Add `[functions.help-chat]` entry |
+| `src/components/chat/HelpChatBubble.tsx` | New component |
+| `src/components/layout/Layout.tsx` | Import and render chat bubble |
+
+## System Prompt (in edge function)
+Will describe YimaProf as an exam prep platform for Cameroon students, covering: browsing exams, viewing corrections, running timed evaluations, subscriptions, affiliate program, forum, and settings. Bilingual responses matching user language.
 
