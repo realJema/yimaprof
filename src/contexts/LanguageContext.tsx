@@ -1067,7 +1067,7 @@ const translations = {
     francophone: 'Francophone',
     anglophone: 'Anglophone',
     cta_title: 'Ready to Start Your Learning Journey?',
-    cta_subtitle: 'Join thousands of students succeeding with YIMA',
+    cta_subtitle: 'Join thousands of students succeeding with Yimaprof',
     explore_now: 'Explore Now',
     create_account: 'Create Account',
     view_subscriptions: 'View Subscriptions',
