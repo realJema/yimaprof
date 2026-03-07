@@ -283,9 +283,8 @@ export default function Header() {
               </SheetContent>
             </Sheet>
             
-            <Link to="/" className="flex items-center space-x-2">
-              <BookOpen className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">YIMA</span>
+            <Link to="/" className="flex items-center">
+              <Logo size="lg" />
             </Link>
             
             {/* Prominent Exams link - always visible */}

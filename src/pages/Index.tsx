@@ -79,9 +79,8 @@ const Index = () => {
           
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">
             {t('hero_title')}{" "}
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              YIMA
-            </span>
+            <span className="text-foreground">Yima</span>
+            <span className="text-secondary italic font-extrabold">prof</span>
           </h1>
           
           <p className="mb-8 text-lg text-muted-foreground md:text-xl lg:text-2xl max-w-3xl mx-auto">

@@ -147,7 +147,7 @@ export default function Footer({
         {/* Bottom Section */}
         <div className="py-6 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © 2024 YIMA. {t('rights_reserved')}
+            © 2024 Yima<span className="text-secondary italic font-extrabold">prof</span>. {t('rights_reserved')}
           </div>
           
           {/* Social Links */}
