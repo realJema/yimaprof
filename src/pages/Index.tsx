@@ -73,8 +73,7 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl text-center">
           <div className="mb-8 flex justify-center">
             <div className="flex items-center gap-3 rounded-full bg-white/80 px-6 py-3 shadow-soft">
-              <BookOpen className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">YIMA</span>
+              <Logo size="xl" />
             </div>
           </div>
           
