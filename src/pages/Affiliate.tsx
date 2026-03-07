@@ -447,49 +447,153 @@ export default function Affiliate() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  {language === 'fr' ? 'Total Gagné' : 'Total Earned'}
-                </p>
-                <p className="text-2xl font-bold text-primary">{totalEarnings.toLocaleString()} XOF</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary/50" />
-            </div>
-          </CardContent>
-        </Card>
+      {(() => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const currentMonthEarnings = earnings
+          .filter(e => {
+            const d = new Date(e.created_at);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          })
+          .reduce((sum, e) => sum + e.amount, 0);
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        const lastMonthEarnings = earnings
+          .filter(e => {
+            const d = new Date(e.created_at);
+            return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+          })
+          .reduce((sum, e) => sum + e.amount, 0);
+        const thisMonthReferrals = earnings.filter(e => {
+          const d = new Date(e.created_at);
+          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        }).length;
+        const avgCommission = referralCount > 0 ? Math.round(totalEarnings / referralCount) : 0;
+        const paidRatio = totalEarnings > 0 ? Math.round((paidEarnings / totalEarnings) * 100) : 0;
+        const mostRecentEarning = earnings.length > 0 ? earnings[0].created_at : null;
+        const recentReferrals = earnings.slice(0, 5);
 
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  {language === 'fr' ? 'En Attente' : 'Pending'}
-                </p>
-                <p className="text-2xl font-bold text-amber-600">{pendingEarnings.toLocaleString()} XOF</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-amber-600/50" />
-            </div>
-          </CardContent>
-        </Card>
+        return (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <Card className="border-border/50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {language === 'fr' ? 'Total Gagné' : 'Total Earned'}
+                      </p>
+                      <p className="text-2xl font-bold text-primary">{totalEarnings.toLocaleString()} XOF</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-primary/50" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  {language === 'fr' ? 'Filleuls' : 'Referrals'}
-                </p>
-                <p className="text-2xl font-bold">{referralCount}</p>
-              </div>
-              <Users className="h-8 w-8 text-primary/50" />
+              <Card className="border-border/50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {language === 'fr' ? 'Payé' : 'Paid Out'}
+                      </p>
+                      <p className="text-2xl font-bold text-green-600">{paidEarnings.toLocaleString()} XOF</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-600/50" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {language === 'fr' ? 'En Attente' : 'Pending'}
+                      </p>
+                      <p className="text-2xl font-bold text-amber-600">{pendingEarnings.toLocaleString()} XOF</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-amber-600/50" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {language === 'fr' ? 'Filleuls' : 'Referrals'}
+                      </p>
+                      <p className="text-2xl font-bold">{referralCount}</p>
+                      {thisMonthReferrals > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {thisMonthReferrals} {language === 'fr' ? 'ce mois' : 'this month'}
+                        </p>
+                      )}
+                    </div>
+                    <Users className="h-8 w-8 text-primary/50" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            {/* Earnings Overview */}
+            <Card className="mb-8 border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  {language === 'fr' ? 'Aperçu des Gains' : 'Earnings Overview'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">{language === 'fr' ? 'Payé vs En attente' : 'Paid vs Pending'}</span>
+                    <span className="font-medium">{paidRatio}% {language === 'fr' ? 'payé' : 'paid'}</span>
+                  </div>
+                  <Progress value={paidRatio} className="h-3" />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+                      {language === 'fr' ? 'Payé' : 'Paid'}: {paidEarnings.toLocaleString()} XOF
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-secondary inline-block" />
+                      {language === 'fr' ? 'En attente' : 'Pending'}: {pendingEarnings.toLocaleString()} XOF
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Commission moyenne' : 'Avg. Commission'}</p>
+                    <p className="text-lg font-semibold">{avgCommission.toLocaleString()} XOF</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Ce mois' : 'This Month'}</p>
+                    <p className="text-lg font-semibold">{currentMonthEarnings.toLocaleString()} XOF</p>
+                    {lastMonthEarnings > 0 && (
+                      <p className={`text-xs mt-1 ${currentMonthEarnings >= lastMonthEarnings ? 'text-green-600' : 'text-destructive'}`}>
+                        {currentMonthEarnings >= lastMonthEarnings ? '↑' : '↓'}{' '}
+                        {language === 'fr' ? 'vs mois dernier' : 'vs last month'} ({lastMonthEarnings.toLocaleString()})
+                      </p>
+                    )}
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-1">{language === 'fr' ? 'Dernier gain' : 'Last Earning'}</p>
+                    <p className="text-lg font-semibold">
+                      {mostRecentEarning ? formatDate(mostRecentEarning) : (language === 'fr' ? 'Aucun' : 'None')}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        );
+      })()}
+
 
       {/* Referred By Section */}
       {referredByUsername && (
