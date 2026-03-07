@@ -29,6 +29,7 @@ import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
 import ForumModeration from '@/components/admin/ForumModeration';
 import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
 import { SeriesManagement } from '@/components/admin/SeriesManagement';
+import { AIUsageStats } from '@/components/admin/AIUsageStats';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
