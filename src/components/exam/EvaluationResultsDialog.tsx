@@ -1,8 +1,17 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye, Award } from 'lucide-react';
+import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye, Award, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+interface AiFeedbackItem {
+  questionIndex: number;
+  score: number;
+  maxPoints: number;
+  feedback: string;
+}
 
 interface EvaluationResultsDialogProps {
   open: boolean;
@@ -14,6 +23,8 @@ interface EvaluationResultsDialogProps {
   onRetry: () => void;
   onClose: () => void;
   onViewAnswers: () => void;
+  aiGrading?: boolean;
+  aiFeedback?: AiFeedbackItem[] | null;
 }
 
 export function EvaluationResultsDialog({
@@ -25,9 +36,12 @@ export function EvaluationResultsDialog({
   attemptNumber,
   onRetry,
   onClose,
-  onViewAnswers
+  onViewAnswers,
+  aiGrading = false,
+  aiFeedback = null,
 }: EvaluationResultsDialogProps) {
   const { language } = useLanguage();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -56,7 +70,7 @@ export function EvaluationResultsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl text-center">
             {language === 'fr' ? 'Évaluation Terminée' : 'Evaluation Complete'}
@@ -75,17 +89,37 @@ export function EvaluationResultsDialog({
                   percentage < 60 && "border-red-500/50 bg-red-500/10"
                 )}>
                   <div className="text-center">
-                    <ScoreIcon className={cn("h-8 w-8 mx-auto mb-1", getScoreColor())} />
-                    <span className={cn("text-3xl font-bold", getScoreColor())}>
-                      {percentage}%
-                    </span>
+                    {aiGrading ? (
+                      <>
+                        <Loader2 className="h-8 w-8 mx-auto mb-1 text-primary animate-spin" />
+                        <span className="text-xs text-muted-foreground">
+                          {language === 'fr' ? 'Correction...' : 'Grading...'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ScoreIcon className={cn("h-8 w-8 mx-auto mb-1", getScoreColor())} />
+                        <span className={cn("text-3xl font-bold", getScoreColor())}>
+                          {percentage}%
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
+              {/* AI Grading indicator */}
+              {aiGrading && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  {language === 'fr' 
+                    ? "L'IA corrige vos réponses..." 
+                    : 'AI is grading your answers...'}
+                </div>
+              )}
+
               {/* Stats */}
               <div className={cn("grid gap-4 text-center", hasFullScore && hasMcq ? "grid-cols-2" : "grid-cols-3")}>
-                {/* Total Score (if available) */}
                 {hasFullScore && (
                   <div className="bg-muted/50 rounded-lg p-3">
                     <Award className="h-5 w-5 mx-auto mb-1 text-primary" />
@@ -96,7 +130,6 @@ export function EvaluationResultsDialog({
                   </div>
                 )}
                 
-                {/* MCQ Score */}
                 {hasMcq && (
                   <div className="bg-muted/50 rounded-lg p-3">
                     <Target className="h-5 w-5 mx-auto mb-1 text-primary" />
@@ -122,6 +155,41 @@ export function EvaluationResultsDialog({
                   </p>
                 </div>
               </div>
+
+              {/* AI Feedback per question */}
+              {aiFeedback && aiFeedback.length > 0 && (
+                <Collapsible open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full gap-2 text-sm">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      {language === 'fr' ? 'Détails de la correction IA' : 'AI Grading Details'}
+                      {feedbackOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-2 mt-2">
+                      {aiFeedback.map((item, idx) => (
+                        <div key={idx} className="bg-muted/50 rounded-lg p-3 text-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium">
+                              {language === 'fr' ? `Question ${item.questionIndex + 1}` : `Question ${item.questionIndex + 1}`}
+                            </span>
+                            <span className={cn(
+                              "font-semibold",
+                              item.score >= item.maxPoints * 0.8 ? "text-emerald-600 dark:text-emerald-400" :
+                              item.score >= item.maxPoints * 0.5 ? "text-amber-600 dark:text-amber-400" :
+                              "text-red-600 dark:text-red-400"
+                            )}>
+                              {item.score}/{item.maxPoints}
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground">{item.feedback}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           ) : (
             <div className="text-center py-4">

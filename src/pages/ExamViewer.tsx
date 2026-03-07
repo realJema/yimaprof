@@ -1294,7 +1294,7 @@ export default function ExamViewer() {
       <EvaluationRulesDialog open={showRulesDialog} onOpenChange={setShowRulesDialog} onStart={handleStartEvaluation} durationMinutes={durationMinutes} attemptCount={attemptCount} />
 
       {/* Evaluation Results Dialog */}
-      <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} />
+      <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} aiGrading={aiGrading} aiFeedback={aiFeedback} />
 
       {/* PDF Modal - Mobile Only */}
       <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
