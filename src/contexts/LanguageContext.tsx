@@ -559,7 +559,7 @@ const translations = {
     terms_rule_no_reverse: 'Tenter d\'effectuer de la rétro-ingénierie du Service',
     terms_rule_no_automated: 'Utiliser des systèmes automatisés pour accéder au Service',
     terms_intellectual_property_title: 'Propriété intellectuelle',
-    terms_intellectual_property: 'Tout le contenu disponible sur YIMA, y compris les sujets d\'examen, les textes, les graphiques et le code, est protégé par les lois sur les droits d\'auteur et appartient à YIMA ou à ses concédants de licence.',
+    terms_intellectual_property: 'Tout le contenu disponible sur Yimaprof, y compris les sujets d\'examen, les textes, les graphiques et le code, est protégé par les lois sur les droits d\'auteur et appartient à Yimaprof ou à ses concédants de licence.',
     terms_subscriptions_title: 'Abonnements et paiements',
     terms_subscriptions: 'Certaines fonctionnalités nécessitent un abonnement payant. Vous acceptez que :',
     terms_subscription_billing: 'Les abonnements sont facturés à l\'avance sur une base périodique',
