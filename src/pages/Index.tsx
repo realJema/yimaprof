@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Search, Download, Users, Star, CheckCircle, Globe, Smartphone, GraduationCap, Target, Zap, Shield } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -73,16 +74,14 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl text-center">
           <div className="mb-8 flex justify-center">
             <div className="flex items-center gap-3 rounded-full bg-white/80 px-6 py-3 shadow-soft">
-              <BookOpen className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">YIMA</span>
+              <Logo size="xl" />
             </div>
           </div>
           
           <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">
             {t('hero_title')}{" "}
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              YIMA
-            </span>
+            <span className="text-foreground">Yima</span>
+            <span className="text-secondary italic font-extrabold">prof</span>
           </h1>
           
           <p className="mb-8 text-lg text-muted-foreground md:text-xl lg:text-2xl max-w-3xl mx-auto">
@@ -212,7 +211,7 @@ const Index = () => {
               {t('francophone')} & {t('anglophone')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              YIMA supports both French and English educational systems across Africa, providing relevant exam papers for each curriculum.
+              Yimaprof supports both French and English educational systems across Africa, providing relevant exam papers for each curriculum.
             </p>
           </div>
           

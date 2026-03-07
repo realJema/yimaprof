@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,9 +171,8 @@ export default function Auth() {
             <ArrowLeft className="h-4 w-4" />
             Retour à l'accueil
           </Link>
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">YIMA</h1>
+          <div className="flex items-center justify-center mb-4">
+            <Logo size="xl" />
           </div>
           <p className="text-muted-foreground">
             Plateforme d'apprentissage pour les étudiants africains
@@ -186,7 +186,7 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-center">
               {activeTab === "signup" 
-                ? "Rejoignez des milliers d'étudiants qui réussissent avec YIMA"
+                ? "Rejoignez des milliers d'étudiants qui réussissent avec Yimaprof"
                 : "Accédez à votre espace d'apprentissage"
               }
             </CardDescription>

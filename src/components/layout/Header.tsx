@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -195,9 +196,8 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="left" className="w-80 bg-card">
                 <SheetHeader className="text-left">
-                  <SheetTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    YIMA
+                  <SheetTitle>
+                    <Logo size="md" />
                   </SheetTitle>
                 </SheetHeader>
                 
@@ -283,9 +283,8 @@ export default function Header() {
               </SheetContent>
             </Sheet>
             
-            <Link to="/" className="flex items-center space-x-2">
-              <BookOpen className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">YIMA</span>
+            <Link to="/" className="flex items-center">
+              <Logo size="lg" />
             </Link>
             
             {/* Prominent Exams link - always visible */}

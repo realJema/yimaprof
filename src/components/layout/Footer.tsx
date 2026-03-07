@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { BookOpen, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import { cn } from '@/lib/utils';
 interface FooterProps {
   className?: string;
@@ -67,9 +68,8 @@ export default function Footer({
         <div className="py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Section */}
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-foreground">YIMA</span>
+            <div className="mb-4">
+              <Logo size="lg" />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               {t('about_yima')}
@@ -147,7 +147,7 @@ export default function Footer({
         {/* Bottom Section */}
         <div className="py-6 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            © 2024 YIMA. {t('rights_reserved')}
+            © 2024 Yima<span className="text-secondary italic font-extrabold">prof</span>. {t('rights_reserved')}
           </div>
           
           {/* Social Links */}
