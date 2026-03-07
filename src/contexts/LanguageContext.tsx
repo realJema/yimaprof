@@ -483,8 +483,8 @@ const translations = {
 
     // About Page
     about: 'À propos',
-    about_title: 'À propos de YIMA',
-    about_description: 'YIMA est une plateforme éducative dédiée à l\'excellence académique en Afrique. Nous rendons l\'éducation accessible en fournissant des ressources d\'examen de qualité aux étudiants des systèmes francophones et anglophones.',
+    about_title: 'À propos de Yimaprof',
+    about_description: 'Yimaprof est une plateforme éducative dédiée à l\'excellence académique en Afrique. Nous rendons l\'éducation accessible en fournissant des ressources d\'examen de qualité aux étudiants des systèmes francophones et anglophones.',
     our_mission: 'Notre Mission',
     mission_description: 'Notre mission est de démocratiser l\'accès aux ressources éducatives de qualité en Afrique. Nous croyons que chaque étudiant mérite les meilleures opportunités de réussir ses examens et d\'atteindre son plein potentiel académique.',
     our_values: 'Nos Valeurs',
