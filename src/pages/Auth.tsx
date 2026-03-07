@@ -171,9 +171,8 @@ export default function Auth() {
             <ArrowLeft className="h-4 w-4" />
             Retour à l'accueil
           </Link>
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">YIMA</h1>
+          <div className="flex items-center justify-center mb-4">
+            <Logo size="xl" />
           </div>
           <p className="text-muted-foreground">
             Plateforme d'apprentissage pour les étudiants africains
