@@ -418,6 +418,26 @@ export default function Affiliate() {
   const paidEarnings = earnings.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0);
   const pendingEarnings = earnings.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0);
   const referralCount = earnings.length;
+  
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const currentMonthEarnings = earnings
+    .filter(e => { const d = new Date(e.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
+    .reduce((sum, e) => sum + e.amount, 0);
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const lastMonthEarnings = earnings
+    .filter(e => { const d = new Date(e.created_at); return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear; })
+    .reduce((sum, e) => sum + e.amount, 0);
+  const thisMonthReferrals = earnings.filter(e => {
+    const d = new Date(e.created_at);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  }).length;
+  const avgCommission = referralCount > 0 ? Math.round(totalEarnings / referralCount) : 0;
+  const paidRatio = totalEarnings > 0 ? Math.round((paidEarnings / totalEarnings) * 100) : 0;
+  const mostRecentEarning = earnings.length > 0 ? earnings[0].created_at : null;
+  const recentReferrals = earnings.slice(0, 5);
 
   return (
     <div className="container mx-auto py-8 px-4">
