@@ -1274,9 +1274,9 @@ const translations = {
     innovation: 'Innovation',
     innovation_desc: 'Using technology to transform learning',
     our_story: 'Our Story',
-    story_paragraph_1: 'YIMA was founded with a simple yet powerful vision: to give every African student access to the resources they need to succeed. We started by recognizing the challenge many students face in accessing past exam papers and study materials.',
+    story_paragraph_1: 'Yimaprof was founded with a simple yet powerful vision: to give every African student access to the resources they need to succeed. We started by recognizing the challenge many students face in accessing past exam papers and study materials.',
     story_paragraph_2: 'Since our launch, we have grown to become the go-to platform for exam papers across Francophone and Anglophone educational systems. Our collection has expanded to include thousands of papers covering multiple years, levels, and subjects.',
-    story_paragraph_3: 'Today, YIMA serves thousands of students across Africa, helping them prepare effectively for their examinations. We continue to innovate and expand our offerings to better serve the educational community.',
+    story_paragraph_3: 'Today, Yimaprof serves thousands of students across Africa, helping them prepare effectively for their examinations. We continue to innovate and expand our offerings to better serve the educational community.',
     join_us_description: 'Join our growing community of students and start your journey to academic success today.',
 
     // Contact Page
