@@ -276,7 +276,7 @@ const translations = {
     step_3_desc: 'Parcourez notre vaste bibliothèque de sujets',
     step_4_title: 'Commencer à pratiquer',
     step_4_desc: 'Téléchargez et étudiez à votre rythme',
-    why_choose: 'Pourquoi choisir YIMA ?',
+    why_choose: 'Pourquoi choisir Yimaprof ?',
     why_choose_subtitle: 'Tout ce dont vous avez besoin pour réussir vos examens',
     advanced_search: 'Recherche avancée',
     advanced_search_desc: 'Trouvez facilement les examens par matière, année et niveau',
