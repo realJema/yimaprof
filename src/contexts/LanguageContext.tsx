@@ -1338,7 +1338,7 @@ const translations = {
     terms_rule_no_reverse: 'Attempt to reverse engineer the Service',
     terms_rule_no_automated: 'Use automated systems to access the Service',
     terms_intellectual_property_title: 'Intellectual Property',
-    terms_intellectual_property: 'All content available on YIMA, including exam papers, text, graphics, and code, is protected by copyright laws and belongs to YIMA or its licensors.',
+    terms_intellectual_property: 'All content available on Yimaprof, including exam papers, text, graphics, and code, is protected by copyright laws and belongs to Yimaprof or its licensors.',
     terms_subscriptions_title: 'Subscriptions and Payments',
     terms_subscriptions: 'Certain features require a paid subscription. You agree that:',
     terms_subscription_billing: 'Subscriptions are billed in advance on a recurring basis',
