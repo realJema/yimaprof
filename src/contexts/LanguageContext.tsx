@@ -1297,7 +1297,7 @@ const translations = {
     faq_3_answer: 'Yes, subscribers can download exams for offline study at any time.',
 
     // Privacy Page
-    privacy_intro: 'YIMA ("us", "we", or "our") operates the yima.cm website and YIMA mobile application (hereinafter referred to as the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service.',
+    privacy_intro: 'Yimaprof ("us", "we", or "our") operates the yimaprof.com website and Yimaprof mobile application (hereinafter referred to as the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service.',
     privacy_data_collection_title: 'Data Collection and Use',
     privacy_data_collection: 'We collect several different types of information for various purposes to provide and improve our Service to you.',
     privacy_types_title: 'Types of Data Collected',
