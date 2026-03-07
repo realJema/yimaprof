@@ -196,9 +196,8 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="left" className="w-80 bg-card">
                 <SheetHeader className="text-left">
-                  <SheetTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    YIMA
+                  <SheetTitle>
+                    <Logo size="md" />
                   </SheetTitle>
                 </SheetHeader>
                 
