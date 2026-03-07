@@ -331,6 +331,7 @@ export default function Admin() {
             {activeTab === 'notifications' && <NotificationComposer />}
             {activeTab === 'feedback' && <FeedbackViewer />}
             {activeTab === 'forum' && <ForumModeration />}
+            {activeTab === 'ai-usage' && <AIUsageStats />}
           </div>
         </div>
       </div>
