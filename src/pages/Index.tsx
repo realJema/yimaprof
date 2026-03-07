@@ -211,7 +211,7 @@ const Index = () => {
               {t('francophone')} & {t('anglophone')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              YIMA supports both French and English educational systems across Africa, providing relevant exam papers for each curriculum.
+              Yimaprof supports both French and English educational systems across Africa, providing relevant exam papers for each curriculum.
             </p>
           </div>
           
