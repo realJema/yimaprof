@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,10 +54,25 @@ Here is what you know about the platform:
 
 Keep your answers concise, helpful, and encouraging. If you don't know something, say so honestly. Do not make up features that don't exist.`;
 
+async function logUsage(functionName: string, status: string, userIp?: string) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) return;
+    const sb = createClient(supabaseUrl, serviceRoleKey);
+    await sb.from("ai_usage_logs").insert({ function_name: functionName, status, user_ip: userIp });
+  } catch (e) {
+    console.error("Failed to log AI usage:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const userIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+  let status = "success";
 
   try {
     const { messages } = await req.json();
@@ -80,6 +96,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      status = `error_${response.status}`;
+      logUsage("help-chat", status, userIp);
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
           status: 429,
@@ -100,10 +119,14 @@ serve(async (req) => {
       });
     }
 
+    logUsage("help-chat", "success", userIp);
+
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
+    status = "error";
+    logUsage("help-chat", status, userIp);
     console.error("help-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
