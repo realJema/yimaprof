@@ -608,6 +608,104 @@ export default function ExamViewer() {
     });
   };
 
+  // Call AI grading for long-form questions
+  const callAiGrading = useCallback(async (currentScore: { correct: number; total: number; earnedPoints: number; totalPoints: number }) => {
+    if (!exam?.content) return currentScore;
+    
+    const items = Array.isArray(exam.content) ? exam.content : exam.content.questions || [];
+    const longFormQuestions: Array<{ questionText: string; studentAnswer: string; expectedAnswer: string; rubric: string; maxPoints: number; globalIndex: number }> = [];
+    
+    let questionIndex = 0;
+    items.forEach((item: any) => {
+      if (item.item_type !== 'question' && item.type !== 'multiple_choice' && item.type !== 'long_form') return;
+      const isMcq = item.question_type === 'multiple_choice' || item.type === 'multiple_choice';
+      if (!isMcq && item.answers?.[0]) {
+        const userAnswer = userAnswers.find(a => a.questionIndex === questionIndex);
+        const expectedAnswer = item.answers[0];
+        const rubricText = expectedAnswer.rubric?.map((r: any) => `${r.criteria} (${r.points}pts)`).join('\n') || '';
+        longFormQuestions.push({
+          questionText: item.text || '',
+          studentAnswer: userAnswer?.answer || '',
+          expectedAnswer: expectedAnswer.text || '',
+          rubric: rubricText,
+          maxPoints: item.marks || 1,
+          globalIndex: questionIndex,
+        });
+      }
+      questionIndex++;
+    });
+    
+    if (longFormQuestions.length === 0) return currentScore;
+    
+    setAiGrading(true);
+    try {
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-grade`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ questions: longFormQuestions }),
+      });
+      
+      if (!resp.ok) {
+        console.error('AI grading failed:', resp.status);
+        return currentScore; // fallback to keyword scoring
+      }
+      
+      const data = await resp.json();
+      const grades = data.grades || [];
+      
+      setAiFeedback(grades);
+      
+      // Recalculate score: keep MCQ scoring, replace long-form with AI scores
+      let aiEarnedPoints = 0;
+      // First, get MCQ earned points
+      let mcqEarned = 0;
+      let qIdx = 0;
+      items.forEach((item: any) => {
+        if (item.item_type !== 'question' && item.type !== 'multiple_choice' && item.type !== 'long_form') return;
+        const isMcq = item.question_type === 'multiple_choice' || item.type === 'multiple_choice';
+        if (isMcq) {
+          const userAnswer = userAnswers.find(a => a.questionIndex === qIdx);
+          const correctAnswer = item.answers?.find((a: any) => a.is_correct);
+          if (correctAnswer && userAnswer?.answer === correctAnswer.text) {
+            mcqEarned += item.marks || 1;
+          }
+        }
+        qIdx++;
+      });
+      
+      // Add AI-graded long-form scores
+      for (const grade of grades) {
+        aiEarnedPoints += grade.score;
+      }
+      
+      const newScore = {
+        ...currentScore,
+        earnedPoints: Math.round((mcqEarned + aiEarnedPoints) * 100) / 100,
+      };
+      
+      setScore(newScore);
+      
+      // Update database with AI scores
+      if (user && examId) {
+        await supabase.from('user_evaluations')
+          .update({ total_score: newScore.earnedPoints })
+          .eq('user_id', user.id)
+          .eq('exam_id', examId)
+          .eq('attempt_number', currentAttemptNumber);
+      }
+      
+      return newScore;
+    } catch (error) {
+      console.error('AI grading error:', error);
+      return currentScore; // fallback
+    } finally {
+      setAiGrading(false);
+    }
+  }, [exam, userAnswers, user, examId, currentAttemptNumber]);
+
   // Handle evaluation submission
   const handleSubmitEvaluation = async () => {
     if (isSubmittingResult) return;
@@ -620,6 +718,7 @@ export default function ExamViewer() {
     setScore(computedScore);
     setSubmitted(true);
     setEvaluationActive(false);
+    setAiFeedback(null);
 
     // Exit fullscreen
     if (document.fullscreenElement) {
@@ -630,15 +729,20 @@ export default function ExamViewer() {
       }
     }
 
-    // Save to database (retries/queue). If queued, the history will appear once sync happens.
+    // Save to database (retries/queue)
     await saveEvaluation(computedScore);
 
-    // Once submitted, clear local session so it can't be resumed or re-submitted accidentally.
+    // Once submitted, clear local session
     if (examId) clearEvaluationSession(user?.id ?? null, examId);
 
     // Show results dialog
     setShowResultsDialog(true);
     setIsSubmittingResult(false);
+
+    // Trigger AI grading in background (non-blocking)
+    if (computedScore) {
+      callAiGrading(computedScore);
+    }
   };
 
   // Handle time up
