@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 
