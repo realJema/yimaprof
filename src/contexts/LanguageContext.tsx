@@ -1557,7 +1557,7 @@ const translations = {
     of_exams: 'of',
     
     // Footer
-    about_yima: 'YIMA is an educational platform dedicated to academic excellence in Africa. We make education accessible by providing quality exam resources.',
+    about_yima: 'Yimaprof is an educational platform dedicated to academic excellence in Africa. We make education accessible by providing quality exam resources.',
     platform: 'Platform',
     company: 'Company',
     stay_updated: 'Stay Updated',
