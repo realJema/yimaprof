@@ -113,8 +113,8 @@ export function EvaluationResultsDialog({
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Sparkles className="h-4 w-4 text-primary" />
                   {language === 'fr' 
-                    ? "L'IA corrige vos réponses..." 
-                    : 'AI is grading your answers...'}
+                    ? "Correction en cours..." 
+                    : 'Grading in progress...'}
                 </div>
               )}
 
@@ -162,7 +162,7 @@ export function EvaluationResultsDialog({
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" className="w-full gap-2 text-sm">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      {language === 'fr' ? 'Détails de la correction IA' : 'AI Grading Details'}
+                      {language === 'fr' ? 'Détails de la correction' : 'Grading Details'}
                       {feedbackOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                   </CollapsibleTrigger>
