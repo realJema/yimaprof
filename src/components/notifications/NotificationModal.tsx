@@ -70,14 +70,6 @@ export const NotificationModal = ({ notification, open, onClose }: NotificationM
             <p className="text-foreground whitespace-pre-wrap">{notification.message}</p>
           </div>
 
-          {notification.metadata && Object.keys(notification.metadata).length > 0 && (
-            <div className="mt-4 p-3 bg-muted/30 rounded-lg">
-              <h4 className="text-sm font-medium text-foreground mb-2">Additional Information</h4>
-              <pre className="text-xs text-muted-foreground overflow-auto">
-                {JSON.stringify(notification.metadata, null, 2)}
-              </pre>
-            </div>
-          )}
 
           <div className="flex gap-2 pt-4">
             {notification.action_url && (

@@ -113,8 +113,8 @@ export function EvaluationResultsDialog({
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Sparkles className="h-4 w-4 text-primary" />
                   {language === 'fr' 
-                    ? "L'IA corrige vos réponses..." 
-                    : 'AI is grading your answers...'}
+                    ? "Correction en cours..." 
+                    : 'Grading in progress...'}
                 </div>
               )}
 
