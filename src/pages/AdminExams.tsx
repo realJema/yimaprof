@@ -349,7 +349,7 @@ export default function AdminExams() {
             )}
             {examTypeName && (
               <div className="flex items-center justify-between gap-2">
-                <span className="flex-shrink-0">Type:</span>
+                <span className="flex-shrink-0">{language === 'fr' ? "Type d'épreuve:" : 'Exam type:'}</span>
                 <span className="font-medium text-foreground truncate" title={examTypeName}>{examTypeName}</span>
               </div>
             )}

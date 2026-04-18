@@ -152,7 +152,7 @@ export default function Header() {
   }, {
     to: '/exams2',
     icon: Search,
-    label: language === 'fr' ? 'Parcourir' : 'Browse'
+    label: language === 'fr' ? 'Épreuves' : 'Papers'
   }, {
     to: '/forum',
     icon: MessageCircle,
@@ -296,7 +296,7 @@ export default function Header() {
             <Button variant={isActive('/exams2') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
               <Link to="/exams2" className="flex items-center space-x-2">
                 <Search className="h-4 w-4" />
-                <span>{language === 'fr' ? 'Parcourir' : 'Browse'}</span>
+                <span>{language === 'fr' ? 'Épreuves' : 'Papers'}</span>
               </Link>
             </Button>
             
