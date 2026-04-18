@@ -169,21 +169,33 @@ export default function AdminExams() {
 
   const fetchExams = async () => {
     try {
-      const { data, error } = await supabase
-        .from('exams')
-        .select(`
-          *,
-          classes (display_name, section),
-          subjects:subject_id (name, name_en, name_fr),
-          exam_types:exam_type_id (name, name_en, name_fr),
-          academic_years:academic_year_id (year_label),
-          periods:period_id (name, name_en, name_fr),
-          establishments:establishment_id (name)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setExams(data as any || []);
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let allExams: any[] = [];
+      // Page through results since Supabase caps at 1000 rows per request
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from('exams')
+          .select(`
+            *,
+            classes (display_name, section),
+            subjects:subject_id (name, name_en, name_fr),
+            exam_types:exam_type_id (name, name_en, name_fr),
+            academic_years:academic_year_id (year_label),
+            periods:period_id (name, name_en, name_fr),
+            establishments:establishment_id (name)
+          `)
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        const batch = data || [];
+        allExams = allExams.concat(batch);
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      setExams(allExams as any);
     } catch (error) {
       console.error('Error fetching exams:', error);
       toast({ title: 'Error', description: 'Failed to fetch exams', variant: 'destructive' });
