@@ -1,19 +1,35 @@
 
-## Issue
-On `/admin/exams`, the exam list and pagination cap at 1000 because Supabase's PostgREST default `Content-Range` limit is 1000 rows per request. The current `fetchExams()` in `src/pages/AdminExams.tsx` does a single `.select(...)` with no `.range()`, so it silently truncates to 1000.
 
-## Fix
-Update `fetchExams()` in `src/pages/AdminExams.tsx` to fetch all exam rows by paging through with `.range()` in a loop until all rows are retrieved.
+## Plan
 
-### Approach
-- Fetch in chunks of 1000 using `.range(from, from + 999)`.
-- Continue until a page returns fewer than 1000 rows.
-- Concatenate results into a single array, then `setExams(...)`.
-- Keeps the existing joins (classes, subjects, exam_types, academic_years, periods, establishments) and ordering by `created_at desc`.
+Update the exam-type filter labels on the admin exam list AND seed the `exam_types` table so the same options appear in all exam edit/create forms.
 
-This restores accurate paper counts and pagination beyond 1000 exams without any DB or schema change.
+### Changes
 
-## Files
+**1. Database — seed exam_types**
+Insert the 4 standard types (idempotent on `name`):
+- `Examen blanc` / Mock Exam
+- `Examen harmonisé` / Harmonized Exam
+- `Examen officiel` / Official Exam
+- `Examen officiel type` / Official Type Exam
+
+This automatically updates every edit form because they all read from `exam_types` via `useExamFormData` (used by `ExamManager.tsx`, AdminExams filter, ExamList browse filter, etc.).
+
+**2. Header label — Parcourir → Épreuves**
+- `src/components/layout/Header.tsx`: replace nav label
+- `src/contexts/LanguageContext.tsx`: update `nav.browse` translations (FR: "Épreuves", EN: "Papers")
+
+**3. Admin exam list filter label — "Type" → "Type d'épreuve"**
+- `src/pages/AdminExams.tsx`: rename the exam-type filter label/placeholder
+
+### Files
+
 | File | Action |
 |------|--------|
-| `src/pages/AdminExams.tsx` | Replace `fetchExams` with a paged loop fetcher |
+| New migration | Seed 4 rows into `exam_types` |
+| `src/components/layout/Header.tsx` | Use new translation key |
+| `src/contexts/LanguageContext.tsx` | Update `nav.browse` strings |
+| `src/pages/AdminExams.tsx` | Filter label → "Type d'épreuve" |
+
+No edit-form code changes needed — they auto-pick up the new types from the DB.
+
