@@ -612,7 +612,7 @@ const Exams2 = () => {
 
       {/* Exam Type */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Type' : 'Type'}</label>
+        <label className="text-sm font-medium">{language === 'fr' ? "Type d'épreuves" : 'Exam Type'}</label>
         <Select value={selectedExamType} onValueChange={(value) => setParam('type', value)}>
           <SelectTrigger className="h-9">
             <SelectValue />
