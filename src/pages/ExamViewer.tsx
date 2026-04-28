@@ -1148,13 +1148,28 @@ export default function ExamViewer() {
                 </span>
               </Button>
               
-              {/* Hide evaluation button for free exams */}
-              {!isFreeExam && (
-                <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'evaluation' && submitted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400")} onClick={handleEvaluationButtonClick}>
-                  <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  {language === 'fr' ? 'Évaluation' : 'Evaluate'}
-                </Button>
-              )}
+              {/* Evaluation button: visible to all, disabled (greyed) for non-subscribers */}
+              <Button
+                size="sm"
+                className={cn(
+                  "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
+                  evaluationLocked
+                    ? "bg-muted text-muted-foreground border border-border opacity-70 cursor-not-allowed hover:bg-muted"
+                    : mode === 'evaluation' && submitted
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                )}
+                onClick={() => {
+                  if (evaluationLocked) {
+                    setShowSubscriberOnlyDialog(true);
+                  } else {
+                    handleEvaluationButtonClick();
+                  }
+                }}
+              >
+                {evaluationLocked ? <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                {language === 'fr' ? 'Évaluation' : 'Evaluate'}
+              </Button>
             </div>
           </div>
         </div>
