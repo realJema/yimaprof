@@ -463,13 +463,15 @@ const Exams2 = () => {
 
   // Filter classes based on selected system AND subscription access
   const filteredClasses = useMemo(() => {
-    if (!classes || !subscriptionPlanClasses) return [];
-    let accessibleClasses = classes.filter(cls => subscriptionPlanClasses.includes(cls.id));
+    if (!classes) return [];
+    let accessibleClasses = hasActiveSubscription && subscriptionPlanClasses
+      ? classes.filter(cls => subscriptionPlanClasses.includes(cls.id))
+      : classes;
     if (selectedSystem !== 'all') {
       accessibleClasses = accessibleClasses.filter(cls => cls.section === selectedSystem);
     }
     return accessibleClasses;
-  }, [classes, subscriptionPlanClasses, selectedSystem]);
+  }, [classes, subscriptionPlanClasses, selectedSystem, hasActiveSubscription]);
 
   // Filter subjects based on accessible exams and selected system
   const filteredSubjects = useMemo(() => {
