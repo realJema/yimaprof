@@ -732,9 +732,8 @@ const Exams2 = () => {
 
       <div className="container mx-auto px-4 py-6">
         <div className="flex gap-6">
-          {/* Desktop Sidebar - Hide for non-subscribers (free papers only) */}
-          {hasActiveSubscription && (
-            <aside className="hidden lg:block w-64 shrink-0">
+          {/* Desktop Sidebar - filters available to everyone */}
+          <aside className="hidden lg:block w-64 shrink-0">
               <div className="sticky top-32 bg-card rounded-lg border p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-semibold flex items-center gap-2">
@@ -746,16 +745,14 @@ const Exams2 = () => {
                 <FiltersContent />
               </div>
             </aside>
-          )}
 
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 gap-4">
               <div className="flex items-center gap-3">
-                {/* Mobile Filter Button - Hide for non-subscribers */}
-                {hasActiveSubscription && (
-                  <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                {/* Mobile Filter Button - available to everyone */}
+                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                     <SheetTrigger asChild>
                       <Button variant="outline" size="sm" className="lg:hidden">
                         <SlidersHorizontal className="h-4 w-4 mr-2" />
@@ -772,12 +769,10 @@ const Exams2 = () => {
                       </div>
                     </SheetContent>
                   </Sheet>
-                )}
               </div>
 
-              {/* Sort - Only for subscribers */}
-              {hasActiveSubscription && (
-                <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
+              {/* Sort - available to everyone */}
+              <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
                   <SelectTrigger className="w-[130px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -787,11 +782,10 @@ const Exams2 = () => {
                     <SelectItem value="title">{language === 'fr' ? 'Titre' : 'Title'}</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
             </div>
 
-            {/* Active filters badges - Only for subscribers */}
-            {hasActiveSubscription && (activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
+            {/* Active filters badges */}
+            {(activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
                 {selectedSchools.map(id => {
               const school = schools?.find(s => s.id === id);
               return school && <Badge key={id} variant="secondary" className="gap-1 text-xs text-muted-foreground">
