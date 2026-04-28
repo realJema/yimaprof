@@ -825,20 +825,6 @@ const Exams2 = () => {
                   </Card>)}
               </div>
             ) : filteredExams.length === 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {[...Array(12)].map((_, i) => <Card key={i}>
-                    <CardContent className="p-4">
-                      <Skeleton className="h-5 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2 mb-3" />
-                      <div className="flex gap-2 mb-2">
-                        <Skeleton className="h-5 w-16" />
-                        <Skeleton className="h-5 w-20" />
-                      </div>
-                      <Skeleton className="h-3 w-2/3" />
-                    </CardContent>
-                  </Card>)}
-              </div>
-            ) : filteredExams.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
@@ -856,17 +842,21 @@ const Exams2 = () => {
                   {paginatedExams.map(exam => {
                     const subjectName = getLocalizedName(exam.subject);
                     const cardColor = getSubjectColor(subjectName);
-                    
-                    // Build URL with 'from' param to preserve filter context
-                    const examUrl = `/exam/${exam.id}?from=${encodeURIComponent(`/exams2?${searchParams.toString()}`)}`;
-                    
-                    return (
-                      <Link key={exam.id} to={examUrl}>
-                        <Card className={`h-full min-h-[160px] hover:shadow-lg transition-all cursor-pointer group border-2 ${cardColor}`}>
+                    const unlocked = isExamUnlocked(exam);
+                    const fromParam = encodeURIComponent(`/exams2?${searchParams.toString()}`);
+                    const examUrl = `/exam/${exam.id}?from=${fromParam}${unlocked && !hasActiveSubscription ? '&freePreview=1' : ''}`;
+
+                    const cardInner = (
+                        <Card className={`h-full min-h-[160px] transition-all border-2 ${cardColor} ${unlocked ? 'hover:shadow-lg cursor-pointer group' : 'opacity-75 cursor-pointer hover:opacity-90 relative'}`}>
                           <CardContent className="p-4 flex flex-col h-full">
+                            {!unlocked && (
+                              <div className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/90 border border-border">
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                              </div>
+                            )}
                             {/* Badges at top */}
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              {exam.visibility === 'free' && (
+                              {unlocked && !hasActiveSubscription && (
                                 <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
                                   {language === 'fr' ? 'Gratuit' : 'Free'}
                                 </Badge>
@@ -884,7 +874,7 @@ const Exams2 = () => {
                             </div>
                             
                             <div className="flex items-start justify-between gap-2 mb-2 flex-1">
-                              <h3 className="font-semibold text-foreground line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                              <h3 className={`font-semibold text-foreground line-clamp-2 text-sm transition-colors ${unlocked ? 'group-hover:text-primary' : ''}`}>
                                 {exam.title}
                               </h3>
                             </div>
@@ -913,27 +903,37 @@ const Exams2 = () => {
                               </p>
                             )}
 
-                            {/* Subscription CTA for free exams when user is not subscribed */}
-                            {exam.visibility === 'free' && !hasActiveSubscription && (
+                            {/* Locked CTA for non-unlocked exams */}
+                            {!unlocked && (
                               <div className="mt-3 pt-2 border-t border-dashed border-border/50">
-                                <div 
-                                  className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    window.location.href = '/subscriptions';
-                                  }}
-                                >
-                                  <Sparkles className="h-3 w-3" />
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Lock className="h-3 w-3" />
                                   <span className="font-medium">
-                                    {language === 'fr' ? 'Débloquez 500+ examens' : 'Unlock 500+ exams'}
+                                    {language === 'fr' ? 'Réservé aux abonnés' : 'Subscribers only'}
                                   </span>
-                                  <ArrowRight className="h-3 w-3" />
                                 </div>
                               </div>
                             )}
                           </CardContent>
                         </Card>
+                    );
+
+                    if (!unlocked) {
+                      return (
+                        <button
+                          key={exam.id}
+                          type="button"
+                          onClick={() => setLockedDialogOpen(true)}
+                          className="text-left"
+                        >
+                          {cardInner}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <Link key={exam.id} to={examUrl}>
+                        {cardInner}
                       </Link>
                     );
                   })}
