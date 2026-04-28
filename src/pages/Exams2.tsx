@@ -107,6 +107,7 @@ const Exams2 = () => {
   const { hasActiveSubscription, subscription } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [lockedDialogOpen, setLockedDialogOpen] = useState(false);
 
   // URL parameter helpers
   const getParamArray = useCallback((key: string): string[] => {
@@ -188,7 +189,8 @@ const Exams2 = () => {
         `)
         .eq('is_published', true)
         .in('visibility', ['public', 'free'])
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, 99999);
       if (error) throw error;
       return data as unknown as Exam[];
     }
