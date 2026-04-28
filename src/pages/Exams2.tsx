@@ -690,7 +690,7 @@ const Exams2 = () => {
                 </h1>
                 {!hasActiveSubscription && (
                   <Badge variant="outline" className="text-xs">
-                    {language === 'fr' ? 'Épreuves gratuites' : 'Free papers'}
+                    {language === 'fr' ? 'Aperçu gratuit' : 'Free preview'}
                   </Badge>
                 )}
               </div>
