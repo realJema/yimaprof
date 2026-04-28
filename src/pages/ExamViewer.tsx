@@ -109,6 +109,7 @@ export default function ExamViewer() {
     toast
   } = useToast();
   const mode = searchParams.get('mode') || 'preview';
+  const isFreePreview = searchParams.get('freePreview') === '1';
 
   // Core state
   const [exam, setExam] = useState<Exam | null>(null);
@@ -153,6 +154,7 @@ export default function ExamViewer() {
 
   // Enhanced evaluation state
   const [showRulesDialog, setShowRulesDialog] = useState(false);
+  const [showSubscriberOnlyDialog, setShowSubscriberOnlyDialog] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [evaluationActive, setEvaluationActive] = useState(false);
   const [evaluationPaused, setEvaluationPaused] = useState(false);
