@@ -1047,6 +1047,36 @@ const Exams2 = () => {
           </main>
         </div>
       </div>
+
+      {/* Locked exam dialog for non-subscribers */}
+      <Dialog open={lockedDialogOpen} onOpenChange={setLockedDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 p-3 rounded-full bg-primary/10">
+              <Crown className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-center">
+              {language === 'fr' ? 'Épreuve réservée aux abonnés' : 'Subscribers-only exam'}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {language === 'fr'
+                ? "Cette épreuve fait partie du contenu premium. Abonnez-vous pour accéder à plus de 500 épreuves avec corrections complètes."
+                : 'This exam is part of premium content. Subscribe to access 500+ exams with full solutions.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-2">
+            <Button variant="outline" onClick={() => setLockedDialogOpen(false)}>
+              {language === 'fr' ? 'Plus tard' : 'Later'}
+            </Button>
+            <Link to="/subscriptions" onClick={() => setLockedDialogOpen(false)}>
+              <Button className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                {language === 'fr' ? "Voir les abonnements" : 'View subscriptions'}
+              </Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>;
 };
 export default Exams2;
