@@ -334,21 +334,47 @@ const Exams2 = () => {
   // Filter exams based on subscription access or free visibility
   const accessibleExams = useMemo(() => {
     if (!exams) return [];
-    
-    // Free exams are always accessible (visibility = 'free')
-    // For subscribed users, also include exams from their subscribed classes
-    if (!hasActiveSubscription || !subscriptionPlanClasses) {
-      // Only return free exams for non-subscribers
-      return exams.filter(exam => exam.visibility === 'free');
+
+    // Non-subscribers: see ALL exams (locked ones included so they can browse)
+    if (!hasActiveSubscription) {
+      return exams;
     }
-    
-    // For subscribers: include free exams + exams from their plan classes
+
+    // Subscribers without plan classes loaded yet: show free + all (will refine)
+    if (!subscriptionPlanClasses) {
+      return exams;
+    }
+
+    // Subscribers: free exams + exams from their plan classes
     return exams.filter(exam => {
       if (exam.visibility === 'free') return true;
       if (!exam.class?.id) return false;
       return subscriptionPlanClasses.includes(exam.class.id);
     });
   }, [exams, hasActiveSubscription, subscriptionPlanClasses]);
+
+  // Compute the 10 fixed "free preview" exams for non-subscribers:
+  // 2 most recent per class across Terminale, Première, Troisième, Form 5, Upper Sixth.
+  const FREE_PREVIEW_CLASS_NAMES = ['class_tle', 'class_1ere', 'class_3e', 'form_5', 'upper_sixth'];
+  const freePreviewIds = useMemo(() => {
+    if (!exams) return new Set<string>();
+    const ids = new Set<string>();
+    for (const className of FREE_PREVIEW_CLASS_NAMES) {
+      const classExams = exams
+        .filter(e => e.class?.name === className)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 2);
+      classExams.forEach(e => ids.add(e.id));
+    }
+    // Also include any exam explicitly marked as 'free' in DB
+    exams.filter(e => e.visibility === 'free').forEach(e => ids.add(e.id));
+    return ids;
+  }, [exams]);
+
+  const isExamUnlocked = useCallback((exam: Exam) => {
+    if (hasActiveSubscription) return true;
+    return freePreviewIds.has(exam.id);
+  }, [hasActiveSubscription, freePreviewIds]);
 
   // Filter exams with all filters applied
   const filteredExams = useMemo(() => {
