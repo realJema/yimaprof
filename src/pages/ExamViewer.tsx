@@ -863,7 +863,8 @@ export default function ExamViewer() {
 
   // Premium Paywall: Show for premium exams when user doesn't have access
   const isPremiumExam = exam.visibility !== 'free';
-  const showPaywall = isPremiumExam && !hasAccess && isFreeUser;
+  // Allow free preview (10 fixed exams from /exams2 list) for non-subscribers
+  const showPaywall = isPremiumExam && !hasAccess && isFreeUser && !isFreePreview;
 
   if (showPaywall) {
     return (
@@ -934,9 +935,11 @@ export default function ExamViewer() {
     );
   }
 
-  // Subscription encouragement banner for free exams (when user is not subscribed)
-  const showSubscriptionBanner = exam.visibility === 'free' && isFreeUser && !hasAccess;
+  // Subscription encouragement banner for free exams or free-preview access (when user is not subscribed)
+  const showSubscriptionBanner = (exam.visibility === 'free' || isFreePreview) && isFreeUser && !hasAccess;
   const isFreeExam = exam.visibility === 'free';
+  // Treat free-preview the same as a free exam for evaluation gating
+  const evaluationLocked = isFreeUser && !hasAccess && (isFreeExam || isFreePreview);
   // Free exams: solutions only shown in correction mode (not instantly)
   const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
