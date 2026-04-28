@@ -1316,6 +1316,36 @@ export default function ExamViewer() {
       {/* Evaluation Results Dialog */}
       <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} aiGrading={aiGrading} aiFeedback={aiFeedback} />
 
+      {/* Subscriber-only evaluation dialog */}
+      <Dialog open={showSubscriberOnlyDialog} onOpenChange={setShowSubscriberOnlyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 p-3 rounded-full bg-primary/10">
+              <Crown className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-center">
+              {language === 'fr' ? 'Auto-évaluation réservée aux abonnés' : 'Self-evaluation is for subscribers'}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground text-center px-2">
+            {language === 'fr'
+              ? "Le mode auto-évaluation, avec notation et corrections détaillées, est disponible uniquement pour les utilisateurs abonnés."
+              : 'Self-evaluation mode, with scoring and detailed corrections, is available only for subscribers.'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-center mt-2">
+            <Button variant="outline" onClick={() => setShowSubscriberOnlyDialog(false)}>
+              {language === 'fr' ? 'Plus tard' : 'Later'}
+            </Button>
+            <Link to="/subscriptions" onClick={() => setShowSubscriberOnlyDialog(false)}>
+              <Button className="gap-2 w-full sm:w-auto">
+                <Sparkles className="h-4 w-4" />
+                {language === 'fr' ? "Voir les abonnements" : 'View subscriptions'}
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* PDF Modal - Mobile Only */}
       <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
         <DialogContent className="max-w-[100vw] w-full h-[100dvh] max-h-[100dvh] p-0 m-0 rounded-none border-0 flex flex-col">
