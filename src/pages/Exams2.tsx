@@ -824,23 +824,6 @@ const Exams2 = () => {
                     </CardContent>
                   </Card>)}
               </div>
-            ) : !hasActiveSubscription && filteredExams.length === 0 ? (
-              <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {language === 'fr' ? 'Aucune épreuve gratuite disponible' : 'No Free Exams Available'}
-                </h3>
-                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  {language === 'fr' 
-                    ? 'Abonnez-vous pour accéder à toutes les épreuves.' 
-                    : 'Subscribe to access all exams.'}
-                </p>
-                <Link to="/subscriptions">
-                  <Button>
-                    {language === 'fr' ? 'Voir les abonnements' : 'View Subscriptions'}
-                  </Button>
-                </Link>
-              </div>
             ) : filteredExams.length === 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[...Array(12)].map((_, i) => <Card key={i}>
