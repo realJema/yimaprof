@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle, ArrowRight, Sparkles, Lock, Crown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { anonymizeSchoolName, matchesSchoolSearch } from '@/lib/schoolAnonymizer';
@@ -106,6 +107,7 @@ const Exams2 = () => {
   const { hasActiveSubscription, subscription } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [lockedDialogOpen, setLockedDialogOpen] = useState(false);
 
   // URL parameter helpers
   const getParamArray = useCallback((key: string): string[] => {
@@ -187,7 +189,8 @@ const Exams2 = () => {
         `)
         .eq('is_published', true)
         .in('visibility', ['public', 'free'])
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, 99999);
       if (error) throw error;
       return data as unknown as Exam[];
     }
@@ -331,21 +334,47 @@ const Exams2 = () => {
   // Filter exams based on subscription access or free visibility
   const accessibleExams = useMemo(() => {
     if (!exams) return [];
-    
-    // Free exams are always accessible (visibility = 'free')
-    // For subscribed users, also include exams from their subscribed classes
-    if (!hasActiveSubscription || !subscriptionPlanClasses) {
-      // Only return free exams for non-subscribers
-      return exams.filter(exam => exam.visibility === 'free');
+
+    // Non-subscribers: see ALL exams (locked ones included so they can browse)
+    if (!hasActiveSubscription) {
+      return exams;
     }
-    
-    // For subscribers: include free exams + exams from their plan classes
+
+    // Subscribers without plan classes loaded yet: show free + all (will refine)
+    if (!subscriptionPlanClasses) {
+      return exams;
+    }
+
+    // Subscribers: free exams + exams from their plan classes
     return exams.filter(exam => {
       if (exam.visibility === 'free') return true;
       if (!exam.class?.id) return false;
       return subscriptionPlanClasses.includes(exam.class.id);
     });
   }, [exams, hasActiveSubscription, subscriptionPlanClasses]);
+
+  // Compute the 10 fixed "free preview" exams for non-subscribers:
+  // 2 most recent per class across Terminale, Première, Troisième, Form 5, Upper Sixth.
+  const FREE_PREVIEW_CLASS_NAMES = ['class_tle', 'class_1ere', 'class_3e', 'form_5', 'upper_sixth'];
+  const freePreviewIds = useMemo(() => {
+    if (!exams) return new Set<string>();
+    const ids = new Set<string>();
+    for (const className of FREE_PREVIEW_CLASS_NAMES) {
+      const classExams = exams
+        .filter(e => e.class?.name === className)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 2);
+      classExams.forEach(e => ids.add(e.id));
+    }
+    // Also include any exam explicitly marked as 'free' in DB
+    exams.filter(e => e.visibility === 'free').forEach(e => ids.add(e.id));
+    return ids;
+  }, [exams]);
+
+  const isExamUnlocked = useCallback((exam: Exam) => {
+    if (hasActiveSubscription) return true;
+    return freePreviewIds.has(exam.id);
+  }, [hasActiveSubscription, freePreviewIds]);
 
   // Filter exams with all filters applied
   const filteredExams = useMemo(() => {
@@ -434,13 +463,15 @@ const Exams2 = () => {
 
   // Filter classes based on selected system AND subscription access
   const filteredClasses = useMemo(() => {
-    if (!classes || !subscriptionPlanClasses) return [];
-    let accessibleClasses = classes.filter(cls => subscriptionPlanClasses.includes(cls.id));
+    if (!classes) return [];
+    let accessibleClasses = hasActiveSubscription && subscriptionPlanClasses
+      ? classes.filter(cls => subscriptionPlanClasses.includes(cls.id))
+      : classes;
     if (selectedSystem !== 'all') {
       accessibleClasses = accessibleClasses.filter(cls => cls.section === selectedSystem);
     }
     return accessibleClasses;
-  }, [classes, subscriptionPlanClasses, selectedSystem]);
+  }, [classes, subscriptionPlanClasses, selectedSystem, hasActiveSubscription]);
 
   // Filter subjects based on accessible exams and selected system
   const filteredSubjects = useMemo(() => {
@@ -659,7 +690,7 @@ const Exams2 = () => {
                 </h1>
                 {!hasActiveSubscription && (
                   <Badge variant="outline" className="text-xs">
-                    {language === 'fr' ? 'Épreuves gratuites' : 'Free papers'}
+                    {language === 'fr' ? 'Aperçu gratuit' : 'Free preview'}
                   </Badge>
                 )}
               </div>
@@ -701,9 +732,8 @@ const Exams2 = () => {
 
       <div className="container mx-auto px-4 py-6">
         <div className="flex gap-6">
-          {/* Desktop Sidebar - Hide for non-subscribers (free papers only) */}
-          {hasActiveSubscription && (
-            <aside className="hidden lg:block w-64 shrink-0">
+          {/* Desktop Sidebar - filters available to everyone */}
+          <aside className="hidden lg:block w-64 shrink-0">
               <div className="sticky top-32 bg-card rounded-lg border p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-semibold flex items-center gap-2">
@@ -715,16 +745,14 @@ const Exams2 = () => {
                 <FiltersContent />
               </div>
             </aside>
-          )}
 
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 gap-4">
               <div className="flex items-center gap-3">
-                {/* Mobile Filter Button - Hide for non-subscribers */}
-                {hasActiveSubscription && (
-                  <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                {/* Mobile Filter Button - available to everyone */}
+                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                     <SheetTrigger asChild>
                       <Button variant="outline" size="sm" className="lg:hidden">
                         <SlidersHorizontal className="h-4 w-4 mr-2" />
@@ -741,12 +769,10 @@ const Exams2 = () => {
                       </div>
                     </SheetContent>
                   </Sheet>
-                )}
               </div>
 
-              {/* Sort - Only for subscribers */}
-              {hasActiveSubscription && (
-                <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
+              {/* Sort - available to everyone */}
+              <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
                   <SelectTrigger className="w-[130px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -756,11 +782,10 @@ const Exams2 = () => {
                     <SelectItem value="title">{language === 'fr' ? 'Titre' : 'Title'}</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
             </div>
 
-            {/* Active filters badges - Only for subscribers */}
-            {hasActiveSubscription && (activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
+            {/* Active filters badges */}
+            {(activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
                 {selectedSchools.map(id => {
               const school = schools?.find(s => s.id === id);
               return school && <Badge key={id} variant="secondary" className="gap-1 text-xs text-muted-foreground">
@@ -799,37 +824,6 @@ const Exams2 = () => {
                     </CardContent>
                   </Card>)}
               </div>
-            ) : !hasActiveSubscription && filteredExams.length === 0 ? (
-              <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {language === 'fr' ? 'Aucune épreuve gratuite disponible' : 'No Free Exams Available'}
-                </h3>
-                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  {language === 'fr' 
-                    ? 'Abonnez-vous pour accéder à toutes les épreuves.' 
-                    : 'Subscribe to access all exams.'}
-                </p>
-                <Link to="/subscriptions">
-                  <Button>
-                    {language === 'fr' ? 'Voir les abonnements' : 'View Subscriptions'}
-                  </Button>
-                </Link>
-              </div>
-            ) : filteredExams.length === 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {[...Array(12)].map((_, i) => <Card key={i}>
-                    <CardContent className="p-4">
-                      <Skeleton className="h-5 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2 mb-3" />
-                      <div className="flex gap-2 mb-2">
-                        <Skeleton className="h-5 w-16" />
-                        <Skeleton className="h-5 w-20" />
-                      </div>
-                      <Skeleton className="h-3 w-2/3" />
-                    </CardContent>
-                  </Card>)}
-              </div>
             ) : filteredExams.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -848,17 +842,21 @@ const Exams2 = () => {
                   {paginatedExams.map(exam => {
                     const subjectName = getLocalizedName(exam.subject);
                     const cardColor = getSubjectColor(subjectName);
-                    
-                    // Build URL with 'from' param to preserve filter context
-                    const examUrl = `/exam/${exam.id}?from=${encodeURIComponent(`/exams2?${searchParams.toString()}`)}`;
-                    
-                    return (
-                      <Link key={exam.id} to={examUrl}>
-                        <Card className={`h-full min-h-[160px] hover:shadow-lg transition-all cursor-pointer group border-2 ${cardColor}`}>
+                    const unlocked = isExamUnlocked(exam);
+                    const fromParam = encodeURIComponent(`/exams2?${searchParams.toString()}`);
+                    const examUrl = `/exam/${exam.id}?from=${fromParam}${unlocked && !hasActiveSubscription ? '&freePreview=1' : ''}`;
+
+                    const cardInner = (
+                        <Card className={`h-full min-h-[160px] transition-all border-2 ${cardColor} ${unlocked ? 'hover:shadow-lg cursor-pointer group' : 'opacity-75 cursor-pointer hover:opacity-90 relative'}`}>
                           <CardContent className="p-4 flex flex-col h-full">
+                            {!unlocked && (
+                              <div className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/90 border border-border">
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                              </div>
+                            )}
                             {/* Badges at top */}
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              {exam.visibility === 'free' && (
+                              {unlocked && !hasActiveSubscription && (
                                 <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
                                   {language === 'fr' ? 'Gratuit' : 'Free'}
                                 </Badge>
@@ -876,7 +874,7 @@ const Exams2 = () => {
                             </div>
                             
                             <div className="flex items-start justify-between gap-2 mb-2 flex-1">
-                              <h3 className="font-semibold text-foreground line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                              <h3 className={`font-semibold text-foreground line-clamp-2 text-sm transition-colors ${unlocked ? 'group-hover:text-primary' : ''}`}>
                                 {exam.title}
                               </h3>
                             </div>
@@ -905,27 +903,37 @@ const Exams2 = () => {
                               </p>
                             )}
 
-                            {/* Subscription CTA for free exams when user is not subscribed */}
-                            {exam.visibility === 'free' && !hasActiveSubscription && (
+                            {/* Locked CTA for non-unlocked exams */}
+                            {!unlocked && (
                               <div className="mt-3 pt-2 border-t border-dashed border-border/50">
-                                <div 
-                                  className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    window.location.href = '/subscriptions';
-                                  }}
-                                >
-                                  <Sparkles className="h-3 w-3" />
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Lock className="h-3 w-3" />
                                   <span className="font-medium">
-                                    {language === 'fr' ? 'Débloquez 500+ examens' : 'Unlock 500+ exams'}
+                                    {language === 'fr' ? 'Réservé aux abonnés' : 'Subscribers only'}
                                   </span>
-                                  <ArrowRight className="h-3 w-3" />
                                 </div>
                               </div>
                             )}
                           </CardContent>
                         </Card>
+                    );
+
+                    if (!unlocked) {
+                      return (
+                        <button
+                          key={exam.id}
+                          type="button"
+                          onClick={() => setLockedDialogOpen(true)}
+                          className="text-left"
+                        >
+                          {cardInner}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <Link key={exam.id} to={examUrl}>
+                        {cardInner}
                       </Link>
                     );
                   })}
@@ -1039,6 +1047,36 @@ const Exams2 = () => {
           </main>
         </div>
       </div>
+
+      {/* Locked exam dialog for non-subscribers */}
+      <Dialog open={lockedDialogOpen} onOpenChange={setLockedDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 p-3 rounded-full bg-primary/10">
+              <Crown className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-center">
+              {language === 'fr' ? 'Épreuve réservée aux abonnés' : 'Subscribers-only exam'}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {language === 'fr'
+                ? "Cette épreuve fait partie du contenu premium. Abonnez-vous pour accéder à plus de 500 épreuves avec corrections complètes."
+                : 'This exam is part of premium content. Subscribe to access 500+ exams with full solutions.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-2">
+            <Button variant="outline" onClick={() => setLockedDialogOpen(false)}>
+              {language === 'fr' ? 'Plus tard' : 'Later'}
+            </Button>
+            <Link to="/subscriptions" onClick={() => setLockedDialogOpen(false)}>
+              <Button className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                {language === 'fr' ? "Voir les abonnements" : 'View subscriptions'}
+              </Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>;
 };
 export default Exams2;

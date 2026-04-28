@@ -109,6 +109,7 @@ export default function ExamViewer() {
     toast
   } = useToast();
   const mode = searchParams.get('mode') || 'preview';
+  const isFreePreview = searchParams.get('freePreview') === '1';
 
   // Core state
   const [exam, setExam] = useState<Exam | null>(null);
@@ -153,6 +154,7 @@ export default function ExamViewer() {
 
   // Enhanced evaluation state
   const [showRulesDialog, setShowRulesDialog] = useState(false);
+  const [showSubscriberOnlyDialog, setShowSubscriberOnlyDialog] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [evaluationActive, setEvaluationActive] = useState(false);
   const [evaluationPaused, setEvaluationPaused] = useState(false);
@@ -861,7 +863,8 @@ export default function ExamViewer() {
 
   // Premium Paywall: Show for premium exams when user doesn't have access
   const isPremiumExam = exam.visibility !== 'free';
-  const showPaywall = isPremiumExam && !hasAccess && isFreeUser;
+  // Allow free preview (10 fixed exams from /exams2 list) for non-subscribers
+  const showPaywall = isPremiumExam && !hasAccess && isFreeUser && !isFreePreview;
 
   if (showPaywall) {
     return (
@@ -932,9 +935,11 @@ export default function ExamViewer() {
     );
   }
 
-  // Subscription encouragement banner for free exams (when user is not subscribed)
-  const showSubscriptionBanner = exam.visibility === 'free' && isFreeUser && !hasAccess;
+  // Subscription encouragement banner for free exams or free-preview access (when user is not subscribed)
+  const showSubscriptionBanner = (exam.visibility === 'free' || isFreePreview) && isFreeUser && !hasAccess;
   const isFreeExam = exam.visibility === 'free';
+  // Treat free-preview the same as a free exam for evaluation gating
+  const evaluationLocked = isFreeUser && !hasAccess && (isFreeExam || isFreePreview);
   // Free exams: solutions only shown in correction mode (not instantly)
   const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
@@ -1143,13 +1148,28 @@ export default function ExamViewer() {
                 </span>
               </Button>
               
-              {/* Hide evaluation button for free exams */}
-              {!isFreeExam && (
-                <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'evaluation' && submitted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400")} onClick={handleEvaluationButtonClick}>
-                  <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  {language === 'fr' ? 'Évaluation' : 'Evaluate'}
-                </Button>
-              )}
+              {/* Evaluation button: visible to all, disabled (greyed) for non-subscribers */}
+              <Button
+                size="sm"
+                className={cn(
+                  "gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm",
+                  evaluationLocked
+                    ? "bg-muted text-muted-foreground border border-border opacity-70 cursor-not-allowed hover:bg-muted"
+                    : mode === 'evaluation' && submitted
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                )}
+                onClick={() => {
+                  if (evaluationLocked) {
+                    setShowSubscriberOnlyDialog(true);
+                  } else {
+                    handleEvaluationButtonClick();
+                  }
+                }}
+              >
+                {evaluationLocked ? <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                {language === 'fr' ? 'Évaluation' : 'Evaluate'}
+              </Button>
             </div>
           </div>
         </div>
@@ -1295,6 +1315,36 @@ export default function ExamViewer() {
 
       {/* Evaluation Results Dialog */}
       <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} aiGrading={aiGrading} aiFeedback={aiFeedback} />
+
+      {/* Subscriber-only evaluation dialog */}
+      <Dialog open={showSubscriberOnlyDialog} onOpenChange={setShowSubscriberOnlyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 p-3 rounded-full bg-primary/10">
+              <Crown className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-center">
+              {language === 'fr' ? 'Auto-évaluation réservée aux abonnés' : 'Self-evaluation is for subscribers'}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground text-center px-2">
+            {language === 'fr'
+              ? "Le mode auto-évaluation, avec notation et corrections détaillées, est disponible uniquement pour les utilisateurs abonnés."
+              : 'Self-evaluation mode, with scoring and detailed corrections, is available only for subscribers.'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 sm:justify-center mt-2">
+            <Button variant="outline" onClick={() => setShowSubscriberOnlyDialog(false)}>
+              {language === 'fr' ? 'Plus tard' : 'Later'}
+            </Button>
+            <Link to="/subscriptions" onClick={() => setShowSubscriberOnlyDialog(false)}>
+              <Button className="gap-2 w-full sm:w-auto">
+                <Sparkles className="h-4 w-4" />
+                {language === 'fr' ? "Voir les abonnements" : 'View subscriptions'}
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* PDF Modal - Mobile Only */}
       <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
