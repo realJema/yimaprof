@@ -163,8 +163,8 @@ export default function Subscriptions() {
       setPlans(processedPlans);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to fetch subscription plans',
+        title: t('error'),
+        description: t('failed_fetch_plans'),
         variant: 'destructive',
       });
     } finally {
