@@ -34,7 +34,7 @@ interface UserSubscription {
 }
 
 export default function Subscriptions() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -376,10 +376,10 @@ export default function Subscriptions() {
                 <div>
                   <h3 className="font-semibold">{userSubscription.subscription_plans.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {t('expires')}: {new Date(userSubscription.expires_at).toLocaleDateString('fr-FR')}
+                    {t('expires')}: {new Date(userSubscription.expires_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {t('started')}: {new Date(userSubscription.started_at).toLocaleDateString('fr-FR')}
+                    {t('started')}: {new Date(userSubscription.started_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
                   </p>
                 </div>
                 <Badge variant="secondary">{t('active')}</Badge>
