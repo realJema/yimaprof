@@ -179,8 +179,8 @@ export default function Subscriptions() {
     if (!user) {
       console.log('User not authenticated, showing toast');
       toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to subscribe',
+        title: t('error'),
+        description: t('auth_required_subscribe'),
         variant: 'destructive',
       });
       return;
