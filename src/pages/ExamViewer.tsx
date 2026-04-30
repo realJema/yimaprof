@@ -939,7 +939,7 @@ export default function ExamViewer() {
   const showSubscriptionBanner = (exam.visibility === 'free' || isFreePreview) && isFreeUser && !hasAccess;
   const isFreeExam = exam.visibility === 'free';
   // Treat free-preview the same as a free exam for evaluation gating
-  const evaluationLocked = isFreeUser && !hasAccess && (isFreeExam || isFreePreview);
+  const evaluationLocked = !hasAccess;
   // Free exams: solutions only shown in correction mode (not instantly)
   const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
