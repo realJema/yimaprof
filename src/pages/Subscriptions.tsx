@@ -34,7 +34,7 @@ interface UserSubscription {
 }
 
 export default function Subscriptions() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -163,8 +163,8 @@ export default function Subscriptions() {
       setPlans(processedPlans);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to fetch subscription plans',
+        title: t('error'),
+        description: t('failed_fetch_plans'),
         variant: 'destructive',
       });
     } finally {
@@ -179,8 +179,8 @@ export default function Subscriptions() {
     if (!user) {
       console.log('User not authenticated, showing toast');
       toast({
-        title: 'Authentication Required',
-        description: 'Please sign in to subscribe',
+        title: t('error'),
+        description: t('auth_required_subscribe'),
         variant: 'destructive',
       });
       return;
@@ -376,10 +376,10 @@ export default function Subscriptions() {
                 <div>
                   <h3 className="font-semibold">{userSubscription.subscription_plans.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {t('expires')}: {new Date(userSubscription.expires_at).toLocaleDateString('fr-FR')}
+                    {t('expires')}: {new Date(userSubscription.expires_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {t('started')}: {new Date(userSubscription.started_at).toLocaleDateString('fr-FR')}
+                    {t('started')}: {new Date(userSubscription.started_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
                   </p>
                 </div>
                 <Badge variant="secondary">{t('active')}</Badge>
