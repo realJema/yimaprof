@@ -939,7 +939,7 @@ export default function ExamViewer() {
   const showSubscriptionBanner = (exam.visibility === 'free' || isFreePreview) && isFreeUser && !hasAccess;
   const isFreeExam = exam.visibility === 'free';
   // Treat free-preview the same as a free exam for evaluation gating
-  const evaluationLocked = isFreeUser && !hasAccess && (isFreeExam || isFreePreview);
+  const evaluationLocked = !hasAccess;
   // Free exams: solutions only shown in correction mode (not instantly)
   const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
@@ -1333,22 +1333,28 @@ export default function ExamViewer() {
               <Crown className="h-8 w-8 text-primary" />
             </div>
             <DialogTitle className="text-center">
-              {language === 'fr' ? 'Auto-évaluation réservée aux abonnés' : 'Self-evaluation is for subscribers'}
+              {language === 'fr' ? 'Auto-évaluation réservée aux abonnés' : 'Self-Evaluation for Subscribers'}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground text-center px-2">
-            {language === 'fr'
-              ? "Le mode auto-évaluation, avec notation et corrections détaillées, est disponible uniquement pour les utilisateurs abonnés."
-              : 'Self-evaluation mode, with scoring and detailed corrections, is available only for subscribers.'}
+            {!user
+              ? (language === 'fr'
+                ? "Pour accéder au mode auto-évaluation avec notation et corrections détaillées, vous devez d'abord créer un compte puis souscrire à un abonnement."
+                : 'To access self-evaluation mode with scoring and detailed corrections, you must first create an account and subscribe to a plan.')
+              : (language === 'fr'
+                ? "Le mode auto-évaluation, avec notation et corrections détaillées, est disponible uniquement pour les utilisateurs abonnés."
+                : 'Self-evaluation mode, with scoring and detailed corrections, is available only for subscribers.')}
           </p>
           <div className="flex flex-col sm:flex-row gap-2 sm:justify-center mt-2">
             <Button variant="outline" onClick={() => setShowSubscriberOnlyDialog(false)}>
               {language === 'fr' ? 'Plus tard' : 'Later'}
             </Button>
-            <Link to="/subscriptions" onClick={() => setShowSubscriberOnlyDialog(false)}>
+            <Link to={user ? "/subscriptions" : "/auth"} onClick={() => setShowSubscriberOnlyDialog(false)}>
               <Button className="gap-2 w-full sm:w-auto">
                 <Sparkles className="h-4 w-4" />
-                {language === 'fr' ? "Voir les abonnements" : 'View subscriptions'}
+                {!user
+                  ? (language === 'fr' ? "S'inscrire" : 'Sign up')
+                  : (language === 'fr' ? "Voir les abonnements" : 'View subscriptions')}
               </Button>
             </Link>
           </div>
