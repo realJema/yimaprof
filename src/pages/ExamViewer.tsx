@@ -1095,6 +1095,15 @@ export default function ExamViewer() {
               </div>}
           </div>
           
+          {/* Mobile: Series badge */}
+          {exam.series && (
+            <div className="sm:hidden mb-3">
+              <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                {language === 'fr' ? 'Série' : 'Series'} {exam.series.code}
+              </Badge>
+            </div>
+          )}
+          
           {/* Desktop: Inline Info */}
           <div className="hidden sm:flex items-center gap-3 text-sm text-muted-foreground flex-wrap mb-3">
             {exam.establishments && exam.establishment_id && <span className="flex items-center gap-1 text-muted-foreground/70">
