@@ -696,23 +696,23 @@ const Exams2 = () => {
               </div>
               
               {/* System Toggle - Only show available systems for subscribers */}
-              {hasActiveSubscription && (availableSystems.francophone || availableSystems.anglophone) && (
+              {(hasActiveSubscription ? (availableSystems.francophone || availableSystems.anglophone) : true) && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">
                     {language === 'fr' ? 'Système:' : 'System:'}
                   </span>
                   <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setParam('system', value)} className="bg-muted p-1 rounded-lg">
-                    {availableSystems.hasMultiple && (
+                    {(hasActiveSubscription ? availableSystems.hasMultiple : true) && (
                       <ToggleGroupItem value="all" className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm">
                         {language === 'fr' ? 'Tous' : 'All'}
                       </ToggleGroupItem>
                     )}
-                    {availableSystems.francophone && (
+                    {(hasActiveSubscription ? availableSystems.francophone : true) && (
                       <ToggleGroupItem value="francophone" className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                         Francophone
                       </ToggleGroupItem>
                     )}
-                    {availableSystems.anglophone && (
+                    {(hasActiveSubscription ? availableSystems.anglophone : true) && (
                       <ToggleGroupItem value="anglophone" className="px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
                         Anglophone
                       </ToggleGroupItem>
