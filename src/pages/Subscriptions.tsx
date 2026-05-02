@@ -389,7 +389,7 @@ export default function Subscriptions() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => {
             const Icon = getPlanIcon(plan.name);
             const isCurrentPlan = userSubscription?.plan_id === plan.id;
