@@ -340,6 +340,17 @@ const Exams2 = () => {
       return exams;
     }
 
+    // "Prépa Examen" plan: access to all 3rd-trimester exams (across all classes)
+    // plus all free exams.
+    const planName = subscription?.subscription_plans?.name || '';
+    const isPrepaPlan = planName.includes('Prépa') || planName.toLowerCase().includes('prepa');
+    if (isPrepaPlan) {
+      return exams.filter(exam => {
+        if (exam.visibility === 'free') return true;
+        return exam.period?.name === '3rd_trimester';
+      });
+    }
+
     // Subscribers without plan classes loaded yet: show free + all (will refine)
     if (!subscriptionPlanClasses) {
       return exams;
@@ -351,7 +362,7 @@ const Exams2 = () => {
       if (!exam.class?.id) return false;
       return subscriptionPlanClasses.includes(exam.class.id);
     });
-  }, [exams, hasActiveSubscription, subscriptionPlanClasses]);
+  }, [exams, hasActiveSubscription, subscriptionPlanClasses, subscription]);
 
   // Compute the 10 fixed "free preview" exams for non-subscribers:
   // 2 most recent per class across Terminale, Première, Troisième, Form 5, Upper Sixth.
