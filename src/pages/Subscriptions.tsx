@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Crown, Globe, BookOpen, Zap, UserPlus, Loader2, Search } from 'lucide-react';
+import { Check, Crown, Globe, BookOpen, Zap, UserPlus, Loader2, Search, Sparkles, GraduationCap } from 'lucide-react';
 
 interface SubscriptionPlan {
   id: string;
@@ -230,6 +230,7 @@ export default function Subscriptions() {
 
   const getPlanIcon = (planName: string) => {
     if (planName.includes('Everything')) return Crown;
+    if (planName.includes('Prépa') || planName.toLowerCase().includes('prepa')) return GraduationCap;
     if (planName.includes('Anglophone')) return Globe;
     if (planName.includes('Francophone')) return BookOpen;
     return Zap;
@@ -388,20 +389,30 @@ export default function Subscriptions() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => {
             const Icon = getPlanIcon(plan.name);
             const isCurrentPlan = userSubscription?.plan_id === plan.id;
             const isEverything = plan.name.includes('Everything');
+            const isPrepa = plan.name.includes('Prépa') || plan.name.toLowerCase().includes('prepa');
             
             return (
               <Card 
                 key={plan.id} 
                 className={`relative border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-all ${
-                  isEverything ? 'border-primary shadow-lg scale-105' : ''
+                  isPrepa ? 'border-secondary border-2 shadow-2xl shadow-secondary/30 scale-105 ring-2 ring-secondary/40' :
+                  isEverything ? 'border-primary shadow-lg' : ''
                 } ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
               >
-              {isEverything && (
+              {isPrepa && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                    <Badge className="bg-secondary text-secondary-foreground px-3 py-1 shadow-md flex items-center gap-1 italic font-extrabold">
+                      <Sparkles className="h-3 w-3" />
+                      {language === 'fr' ? 'Spécial Examen' : 'Exam Special'}
+                    </Badge>
+                  </div>
+                )}
+              {isEverything && !isPrepa && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground px-3 py-1">
                       {t('most_popular')}
@@ -410,8 +421,8 @@ export default function Subscriptions() {
                 )}
                 
                 <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <Icon className="h-8 w-8 text-primary" />
+                  <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isPrepa ? 'bg-secondary/15' : 'bg-primary/10'}`}>
+                    <Icon className={`h-8 w-8 ${isPrepa ? 'text-secondary' : 'text-primary'}`} />
                   </div>
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <CardDescription className="text-sm">
@@ -463,8 +474,8 @@ export default function Subscriptions() {
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={subscribing === plan.id || isCurrentPlan}
-                    className={`w-full ${isEverything ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    variant={isEverything ? 'default' : 'outline'}
+                    className={`w-full ${isPrepa ? 'bg-secondary text-secondary-foreground hover:bg-secondary/90' : isEverything ? 'bg-primary hover:bg-primary/90' : ''}`}
+                    variant={isPrepa || isEverything ? 'default' : 'outline'}
                   >
                     {subscribing === plan.id ? (
                       t('processing')
