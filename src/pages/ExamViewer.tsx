@@ -213,8 +213,28 @@ export default function ExamViewer() {
         const expirationDate = new Date(subscription.expires_at);
         const currentDate = new Date();
         if (expirationDate.getTime() > currentDate.getTime()) {
-          setHasAccess(true);
-          setIsFreeUser(false);
+          // Prépa Examen plan: only unlocks 3rd-trimester exams.
+          const planName = (subscription as any).subscription_plans?.name || '';
+          const isPrepaPlan = planName.includes('Prépa') || planName.toLowerCase().includes('prepa');
+          if (isPrepaPlan) {
+            // Need exam data to know if it's 3rd trimester. Fetch period.
+            const { data: examPeriod } = await supabase
+              .from('exams')
+              .select('periods:period_id (name)')
+              .eq('id', examId)
+              .maybeSingle();
+            const periodName = (examPeriod as any)?.periods?.name;
+            if (periodName === '3rd_trimester') {
+              setHasAccess(true);
+              setIsFreeUser(false);
+            } else {
+              setHasAccess(false);
+              setIsFreeUser(true);
+            }
+          } else {
+            setHasAccess(true);
+            setIsFreeUser(false);
+          }
         } else {
           // Subscription exists but is expired
           console.log('Subscription expired, restricting access');
@@ -230,7 +250,7 @@ export default function ExamViewer() {
       setHasAccess(false);
       setIsFreeUser(true);
     }
-  }, [user]);
+  }, [user, examId]);
   const fetchExam = useCallback(async () => {
     try {
       setFetchError(null);
