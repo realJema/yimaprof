@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     console.error('❌ Error in send-notification-email function:', error)
     console.error('Error stack:', error.stack)
     return new Response(
-      JSON.stringify({ error: error.message, stack: error.stack }),
+      JSON.stringify({ error: 'Email notification failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
