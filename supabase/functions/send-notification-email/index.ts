@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
 
     // Select and render appropriate template
     let htmlContent: string
-    const baseUrl = supabaseUrl.replace('.supabase.co', '.lovable.app')
+    const baseUrl = 'https://yimaprof.com'
     const fullActionUrl = actionUrl ? `${baseUrl}${actionUrl}` : `${baseUrl}/dashboard`
 
     switch (type) {

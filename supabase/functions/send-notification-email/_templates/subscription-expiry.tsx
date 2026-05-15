@@ -142,7 +142,7 @@ export const SubscriptionExpiryEmail = ({
           <Text style={footer}>
             Need help? Contact our support team or visit your account dashboard.
             <br />
-            <Link href="https://yimaprof.lovable.app/contact" style={{ color: '#3b82f6' }}>
+            <Link href="https://yimaprof.com/contact" style={{ color: '#3b82f6' }}>
               Contact Support
             </Link>
           </Text>
