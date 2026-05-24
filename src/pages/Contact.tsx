@@ -1,5 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Helmet } from 'react-helmet-async';
+import SeoHead from '@/components/SeoHead';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,16 @@ import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 export default function Contact() {
   const { t } = useLanguage();
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [1, 2, 3].map((n) => ({
+      "@type": "Question",
+      name: t(`faq_${n}_question`),
+      acceptedAnswer: { "@type": "Answer", text: t(`faq_${n}_answer`) },
+    })),
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement contact form submission
@@ -18,15 +28,12 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen py-12 px-4">
-      <Helmet>
-        <title>Contact — Yimaprof</title>
-        <meta name="description" content="Contactez Yimaprof : support, questions et partenariats pour la préparation aux examens du Cameroun." />
-        <link rel="canonical" href="https://yimaprof.com/contact" />
-        <meta property="og:title" content="Contact — Yimaprof" />
-        <meta property="og:description" content="Contactez l'équipe Yimaprof pour toute question ou demande de support." />
-        <meta property="og:url" content="https://yimaprof.com/contact" />
-        <meta property="og:type" content="website" />
-      </Helmet>
+      <SeoHead
+        title="Contact — Yimaprof"
+        description="Contactez l'équipe Yimaprof : support, questions et partenariats pour la préparation aux examens officiels du Cameroun."
+        path="/contact"
+        jsonLd={faqSchema}
+      />
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">

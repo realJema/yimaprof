@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import SeoHead from '@/components/SeoHead';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Privacy() {
@@ -6,6 +7,11 @@ export default function Privacy() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <SeoHead
+        title="Politique de confidentialité — Yimaprof"
+        description="Comment Yimaprof collecte, utilise et protège vos données personnelles : transparence et conformité à la réglementation en vigueur."
+        path="/privacy"
+      />
       <div className="max-w-4xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">

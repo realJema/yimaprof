@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import SeoHead from '@/components/SeoHead';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -246,6 +247,11 @@ export default function Subscriptions() {
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
+      <SeoHead
+        title="Abonnements — Yimaprof"
+        description="Plans mensuels, trimestriels (-10%) et annuels (-20%) pour accéder à toutes les épreuves corrigées et aux évaluations Yimaprof."
+        path="/subscriptions"
+      />
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="text-center space-y-6">
           <div>

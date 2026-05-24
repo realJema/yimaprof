@@ -1,0 +1,20 @@
+# Yimaprof
+
+> Plateforme de préparation aux examens du Cameroun : épreuves officielles, corrections et évaluations interactives pour les systèmes francophone et anglophone.
+
+Yimaprof aide les élèves du primaire au secondaire à réviser les épreuves officielles (BEPC, Probatoire, Baccalauréat, GCE O/A Level, etc.) avec des corrections détaillées, un mode évaluation chronométré, et un forum de discussion.
+
+## Pages
+
+- [Accueil](/): Présentation de la plateforme et fonctionnalités.
+- [À propos](/about): Mission et équipe Yimaprof.
+- [Contact](/contact): Support et informations de contact, FAQ.
+- [Parcourir les épreuves](/exams2): Catalogue filtrable des épreuves par classe, matière, année.
+- [Abonnements](/subscriptions): Plans mensuels, trimestriels et annuels.
+- [Forum](/forum): Discussions entre élèves et enseignants.
+- [Politique de confidentialité](/privacy): Traitement des données personnelles.
+- [Conditions d'utilisation](/terms): Conditions générales d'utilisation.
+
+## Optional
+
+- [Connexion](/auth): Connexion et inscription.

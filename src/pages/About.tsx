@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import SeoHead from '@/components/SeoHead';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -9,6 +10,11 @@ export default function About() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <SeoHead
+        title="À propos — Yimaprof"
+        description="Découvrez la mission de Yimaprof : démocratiser l'accès aux ressources de préparation aux examens officiels pour les élèves du Cameroun."
+        path="/about"
+      />
       <div className="max-w-4xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">

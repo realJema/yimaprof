@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import SeoHead from '@/components/SeoHead';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -215,6 +216,21 @@ export default function ForumTopic() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead
+        title={`${topic.title} — Forum Yimaprof`}
+        description={(topic.content || '').slice(0, 160) || `Discussion sur le forum Yimaprof : ${topic.title}`}
+        path={`/forum/${topicId}`}
+        type="article"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "DiscussionForumPosting",
+          headline: topic.title,
+          articleBody: topic.content,
+          datePublished: topic.created_at,
+          author: { "@type": "Person", name: getAuthorName(topic.author) },
+          url: `https://yimaprof.com/forum/${topicId}`,
+        }}
+      />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back button */}
         <Button variant="ghost" asChild className="mb-4">

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import SeoHead from '@/components/SeoHead';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -689,6 +690,11 @@ const Exams2 = () => {
         </>}
     </div>;
   return <div className="min-h-screen bg-background">
+      <SeoHead
+        title="Parcourir les épreuves — Yimaprof"
+        description="Catalogue filtrable des épreuves officielles du Cameroun : BEPC, Probatoire, Baccalauréat, GCE O/A Level — par matière, classe et année."
+        path="/exams2"
+      />
       {/* Top Header with System and School */}
       <div className="border-b bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
