@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import SeoHead from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Search, Download, Users, Star, CheckCircle, Globe, Smartphone, GraduationCap, Target, Zap, Shield } from "lucide-react";
@@ -69,6 +70,11 @@ const Index = () => {
 
   return (
     <div className="bg-background">
+      <SeoHead
+        title="Yimaprof — Préparation aux examens du Cameroun"
+        description="Révisez les épreuves officielles du Cameroun (BEPC, Probatoire, Bac, GCE) avec corrections détaillées, évaluations chronométrées et forum d'entraide."
+        path="/"
+      />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20 px-4">
         <div className="container mx-auto max-w-6xl text-center">
