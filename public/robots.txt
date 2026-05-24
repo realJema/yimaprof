@@ -12,3 +12,14 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /payment
+Disallow: /payment-processing
+Disallow: /settings
+Disallow: /notifications
+Disallow: /test-notifications
+Disallow: /reset-password
+Disallow: /verify-email
+
+Sitemap: https://yimaprof.com/sitemap.xml
