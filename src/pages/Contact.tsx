@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,15 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>Contact — Yimaprof</title>
+        <meta name="description" content="Contactez Yimaprof : support, questions et partenariats pour la préparation aux examens du Cameroun." />
+        <link rel="canonical" href="https://yimaprof.com/contact" />
+        <meta property="og:title" content="Contact — Yimaprof" />
+        <meta property="og:description" content="Contactez l'équipe Yimaprof pour toute question ou demande de support." />
+        <meta property="og:url" content="https://yimaprof.com/contact" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">
