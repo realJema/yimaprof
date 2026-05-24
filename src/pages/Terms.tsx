@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import SeoHead from '@/components/SeoHead';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Terms() {
@@ -6,6 +7,11 @@ export default function Terms() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <SeoHead
+        title="Conditions d'utilisation — Yimaprof"
+        description="Conditions générales d'utilisation de Yimaprof : droits, obligations et règles d'usage de la plateforme de préparation aux examens."
+        path="/terms"
+      />
       <div className="max-w-4xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">
