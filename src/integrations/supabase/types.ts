@@ -208,6 +208,137 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_participants: {
+        Row: {
+          average_percent: number
+          challenge_id: string
+          class_id: string | null
+          created_at: string
+          evaluations_count: number
+          id: string
+          points: number
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          average_percent?: number
+          challenge_id: string
+          class_id?: string | null
+          created_at?: string
+          evaluations_count?: number
+          id?: string
+          points?: number
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          average_percent?: number
+          challenge_id?: string
+          class_id?: string | null
+          created_at?: string
+          evaluations_count?: number
+          id?: string
+          points?: number
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_participants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_participants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "establishment_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string
+          establishment_id: string
+          id: string
+          reward: string | null
+          scope: string
+          starts_at: string
+          status: string
+          subject_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string
+          establishment_id: string
+          id?: string
+          reward?: string | null
+          scope?: string
+          starts_at?: string
+          status?: string
+          subject_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string
+          establishment_id?: string
+          id?: string
+          reward?: string | null
+          scope?: string
+          starts_at?: string
+          status?: string
+          subject_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string
@@ -300,28 +431,281 @@ export type Database = {
         }
         Relationships: []
       }
+      establishment_classes: {
+        Row: {
+          class_id: string
+          created_at: string
+          establishment_id: string
+          id: string
+          label: string | null
+          teacher_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          establishment_id: string
+          id?: string
+          label?: string | null
+          teacher_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          establishment_id?: string
+          id?: string
+          label?: string | null
+          teacher_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_classes_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_commissions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          establishment_id: string
+          id: string
+          paid_at: string | null
+          plan_name: string | null
+          referred_name: string | null
+          status: string
+          student_id: string | null
+          subscription_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          establishment_id: string
+          id?: string
+          paid_at?: string | null
+          plan_name?: string | null
+          referred_name?: string | null
+          status?: string
+          student_id?: string | null
+          subscription_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          establishment_id?: string
+          id?: string
+          paid_at?: string | null
+          plan_name?: string | null
+          referred_name?: string | null
+          status?: string
+          student_id?: string | null
+          subscription_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_commissions_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_commissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "establishment_students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_commissions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_commissions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          establishment_id: string
+          id: string
+          method: string
+          note: string | null
+          phone: string
+          processed_at: string | null
+          requested_at: string
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          establishment_id: string
+          id?: string
+          method?: string
+          note?: string | null
+          phone: string
+          processed_at?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          establishment_id?: string
+          id?: string
+          method?: string
+          note?: string | null
+          phone?: string
+          processed_at?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_payouts_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_students: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          email: string | null
+          establishment_id: string
+          full_name: string
+          id: string
+          joined_at: string
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          email?: string | null
+          establishment_id: string
+          full_name: string
+          id?: string
+          joined_at?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          email?: string | null
+          establishment_id?: string
+          full_name?: string
+          id?: string
+          joined_at?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_students_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       establishments: {
         Row: {
+          city: string | null
+          contact_email: string | null
+          contact_phone: string | null
           country: string | null
           created_at: string
           id: string
+          is_active: boolean
+          logo_url: string | null
           name: string
+          owner_id: string | null
+          referral_code: string | null
           type: string | null
           updated_at: string
         }
         Insert: {
+          city?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           country?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean
+          logo_url?: string | null
           name: string
+          owner_id?: string | null
+          referral_code?: string | null
           type?: string | null
           updated_at?: string
         }
         Update: {
+          city?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           country?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean
+          logo_url?: string | null
           name?: string
+          owner_id?: string | null
+          referral_code?: string | null
           type?: string | null
           updated_at?: string
         }
@@ -691,6 +1075,174 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_exercises: {
+        Row: {
+          created_at: string
+          exam_id: string
+          id: string
+          lesson_id: string
+          order_number: number
+        }
+        Insert: {
+          created_at?: string
+          exam_id: string
+          id?: string
+          lesson_id: string
+          order_number?: number
+        }
+        Update: {
+          created_at?: string
+          exam_id?: string
+          id?: string
+          lesson_id?: string
+          order_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_exercises_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_exercises_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_progress: {
+        Row: {
+          created_at: string
+          id: string
+          last_viewed_at: string
+          lesson_id: string
+          progress_percent: number
+          status: string
+          time_spent_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_viewed_at?: string
+          lesson_id: string
+          progress_percent?: number
+          status?: string
+          time_spent_seconds?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_viewed_at?: string
+          lesson_id?: string
+          progress_percent?: number
+          status?: string
+          time_spent_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lessons: {
+        Row: {
+          chapter: string | null
+          class_id: string | null
+          content: string | null
+          created_at: string
+          created_by: string | null
+          estimated_minutes: number | null
+          file_url: string | null
+          id: string
+          is_free: boolean
+          is_published: boolean
+          language: string
+          order_number: number
+          series_id: string | null
+          subject_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          chapter?: string | null
+          class_id?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_minutes?: number | null
+          file_url?: string | null
+          id?: string
+          is_free?: boolean
+          is_published?: boolean
+          language?: string
+          order_number?: number
+          series_id?: string | null
+          subject_id?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          chapter?: string | null
+          class_id?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_minutes?: number | null
+          file_url?: string | null
+          id?: string
+          is_free?: boolean
+          is_published?: boolean
+          language?: string
+          order_number?: number
+          series_id?: string | null
+          subject_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -1236,6 +1788,39 @@ export type Database = {
         Returns: Json
       }
       check_subscription_expiry: { Args: never; Returns: number }
+      current_establishment_id: { Args: never; Returns: string }
+      establishment_results: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          class_id: string
+          class_name: string
+          completed_at: string
+          exam_id: string
+          exam_title: string
+          percent: number
+          possible: number
+          score: number
+          student_id: string
+          student_name: string
+          subject_id: string
+          subject_name: string
+        }[]
+      }
+      establishment_student_activity: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          class_id: string
+          last_viewed_at: string
+          lesson_id: string
+          lesson_title: string
+          progress_percent: number
+          status: string
+          student_id: string
+          student_name: string
+          subject_name: string
+          time_spent_seconds: number
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1249,6 +1834,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_establishment_admin: {
+        Args: { _establishment_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_audit: {
         Args: {
           p_action: string
@@ -1257,6 +1846,17 @@ export type Database = {
           p_target_type: string
         }
         Returns: string
+      }
+      register_establishment: {
+        Args: {
+          p_city?: string
+          p_contact_email?: string
+          p_contact_phone?: string
+          p_country?: string
+          p_name: string
+          p_type?: string
+        }
+        Returns: Json
       }
       send_notification: {
         Args: {
