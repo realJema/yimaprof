@@ -154,6 +154,14 @@ export default function Header() {
     icon: Search,
     label: language === 'fr' ? 'Épreuves' : 'Papers'
   }, {
+    to: '/lessons',
+    icon: BookOpen,
+    label: language === 'fr' ? 'Leçons' : 'Lessons'
+  }, {
+    to: '/schools',
+    icon: Info,
+    label: language === 'fr' ? 'Établissements' : 'Schools'
+  }, {
     to: '/forum',
     icon: MessageCircle,
     label: 'Forum'
