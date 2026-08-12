@@ -154,6 +154,14 @@ export default function Header() {
     icon: Search,
     label: language === 'fr' ? 'Épreuves' : 'Papers'
   }, {
+    to: '/lessons',
+    icon: BookOpen,
+    label: language === 'fr' ? 'Leçons' : 'Lessons'
+  }, {
+    to: '/schools',
+    icon: Info,
+    label: language === 'fr' ? 'Établissements' : 'Schools'
+  }, {
     to: '/forum',
     icon: MessageCircle,
     label: 'Forum'
@@ -301,6 +309,13 @@ export default function Header() {
             </Button>
             
             {/* Forum link */}
+            <Button variant={isActive('/lessons') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
+              <Link to="/lessons" className="flex items-center space-x-2">
+                <BookOpen className="h-4 w-4" />
+                <span>{language === 'fr' ? 'Leçons' : 'Lessons'}</span>
+              </Link>
+            </Button>
+
             <Button variant={isActive('/forum') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
               <Link to="/forum" className="flex items-center space-x-2">
                 <MessageCircle className="h-4 w-4" />

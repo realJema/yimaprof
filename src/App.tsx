@@ -34,6 +34,10 @@ import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import VerifyEmail from "./pages/VerifyEmail";
+import Lessons from "./pages/Lessons";
+import LessonDetail from "./pages/LessonDetail";
+import Schools from "./pages/Schools";
+import SchoolSpace from "./pages/SchoolSpace";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +79,10 @@ const App = () => {
                     <Route path="/exams/:classId/list" element={<Navigate to="/exams2" replace />} />
                     <Route path="/exam/:examId" element={<ExamViewer />} />
                     <Route path="/exams2" element={<Exams2 />} />
+                    <Route path="/lessons" element={<Lessons />} />
+                    <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+                    <Route path="/schools" element={<Schools />} />
+                    <Route path="/school" element={<SchoolSpace />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
                     <Route path="/affiliate" element={<Affiliate />} />
