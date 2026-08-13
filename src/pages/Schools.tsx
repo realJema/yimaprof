@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SeoHead from '@/components/SeoHead';
+import { PENDING_SCHOOL_KEY, type PendingSchool } from '@/components/school/SchoolSignupForm';
 import { Award, BarChart3, Building2, Coins, GraduationCap, Route, Users } from 'lucide-react';
 
 export default function Schools() {
@@ -27,6 +28,46 @@ export default function Schools() {
     if (user?.email && !form.contact_email) setForm((f) => ({ ...f, contact_email: user.email as string }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Finish a registration started from the auth page (before email confirmation)
+  useEffect(() => {
+    const raw = sessionStorage.getItem(PENDING_SCHOOL_KEY);
+    if (!user || loading || establishment || !raw) return;
+    let pending: PendingSchool;
+    try {
+      pending = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem(PENDING_SCHOOL_KEY);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase.rpc('register_establishment', {
+        p_name: pending.name,
+        p_type: pending.type,
+        p_city: pending.city || null,
+        p_country: 'CM',
+        p_contact_email: pending.contact_email || null,
+        p_contact_phone: pending.contact_phone || null,
+      });
+      const result = data as { success?: boolean; error?: string } | null;
+      if (error || !result?.success) {
+        setForm({
+          name: pending.name,
+          type: pending.type,
+          city: pending.city,
+          contact_email: pending.contact_email,
+          contact_phone: pending.contact_phone,
+        });
+        sessionStorage.removeItem(PENDING_SCHOOL_KEY);
+        return;
+      }
+      sessionStorage.removeItem(PENDING_SCHOOL_KEY);
+      toast({ title: fr ? 'Établissement créé' : 'School created' });
+      await refresh();
+      navigate('/school');
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, establishment]);
 
   const features = [
     { icon: BarChart3, title: fr ? 'Tableau de bord' : 'Dashboard', text: fr ? 'Vue d’ensemble des élèves, classes, moyennes et revenus.' : 'Overview of students, classes, averages and revenue.' },
