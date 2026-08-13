@@ -508,6 +508,10 @@ export default function Auth() {
                   </Button>
                 </form>
               </TabsContent>
+
+              <TabsContent value="school" className="space-y-4">
+                <SchoolSignupForm />
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
