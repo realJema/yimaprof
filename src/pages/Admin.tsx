@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart, Building2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -30,6 +30,7 @@ import ForumModeration from '@/components/admin/ForumModeration';
 import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
 import { SeriesManagement } from '@/components/admin/SeriesManagement';
 import { AIUsageStats } from '@/components/admin/AIUsageStats';
+import { SchoolManagement } from '@/components/admin/SchoolManagement';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -142,6 +143,7 @@ export default function Admin() {
     { id: 'overview', label: t('overview'), icon: BarChart3 },
     { id: 'users', label: t('users'), icon: Users },
     { id: 'affiliates', label: language === 'fr' ? 'Affiliés' : 'Affiliates', icon: Heart },
+    { id: 'schools', label: language === 'fr' ? 'Écoles' : 'Schools', icon: Building2 },
     { id: 'config', label: language === 'fr' ? 'Config' : 'Config', icon: Settings },
     { id: 'plans', label: t('plans'), icon: CreditCard },
     { id: 'subscriptions', label: language === 'fr' ? 'Abonnements' : 'Subs', icon: Shield },
@@ -302,6 +304,7 @@ export default function Admin() {
 
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'affiliates' && <AffiliateManagement />}
+            {activeTab === 'schools' && <SchoolManagement />}
             {activeTab === 'config' && (
               <div className="space-y-3 md:space-y-4">
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">{t('system_configuration')}</h2>
