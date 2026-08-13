@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import SchoolSignupForm from "@/components/school/SchoolSignupForm";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -23,7 +24,8 @@ export default function Auth() {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const referralCode = searchParams.get("ref");
 
-  const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "signin";
+  const modeParam = searchParams.get("mode");
+  const defaultTab = modeParam === "signup" ? "signup" : modeParam === "school" ? "school" : "signin";
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Redirect if already authenticated
@@ -182,10 +184,16 @@ export default function Auth() {
         <Card className="shadow-medium">
           <CardHeader>
             <CardTitle className="text-center">
-              {activeTab === "signup" ? "Créer un compte" : "Se connecter"}
+              {activeTab === "signup"
+                ? "Créer un compte"
+                : activeTab === "school"
+                ? "Inscrire mon établissement"
+                : "Se connecter"}
             </CardTitle>
             <CardDescription className="text-center">
-              {activeTab === "signup" 
+              {activeTab === "school"
+                ? "Créez l'espace de votre école et suivez vos élèves"
+                : activeTab === "signup"
                 ? "Rejoignez des milliers d'étudiants qui réussissent avec Yimaprof"
                 : "Accédez à votre espace d'apprentissage"
               }
@@ -193,9 +201,10 @@ export default function Auth() {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="signin">Connexion</TabsTrigger>
                 <TabsTrigger value="signup">Inscription</TabsTrigger>
+                <TabsTrigger value="school">École</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin" className="space-y-4">
