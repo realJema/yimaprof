@@ -105,11 +105,11 @@ export default function Payment() {
     if (!referralAffiliateId) return;
     try {
       const {
-        data,
-        error
-      } = await supabase.from('profiles').select('username').eq('id', referralAffiliateId).maybeSingle();
-      if (data?.username) {
-        setReferrerUsername(data.username);
+        data
+      } = await supabase.rpc('get_public_profiles', { _ids: [referralAffiliateId] });
+      const profile = data?.[0];
+      if (profile?.username) {
+        setReferrerUsername(profile.username);
       }
     } catch (error) {
       console.error('Error fetching referrer:', error);

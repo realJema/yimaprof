@@ -101,12 +101,9 @@ export default function Subscriptions() {
 
     setIsSearching(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .ilike('username', `%${searchTerm}%`)
-        .not('username', 'is', null)
-        .limit(10);
+      const { data, error } = await supabase.rpc('search_affiliate_usernames', {
+        _term: searchTerm,
+      });
 
       if (!error && data) {
         setSearchResults(data);
@@ -131,11 +128,10 @@ export default function Subscriptions() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .eq('username', username.toLowerCase())
-        .maybeSingle();
+      const { data: matches, error } = await supabase.rpc('find_affiliate_by_username', {
+        _username: username.toLowerCase(),
+      });
+      const data = matches?.[0];
 
       if (error || !data) {
         setReferredByProfile(null);
