@@ -112,20 +112,24 @@ export default function Affiliate() {
     try {
       const { data, error } = await supabase
         .from('affiliate_earnings')
-        .select(`
-          *,
-          referred_user:profiles!affiliate_earnings_referred_user_id_fkey(
-            email,
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .eq('affiliate_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      setEarnings(data || []);
+      const rows = data || [];
+      let profilesMap: Record<string, any> = {};
+      const referredIds = Array.from(new Set(rows.map((r: any) => r.referred_user_id).filter(Boolean)));
+      if (referredIds.length > 0) {
+        const { data: profiles } = await supabase.rpc('get_public_profiles', { _ids: referredIds });
+        if (profiles) profilesMap = Object.fromEntries(profiles.map((p: any) => [p.id, p]));
+      }
+
+      setEarnings(rows.map((r: any) => ({
+        ...r,
+        referred_user: profilesMap[r.referred_user_id] || null,
+      })));
       
       const total = data?.reduce((sum, earning) => {
         if (earning.status === 'paid' || earning.status === 'pending') {
@@ -144,18 +148,20 @@ export default function Affiliate() {
     try {
       const { data: subscription, error } = await supabase
         .from('subscriptions')
-        .select(`
-          referred_by,
-          referrer:profiles!subscriptions_referred_by_fkey(username)
-        `)
+        .select('referred_by')
         .eq('user_id', user?.id)
         .eq('status', 'active')
         .maybeSingle();
 
       if (error) throw error;
 
-      if (subscription?.referrer?.username) {
-        setReferredByUsername(subscription.referrer.username);
+      if (subscription?.referred_by) {
+        const { data: profiles } = await supabase.rpc('get_public_profiles', {
+          _ids: [subscription.referred_by],
+        });
+        if (profiles?.[0]?.username) {
+          setReferredByUsername(profiles[0].username);
+        }
       }
     } catch (error) {
       console.error('Error fetching referrer:', error);
