@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useEstablishment } from '@/hooks/useEstablishment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Crown, Globe, BookOpen, Zap, UserPlus, Loader2, Search, Sparkles, GraduationCap } from 'lucide-react';
@@ -40,6 +41,7 @@ export default function Subscriptions() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { subscription: userSubscription, loading: subscriptionLoading, refreshSubscription } = useSubscription();
+  const { isSchoolAdmin, loading: establishmentLoading } = useEstablishment();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,17 @@ export default function Subscriptions() {
   useEffect(() => {
     fetchPlans();
     refreshSubscription(); // Refresh subscription when page mounts
-    
+
+  }, []);
+
+  // School accounts don't use personal subscriptions
+  useEffect(() => {
+    if (!establishmentLoading && isSchoolAdmin) {
+      navigate('/school', { replace: true });
+    }
+  }, [establishmentLoading, isSchoolAdmin, navigate]);
+
+  useEffect(() => {
     // Check for referral code in URL
     const refCode = searchParams.get('ref');
     if (refCode) {

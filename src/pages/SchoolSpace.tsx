@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEstablishment } from '@/hooks/useEstablishment';
@@ -9,17 +10,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
 import SchoolOverview from '@/components/school/SchoolOverview';
 import SchoolStudents from '@/components/school/SchoolStudents';
+import SchoolContent from '@/components/school/SchoolContent';
 import SchoolClasses from '@/components/school/SchoolClasses';
 import SchoolChallenges from '@/components/school/SchoolChallenges';
 import SchoolRevenue from '@/components/school/SchoolRevenue';
 import SchoolJourney from '@/components/school/SchoolJourney';
 import SchoolResults from '@/components/school/SchoolResults';
-import { Building2 } from 'lucide-react';
+import { Building2, School } from 'lucide-react';
 
 export default function SchoolSpace() {
   const { language } = useLanguage();
   const fr = language === 'fr';
   const { establishment, isSchoolAdmin, loading } = useEstablishment();
+  const [tab, setTab] = useState('overview');
 
   if (loading) {
     return (
@@ -48,6 +51,7 @@ export default function SchoolSpace() {
     { value: 'overview', label: fr ? 'Tableau de bord' : 'Dashboard' },
     { value: 'students', label: fr ? 'Élèves' : 'Students' },
     { value: 'classes', label: fr ? 'Classes' : 'Classes' },
+    { value: 'content', label: fr ? 'Contenus' : 'Content' },
     { value: 'challenges', label: 'Challenges' },
     { value: 'journey', label: fr ? 'Parcours' : 'Journey' },
     { value: 'results', label: fr ? 'Résultats' : 'Results' },
@@ -66,6 +70,7 @@ export default function SchoolSpace() {
         <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <Building2 className="h-6 w-6 text-secondary" />
           {establishment.name}
+          <Badge variant="secondary" className="ml-1 gap-1 text-xs"><School className="h-3 w-3" />{fr ? 'Compte école' : 'School account'}</Badge>
         </h1>
         <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">
           {establishment.city && <span>{establishment.city}</span>}
@@ -73,7 +78,7 @@ export default function SchoolSpace() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview">
+      <Tabs value={tab} onValueChange={setTab}>
         <div className="overflow-x-auto pb-2 -mx-1 px-1">
           <TabsList className="inline-flex w-max">
             {tabs.map((t) => (
@@ -83,13 +88,16 @@ export default function SchoolSpace() {
         </div>
 
         <TabsContent value="overview" className="mt-6">
-          <SchoolOverview establishmentId={establishment.id} referralCode={establishment.referral_code} />
+          <SchoolOverview establishmentId={establishment.id} referralCode={establishment.referral_code} onNavigate={setTab} />
         </TabsContent>
         <TabsContent value="students" className="mt-6">
           <SchoolStudents establishmentId={establishment.id} />
         </TabsContent>
         <TabsContent value="classes" className="mt-6">
           <SchoolClasses establishmentId={establishment.id} />
+        </TabsContent>
+        <TabsContent value="content" className="mt-6">
+          <SchoolContent establishmentId={establishment.id} />
         </TabsContent>
         <TabsContent value="challenges" className="mt-6">
           <SchoolChallenges establishmentId={establishment.id} />
