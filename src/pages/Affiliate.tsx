@@ -22,7 +22,7 @@ interface AffiliateEarning {
   created_at: string;
   paid_at: string | null;
   referred_user: {
-    email: string;
+    username: string | null;
     first_name: string | null;
     last_name: string | null;
   };
