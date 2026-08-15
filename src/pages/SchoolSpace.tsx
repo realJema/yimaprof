@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
+import SchoolOverview from '@/components/school/SchoolOverview';
 import SchoolStudents from '@/components/school/SchoolStudents';
 import SchoolContent from '@/components/school/SchoolContent';
 import SchoolClasses from '@/components/school/SchoolClasses';
@@ -21,7 +22,7 @@ export default function SchoolSpace() {
   const { language } = useLanguage();
   const fr = language === 'fr';
   const { establishment, isSchoolAdmin, loading } = useEstablishment();
-  const [tab, setTab] = useState('students');
+  const [tab, setTab] = useState('overview');
 
   if (loading) {
     return (
@@ -47,6 +48,7 @@ export default function SchoolSpace() {
   }
 
   const tabs = [
+    { value: 'overview', label: fr ? 'Tableau de bord' : 'Dashboard' },
     { value: 'students', label: fr ? 'Élèves' : 'Students' },
     { value: 'classes', label: fr ? 'Classes' : 'Classes' },
     { value: 'content', label: fr ? 'Contenus' : 'Content' },
@@ -60,7 +62,7 @@ export default function SchoolSpace() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <SeoHead
         title={`${establishment.name} | ${fr ? 'Espace Établissement' : 'Establishment Space'} | Yimaprof`}
-        description={fr ? 'Gérez votre établissement sur Yimaprof.' : 'Manage your school on Yimaprof.'}
+        description={fr ? 'Tableau de bord de votre établissement sur Yimaprof.' : 'Your school dashboard on Yimaprof.'}
         path="/school"
       />
 
@@ -85,6 +87,9 @@ export default function SchoolSpace() {
           </TabsList>
         </div>
 
+        <TabsContent value="overview" className="mt-6">
+          <SchoolOverview establishmentId={establishment.id} referralCode={establishment.referral_code} onNavigate={setTab} />
+        </TabsContent>
         <TabsContent value="students" className="mt-6">
           <SchoolStudents establishmentId={establishment.id} />
         </TabsContent>
