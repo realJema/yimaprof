@@ -115,11 +115,15 @@ export default function Header() {
       localStorage.setItem('theme', 'light');
     }
   };
-  const navItems = [{
-    to: '/dashboard',
-    icon: BarChart3,
-    label: t('dashboard')
-  }];
+  const navItems = [];
+  // School profiles use the school space instead of the personal dashboard
+  if (!isSchoolAdmin) {
+    navItems.push({
+      to: '/dashboard',
+      icon: BarChart3,
+      label: t('dashboard')
+    });
+  }
   if (isSchoolAdmin) {
     navItems.push({
       to: '/school',
