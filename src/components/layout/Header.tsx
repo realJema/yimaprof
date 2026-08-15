@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School } from 'lucide-react';
+import { useEstablishment } from '@/hooks/useEstablishment';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Logo } from '@/components/ui/logo';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +26,7 @@ export default function Header() {
   } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const { establishment, isSchoolAdmin } = useEstablishment();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -116,11 +119,23 @@ export default function Header() {
     to: '/dashboard',
     icon: BarChart3,
     label: t('dashboard')
-  }, {
-    to: '/subscriptions',
-    icon: CreditCard,
-    label: 'Subscriptions'
-  }, {
+  }];
+  if (isSchoolAdmin) {
+    navItems.push({
+      to: '/school',
+      icon: School,
+      label: language === 'fr' ? 'Espace École' : 'School Space'
+    });
+  }
+  // Schools manage students, not personal subscriptions
+  if (!isSchoolAdmin || isAdmin) {
+    navItems.push({
+      to: '/subscriptions',
+      icon: CreditCard,
+      label: language === 'fr' ? 'Abonnements' : 'Subscriptions'
+    });
+  }
+  navItems.push({
     to: '/affiliate',
     icon: Share2,
     label: language === 'fr' ? 'Affiliation' : 'Affiliate'
@@ -128,7 +143,7 @@ export default function Header() {
     to: '/settings',
     icon: Settings,
     label: t('settings')
-  }];
+  });
   if (isAdmin) {
     navItems.push({
       to: '/admin',
@@ -316,20 +331,6 @@ export default function Header() {
               </Link>
             </Button>
 
-            <Button variant={isActive('/forum') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
-              <Link to="/forum" className="flex items-center space-x-2">
-                <MessageCircle className="h-4 w-4" />
-                <span>Forum</span>
-              </Link>
-            </Button>
-            
-            {/* Write to Us link */}
-            <Button variant={isActive('/write-to-us') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
-              <Link to="/write-to-us">
-                <span>{t('write_to_us')}</span>
-              </Link>
-            </Button>
-            
             {/* More dropdown - subtle navigation links */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -340,6 +341,19 @@ export default function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48 bg-card border-border z-50">
+                <DropdownMenuItem asChild>
+                  <Link to="/forum" className="cursor-pointer flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" />
+                    Forum
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/write-to-us" className="cursor-pointer flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    {t('write_to_us')}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/about" className="cursor-pointer">
                     {t('about')}
@@ -366,6 +380,19 @@ export default function Header() {
           </div>
 
           {user ? <div className="flex items-center space-x-3">
+              {/* School account indicator */}
+              {isSchoolAdmin && <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link to="/school" className="hidden sm:flex items-center gap-1.5 rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-1 text-xs font-medium text-secondary">
+                        <School className="h-3.5 w-3.5" />
+                        <span className="hidden md:inline">{language === 'fr' ? 'École' : 'School'}</span>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>{establishment?.name || (language === 'fr' ? 'Compte établissement' : 'School account')}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>}
+
               {/* Notification Bell */}
               <NotificationBell />
               
@@ -379,18 +406,17 @@ export default function Header() {
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline text-sm font-medium">
-                      {getUserDisplayName()}
-                    </span>
                     <ChevronDown className="h-4 w-4 hidden md:block" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-card border-border z-50" align="end">
-                  <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">{getUserDisplayName()}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                  <DropdownMenuSeparator />
+                  {profile?.first_name && <>
+                      <div className="px-2 py-1.5">
+                        <p className="text-sm font-medium">{getUserDisplayName()}</p>
+                        {isSchoolAdmin && establishment && <p className="text-xs text-muted-foreground flex items-center gap-1"><School className="h-3 w-3" />{establishment.name}</p>}
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>}
                   
                   {navItems.map(item => <DropdownMenuItem key={item.to} asChild>
                       <Link to={item.to} className="flex items-center space-x-2 cursor-pointer">
