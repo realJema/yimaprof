@@ -1169,6 +1169,7 @@ export type Database = {
           content: string | null
           created_at: string
           created_by: string | null
+          establishment_id: string | null
           estimated_minutes: number | null
           file_url: string | null
           id: string
@@ -1189,6 +1190,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           created_by?: string | null
+          establishment_id?: string | null
           estimated_minutes?: number | null
           file_url?: string | null
           id?: string
@@ -1209,6 +1211,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           created_by?: string | null
+          establishment_id?: string | null
           estimated_minutes?: number | null
           file_url?: string | null
           id?: string
@@ -1229,6 +1232,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
             referencedColumns: ["id"]
           },
           {
