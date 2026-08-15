@@ -129,10 +129,7 @@ export function ExamReviewSection({ examId }: ExamReviewSectionProps) {
     const userIds = reviewsData.map((r: any) => r.user_id);
     let profilesMap: Record<string, any> = {};
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, username')
-        .in('id', userIds);
+      const { data: profiles } = await supabase.rpc('get_public_profiles', { _ids: userIds });
       if (profiles) {
         profilesMap = Object.fromEntries(profiles.map(p => [p.id, p]));
       }

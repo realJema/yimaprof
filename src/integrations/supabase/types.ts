@@ -1831,6 +1831,23 @@ export type Database = {
           time_spent_seconds: number
         }[]
       }
+      find_affiliate_by_username: {
+        Args: { _username: string }
+        Returns: {
+          id: string
+          username: string
+        }[]
+      }
+      get_public_profiles: {
+        Args: { _ids: string[] }
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+          profile_photo_url: string
+          username: string
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1867,6 +1884,13 @@ export type Database = {
           p_type?: string
         }
         Returns: Json
+      }
+      search_affiliate_usernames: {
+        Args: { _term: string }
+        Returns: {
+          id: string
+          username: string
+        }[]
       }
       send_notification: {
         Args: {

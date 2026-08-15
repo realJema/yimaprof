@@ -91,13 +91,12 @@ export default function Auth() {
       if (referralCode) {
         try {
           // Find the affiliate by username
-          const { data: affiliateProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('username', referralCode.toLowerCase())
-            .maybeSingle();
-          
+          const { data: affiliateMatches } = await supabase.rpc('find_affiliate_by_username', {
+            _username: referralCode.toLowerCase(),
+          });
+
           // Store referral in localStorage to be used when subscription is created
+          const affiliateProfile = affiliateMatches?.[0];
           if (affiliateProfile) {
             localStorage.setItem('referral_affiliate_id', affiliateProfile.id);
           }
