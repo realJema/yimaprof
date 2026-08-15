@@ -693,7 +693,7 @@ export default function Affiliate() {
               {recentReferrals.map((earning) => {
                 const name = earning.referred_user?.first_name || earning.referred_user?.last_name
                   ? `${earning.referred_user.first_name || ''} ${earning.referred_user.last_name || ''}`.trim()
-                  : earning.referred_user?.email || 'Unknown';
+                  : earning.referred_user?.username || 'Unknown';
                 const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                 return (
                   <div key={earning.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -757,7 +757,7 @@ export default function Affiliate() {
                       <TableCell>
                         {earning.referred_user?.first_name || earning.referred_user?.last_name 
                           ? `${earning.referred_user.first_name || ''} ${earning.referred_user.last_name || ''}`.trim()
-                          : earning.referred_user?.email || 'Unknown'}
+                          : earning.referred_user?.username || 'Unknown'}
                       </TableCell>
                        <TableCell>
                         <div>
