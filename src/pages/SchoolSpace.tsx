@@ -60,7 +60,7 @@ export default function SchoolSpace() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <SeoHead
         title={`${establishment.name} | ${fr ? 'Espace Établissement' : 'Establishment Space'} | Yimaprof`}
-        description={fr ? 'Tableau de bord de votre établissement sur Yimaprof.' : 'Your school dashboard on Yimaprof.'}
+        description={fr ? 'Gérez votre établissement sur Yimaprof.' : 'Manage your school on Yimaprof.'}
         path="/school"
       />
 
