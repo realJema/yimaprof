@@ -13,6 +13,8 @@ export interface Establishment {
   referral_code: string | null;
   logo_url: string | null;
   owner_id: string | null;
+  approval_status: string;
+  rejection_reason: string | null;
 }
 
 export function useEstablishment() {
@@ -34,7 +36,7 @@ export function useEstablishment() {
       supabase.from('user_roles').select('role').eq('user_id', user.id),
       supabase
         .from('establishments')
-        .select('id, name, type, city, country, contact_email, contact_phone, referral_code, logo_url, owner_id')
+        .select('id, name, type, city, country, contact_email, contact_phone, referral_code, logo_url, owner_id, approval_status, rejection_reason')
         .eq('owner_id', user.id)
         .maybeSingle(),
       supabase.from('profiles').select('establishment_id').eq('id', user.id).maybeSingle(),
@@ -47,7 +49,7 @@ export function useEstablishment() {
     if (!est && profile?.establishment_id) {
       const { data } = await supabase
         .from('establishments')
-        .select('id, name, type, city, country, contact_email, contact_phone, referral_code, logo_url, owner_id')
+        .select('id, name, type, city, country, contact_email, contact_phone, referral_code, logo_url, owner_id, approval_status, rejection_reason')
         .eq('id', profile.establishment_id)
         .maybeSingle();
       est = (data as Establishment | null) ?? null;
@@ -62,5 +64,15 @@ export function useEstablishment() {
     if (!authLoading) load();
   }, [authLoading, load]);
 
-  return { establishment, isSchoolAdmin, loading: loading || authLoading, refresh: load };
+  const isApproved = establishment?.approval_status === 'approved';
+
+  return {
+    establishment,
+    isSchoolAdmin,
+    isApproved,
+    isPending: !!establishment && establishment.approval_status === 'pending',
+    isRejected: !!establishment && establishment.approval_status === 'rejected',
+    loading: loading || authLoading,
+    refresh: load,
+  };
 }
