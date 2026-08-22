@@ -237,7 +237,11 @@ export function SchoolManagement() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-lg border p-3 border-secondary/50 bg-secondary/10">
+            <p className="text-xs text-muted-foreground">{fr ? 'Demandes en attente' : 'Pending requests'}</p>
+            <p className="text-lg font-semibold">{pendingCount}</p>
+          </div>
           <div className="rounded-lg border border-border/50 p-3">
             <p className="text-xs text-muted-foreground">{fr ? 'Établissements actifs' : 'Active schools'}</p>
             <p className="text-lg font-semibold">{schools.filter((s) => s.is_active).length}</p>
@@ -253,6 +257,38 @@ export function SchoolManagement() {
             </p>
           </div>
         </div>
+
+        {!loading && pendingCount > 0 && (
+          <div className="rounded-lg border-2 border-secondary/60 bg-secondary/5 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-secondary" />
+              <p className="font-semibold text-sm">
+                {fr ? 'Écoles en attente d’approbation' : 'Schools awaiting approval'}
+              </p>
+              <Badge variant="secondary">{pendingCount}</Badge>
+            </div>
+            {schools
+              .filter((s) => (s.approval_status || 'pending') === 'pending')
+              .map((s) => (
+                <div key={s.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-md bg-background border border-border/50 p-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{s.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {[s.city, s.contact_email, s.contact_phone].filter(Boolean).join(' • ')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" onClick={() => setApproval(s, 'approved')}>
+                      <Check className="h-3.5 w-3.5 mr-1" />{fr ? 'Valider' : 'Approve'}
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => setApproval(s, 'rejected')}>
+                      <X className="h-3.5 w-3.5 mr-1" />{fr ? 'Rejeter' : 'Reject'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground">…</p>
@@ -309,12 +345,12 @@ export function SchoolManagement() {
                   <div className="flex flex-wrap gap-2">
                     {s.approval_status !== 'approved' && (
                       <Button size="sm" onClick={() => setApproval(s, 'approved')}>
-                        <Check className="h-3.5 w-3.5 mr-1" />{fr ? 'Approuver' : 'Approve'}
+                        <Check className="h-3.5 w-3.5 mr-1" />{fr ? 'Valider' : 'Approve'}
                       </Button>
                     )}
                     {s.approval_status !== 'rejected' && (
                       <Button size="sm" variant="destructive" onClick={() => setApproval(s, 'rejected')}>
-                        <X className="h-3.5 w-3.5 mr-1" />{fr ? 'Refuser' : 'Reject'}
+                        <X className="h-3.5 w-3.5 mr-1" />{fr ? 'Rejeter' : 'Reject'}
                       </Button>
                     )}
                     {s.approval_status !== 'pending' && (
