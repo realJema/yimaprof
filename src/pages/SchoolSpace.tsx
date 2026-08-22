@@ -16,12 +16,13 @@ import SchoolChallenges from '@/components/school/SchoolChallenges';
 import SchoolRevenue from '@/components/school/SchoolRevenue';
 import SchoolJourney from '@/components/school/SchoolJourney';
 import SchoolResults from '@/components/school/SchoolResults';
-import { Building2, School } from 'lucide-react';
+import { Building2, School, Clock, Lock, XCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SchoolSpace() {
   const { language } = useLanguage();
   const fr = language === 'fr';
-  const { establishment, isSchoolAdmin, loading } = useEstablishment();
+  const { establishment, isSchoolAdmin, isApproved, isPending, isRejected, loading } = useEstablishment();
   const [tab, setTab] = useState('overview');
 
   if (loading) {
@@ -71,6 +72,7 @@ export default function SchoolSpace() {
           <Building2 className="h-6 w-6 text-secondary" />
           {establishment.name}
           <Badge variant="secondary" className="ml-1 gap-1 text-xs"><School className="h-3 w-3" />{fr ? 'Compte école' : 'School account'}</Badge>
+          {isPending && <Badge variant="outline" className="gap-1 text-xs"><Clock className="h-3 w-3" />{fr ? 'En attente' : 'Pending'}</Badge>}
         </h1>
         <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">
           {establishment.city && <span>{establishment.city}</span>}
@@ -78,6 +80,52 @@ export default function SchoolSpace() {
         </div>
       </div>
 
+      {isPending && (
+        <Alert className="mb-6 border-secondary/40 bg-secondary/10">
+          <Clock className="h-4 w-4 text-secondary" />
+          <AlertTitle>{fr ? 'Approbation en attente' : 'Approval pending'}</AlertTitle>
+          <AlertDescription>
+            {fr
+              ? 'Votre établissement a bien été enregistré. Un administrateur Yimaprof doit valider votre compte avant que vous puissiez gérer vos élèves, classes, contenus, challenges et revenus. Vous recevrez une notification dès l’approbation.'
+              : 'Your school has been registered. A Yimaprof administrator must approve your account before you can manage students, classes, content, challenges and revenue. You will be notified once approved.'}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isRejected && (
+        <Alert variant="destructive" className="mb-6">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>{fr ? 'Inscription refusée' : 'Registration rejected'}</AlertTitle>
+          <AlertDescription>
+            {establishment.rejection_reason ||
+              (fr
+                ? 'Votre demande d’inscription a été refusée. Contactez le support pour plus d’informations.'
+                : 'Your registration request was rejected. Contact support for more information.')}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!isApproved ? (
+        <Card className="border-dashed">
+          <CardContent className="py-14 text-center space-y-3">
+            <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+            <p className="font-medium">{fr ? 'Espace verrouillé' : 'Space locked'}</p>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              {fr
+                ? 'Toutes les fonctionnalités (élèves, classes, contenus, challenges, résultats, revenus) seront débloquées après l’approbation de votre établissement par un administrateur.'
+                : 'All features (students, classes, content, challenges, results, revenue) unlock once an administrator approves your school.'}
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {tabs.map((t) => (
+                <Badge key={t.value} variant="outline" className="gap-1 text-muted-foreground">
+                  <Lock className="h-3 w-3" />
+                  {t.label}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
       <Tabs value={tab} onValueChange={setTab}>
         <div className="overflow-x-auto pb-2 -mx-1 px-1">
           <TabsList className="inline-flex w-max">
@@ -112,6 +160,7 @@ export default function SchoolSpace() {
           <SchoolRevenue establishmentId={establishment.id} />
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

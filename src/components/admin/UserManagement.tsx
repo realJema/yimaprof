@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AdminDataTable } from './AdminDataTable';
-import { Shield, User, Edit } from 'lucide-react';
+import { Shield, User, Edit, Building2, GraduationCap } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -17,6 +17,7 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
   establishment_id: string;
+  school_name?: string | null;
   class_level: string;
   preferred_language: string;
 }
@@ -39,18 +40,32 @@ export function UserManagement() {
 
       if (error) throw error;
       
-      // Fetch roles for each user from user_roles table
-      const usersWithRoles = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const { data: roleData } = await supabase.rpc('get_user_role', {
-            user_id: profile.id
-          });
-          return {
-            ...profile,
-            role: roleData || 'student'
-          };
-        })
-      );
+      // Fetch all roles + establishments in bulk
+      const [{ data: roleRows }, { data: establishments }] = await Promise.all([
+        supabase.from('user_roles').select('user_id, role'),
+        supabase.from('establishments').select('id, name, approval_status'),
+      ]);
+
+      const rolePriority = ['admin', 'editor', 'school_admin', 'teacher', 'student'];
+      const rolesByUser = new Map<string, string[]>();
+      (roleRows || []).forEach((r) => {
+        const list = rolesByUser.get(r.user_id) || [];
+        list.push(r.role as string);
+        rolesByUser.set(r.user_id, list);
+      });
+      const schoolById = new Map((establishments || []).map((e) => [e.id, e]));
+
+      const usersWithRoles = (profiles || []).map((profile) => {
+        const list = rolesByUser.get(profile.id) || [];
+        const role = rolePriority.find((r) => list.includes(r)) || 'student';
+        const school = profile.establishment_id ? schoolById.get(profile.establishment_id) : null;
+        return {
+          ...profile,
+          role,
+          school_name: school ? school.name : null,
+          school_status: school ? (school.approval_status || 'pending') : null,
+        };
+      });
       
       // Log profile access by admin for audit trail
       if (usersWithRoles.length > 0) {
@@ -74,7 +89,7 @@ export function UserManagement() {
     }
   };
 
-  const changeUserRole = async (user: UserProfile, newRole: 'admin' | 'editor' | 'teacher' | 'student') => {
+  const changeUserRole = async (user: UserProfile, newRole: 'admin' | 'editor' | 'teacher' | 'student' | 'school_admin') => {
     try {
       // Use secure server-side function for role changes with audit logging
       const { data, error } = await supabase.rpc('change_user_role', {
@@ -111,6 +126,7 @@ export function UserManagement() {
     switch (role) {
       case 'admin': return 'destructive';
       case 'editor': return 'default';
+      case 'school_admin': return 'default';
       case 'teacher': return 'secondary';
       default: return 'outline';
     }
@@ -144,6 +160,21 @@ export function UserManagement() {
       ),
     },
     {
+      key: 'school_name',
+      label: 'School',
+      render: (value: string | null, row?: UserProfile & { school_status?: string | null }) => (
+        value ? (
+          <span className="flex items-center gap-1 max-w-[180px] truncate" title={value}>
+            <Building2 className="h-3.5 w-3.5 text-secondary shrink-0" />
+            <span className="truncate">{value}</span>
+            {row?.school_status === 'pending' && <Badge variant="outline" className="text-[10px]">pending</Badge>}
+          </span>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        )
+      ),
+    },
+    {
       key: 'created_at',
       label: 'Joined',
       render: (value: string) => formatDistanceToNow(new Date(value), { addSuffix: true }),
@@ -153,7 +184,7 @@ export function UserManagement() {
   const actions = (user: UserProfile) => (
     <Select
       value={user.role || 'student'}
-      onValueChange={(value) => changeUserRole(user, value as 'admin' | 'editor' | 'teacher' | 'student')}
+      onValueChange={(value) => changeUserRole(user, value as 'admin' | 'editor' | 'teacher' | 'student' | 'school_admin')}
     >
       <SelectTrigger className="w-[130px]">
         <SelectValue />
@@ -169,6 +200,12 @@ export function UserManagement() {
           <span className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Teacher
+          </span>
+        </SelectItem>
+        <SelectItem value="school_admin">
+          <span className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4" />
+            School
           </span>
         </SelectItem>
         <SelectItem value="editor">

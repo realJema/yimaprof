@@ -62,7 +62,10 @@ export default function Schools() {
         return;
       }
       sessionStorage.removeItem(PENDING_SCHOOL_KEY);
-      toast({ title: fr ? 'Établissement créé' : 'School created' });
+      toast({
+        title: fr ? 'Établissement enregistré' : 'School registered',
+        description: fr ? 'En attente d’approbation par un administrateur.' : 'Pending administrator approval.',
+      });
       await refresh();
       navigate('/school');
     })();
@@ -99,7 +102,10 @@ export default function Schools() {
       toast({ title: fr ? 'Inscription impossible' : 'Registration failed', description: error?.message || result?.error, variant: 'destructive' });
       return;
     }
-    toast({ title: fr ? 'Établissement créé' : 'School created' });
+    toast({
+      title: fr ? 'Établissement enregistré' : 'School registered',
+      description: fr ? 'En attente d’approbation par un administrateur.' : 'Pending administrator approval.',
+    });
     await refresh();
     navigate('/school');
   };

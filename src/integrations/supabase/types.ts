@@ -665,6 +665,9 @@ export type Database = {
       }
       establishments: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           city: string | null
           contact_email: string | null
           contact_phone: string | null
@@ -676,10 +679,14 @@ export type Database = {
           name: string
           owner_id: string | null
           referral_code: string | null
+          rejection_reason: string | null
           type: string | null
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           city?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -691,10 +698,14 @@ export type Database = {
           name: string
           owner_id?: string | null
           referral_code?: string | null
+          rejection_reason?: string | null
           type?: string | null
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           city?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -706,6 +717,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           referral_code?: string | null
+          rejection_reason?: string | null
           type?: string | null
           updated_at?: string
         }
@@ -1778,6 +1790,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_link_user_to_establishment: {
+        Args: {
+          p_email: string
+          p_establishment_id: string
+          p_grant_school_admin?: boolean
+          p_make_owner?: boolean
+        }
+        Returns: Json
+      }
+      admin_list_establishment_users: {
+        Args: { p_establishment_id: string }
+        Returns: {
+          email: string
+          first_name: string
+          id: string
+          is_owner: boolean
+          is_school_admin: boolean
+          last_name: string
+        }[]
+      }
+      admin_set_establishment_approval: {
+        Args: {
+          p_establishment_id: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      admin_unlink_user_from_establishment: {
+        Args: { p_establishment_id: string; p_user_id: string }
+        Returns: Json
+      }
       broadcast_notification: {
         Args: {
           p_action_url?: string
