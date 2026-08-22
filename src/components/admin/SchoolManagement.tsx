@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Building2, Users, GraduationCap, Coins, Search, Pencil } from 'lucide-react';
+import { Building2, Users, GraduationCap, Coins, Search, Pencil, Check, X, Clock, Link2, Trash2, Crown } from 'lucide-react';
 
 interface School {
   id: string;
@@ -23,6 +23,18 @@ interface School {
   referral_code: string | null;
   is_active: boolean;
   created_at: string;
+  approval_status: string;
+  rejection_reason: string | null;
+  owner_id: string | null;
+}
+
+interface LinkedUser {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  is_owner: boolean;
+  is_school_admin: boolean;
 }
 
 interface Counts {
@@ -41,6 +53,83 @@ export function SchoolManagement() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<School | null>(null);
   const [form, setForm] = useState({ name: '', type: 'private', city: '', contact_email: '', contact_phone: '' });
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [linking, setLinking] = useState<School | null>(null);
+  const [linkedUsers, setLinkedUsers] = useState<LinkedUser[]>([]);
+  const [linkEmail, setLinkEmail] = useState('');
+  const [makeOwner, setMakeOwner] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const setApproval = async (s: School, status: 'pending' | 'approved' | 'rejected') => {
+    let reason: string | null = null;
+    if (status === 'rejected') {
+      reason = window.prompt(fr ? 'Motif du refus (optionnel)' : 'Rejection reason (optional)') || null;
+    }
+    const { data, error } = await supabase.rpc('admin_set_establishment_approval', {
+      p_establishment_id: s.id,
+      p_status: status,
+      p_reason: reason,
+    });
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error || !result?.success) {
+      toast({ title: fr ? 'Action impossible' : 'Action failed', description: error?.message || result?.error, variant: 'destructive' });
+      return;
+    }
+    toast({ title: fr ? 'Statut mis à jour' : 'Status updated' });
+    load();
+  };
+
+  const openLink = async (s: School) => {
+    setLinking(s);
+    setLinkEmail('');
+    setMakeOwner(false);
+    const { data } = await supabase.rpc('admin_list_establishment_users', { p_establishment_id: s.id });
+    setLinkedUsers((data as LinkedUser[] | null) || []);
+  };
+
+  const refreshLinked = async (id: string) => {
+    const { data } = await supabase.rpc('admin_list_establishment_users', { p_establishment_id: id });
+    setLinkedUsers((data as LinkedUser[] | null) || []);
+  };
+
+  const linkUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linking) return;
+    setBusy(true);
+    const { data, error } = await supabase.rpc('admin_link_user_to_establishment', {
+      p_email: linkEmail.trim(),
+      p_establishment_id: linking.id,
+      p_make_owner: makeOwner,
+      p_grant_school_admin: true,
+    });
+    setBusy(false);
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error || !result?.success) {
+      toast({ title: fr ? 'Liaison impossible' : 'Link failed', description: error?.message || result?.error, variant: 'destructive' });
+      return;
+    }
+    toast({ title: fr ? 'Utilisateur lié' : 'User linked' });
+    setLinkEmail('');
+    setMakeOwner(false);
+    await refreshLinked(linking.id);
+    load();
+  };
+
+  const unlinkUser = async (u: LinkedUser) => {
+    if (!linking) return;
+    const { data, error } = await supabase.rpc('admin_unlink_user_from_establishment', {
+      p_user_id: u.id,
+      p_establishment_id: linking.id,
+    });
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error || !result?.success) {
+      toast({ title: fr ? 'Action impossible' : 'Action failed', description: error?.message || result?.error, variant: 'destructive' });
+      return;
+    }
+    toast({ title: fr ? 'Utilisateur délié' : 'User unlinked' });
+    await refreshLinked(linking.id);
+    load();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -113,9 +202,13 @@ export function SchoolManagement() {
     setSchools((prev) => prev.map((x) => (x.id === s.id ? { ...x, is_active: !s.is_active } : x)));
   };
 
-  const filtered = schools.filter((s) =>
-    [s.name, s.city, s.referral_code, s.contact_email].some((v) => (v || '').toLowerCase().includes(search.toLowerCase())),
-  );
+  const filtered = schools
+    .filter((s) => statusFilter === 'all' || (s.approval_status || 'pending') === statusFilter)
+    .filter((s) =>
+      [s.name, s.city, s.referral_code, s.contact_email].some((v) => (v || '').toLowerCase().includes(search.toLowerCase())),
+    );
+
+  const pendingCount = schools.filter((s) => (s.approval_status || 'pending') === 'pending').length;
 
   const totalStudents = Object.values(counts).reduce((a, c) => a + c.students, 0);
 
@@ -127,9 +220,20 @@ export function SchoolManagement() {
           {fr ? 'Gestion des établissements' : 'School management'}
           <Badge variant="secondary">{schools.length}</Badge>
         </CardTitle>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder={fr ? 'Rechercher…' : 'Search…'} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+            <SelectTrigger className="w-full sm:w-[170px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{fr ? 'Tous les statuts' : 'All statuses'}</SelectItem>
+              <SelectItem value="pending">{fr ? `En attente (${pendingCount})` : `Pending (${pendingCount})`}</SelectItem>
+              <SelectItem value="approved">{fr ? 'Approuvés' : 'Approved'}</SelectItem>
+              <SelectItem value="rejected">{fr ? 'Refusés' : 'Rejected'}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder={fr ? 'Rechercher…' : 'Search…'} value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -168,6 +272,17 @@ export function SchoolManagement() {
                         <Badge variant={s.is_active ? 'default' : 'secondary'}>
                           {s.is_active ? (fr ? 'Actif' : 'Active') : fr ? 'Inactif' : 'Inactive'}
                         </Badge>
+                        {(s.approval_status || 'pending') === 'pending' && (
+                          <Badge variant="outline" className="gap-1 border-secondary text-secondary">
+                            <Clock className="h-3 w-3" />{fr ? 'En attente' : 'Pending'}
+                          </Badge>
+                        )}
+                        {s.approval_status === 'approved' && (
+                          <Badge variant="outline" className="gap-1"><Check className="h-3 w-3" />{fr ? 'Approuvé' : 'Approved'}</Badge>
+                        )}
+                        {s.approval_status === 'rejected' && (
+                          <Badge variant="destructive" className="gap-1"><X className="h-3 w-3" />{fr ? 'Refusé' : 'Rejected'}</Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1 truncate">
                         {[s.city, s.country, s.contact_email, s.contact_phone].filter(Boolean).join(' • ')}
@@ -180,10 +295,33 @@ export function SchoolManagement() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Switch checked={s.is_active} onCheckedChange={() => toggleActive(s)} aria-label="toggle active" />
+                      <Button variant="outline" size="sm" onClick={() => openLink(s)} title={fr ? 'Utilisateurs liés' : 'Linked users'}>
+                        <Link2 className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                  </div>
+                  {s.approval_status === 'rejected' && s.rejection_reason && (
+                    <p className="text-xs text-destructive">{s.rejection_reason}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {s.approval_status !== 'approved' && (
+                      <Button size="sm" onClick={() => setApproval(s, 'approved')}>
+                        <Check className="h-3.5 w-3.5 mr-1" />{fr ? 'Approuver' : 'Approve'}
+                      </Button>
+                    )}
+                    {s.approval_status !== 'rejected' && (
+                      <Button size="sm" variant="destructive" onClick={() => setApproval(s, 'rejected')}>
+                        <X className="h-3.5 w-3.5 mr-1" />{fr ? 'Refuser' : 'Reject'}
+                      </Button>
+                    )}
+                    {s.approval_status !== 'pending' && (
+                      <Button size="sm" variant="outline" onClick={() => setApproval(s, 'pending')}>
+                        <Clock className="h-3.5 w-3.5 mr-1" />{fr ? 'Remettre en attente' : 'Set pending'}
+                      </Button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{c.students} {fr ? 'élèves' : 'students'}</span>
@@ -241,6 +379,54 @@ export function SchoolManagement() {
               <Button type="submit">{fr ? 'Enregistrer' : 'Save'}</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!linking} onOpenChange={(o) => !o && setLinking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{fr ? 'Utilisateurs de l’établissement' : 'School users'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">{linking?.name}</p>
+
+            <div className="space-y-2">
+              {linkedUsers.length === 0 && (
+                <p className="text-sm text-muted-foreground">{fr ? 'Aucun utilisateur lié.' : 'No linked user.'}</p>
+              )}
+              {linkedUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between gap-2 rounded-md border border-border/50 p-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {u.is_owner && <Badge variant="secondary" className="gap-1 text-xs"><Crown className="h-3 w-3" />{fr ? 'Responsable' : 'Owner'}</Badge>}
+                    {u.is_school_admin && <Badge variant="outline" className="text-xs">school_admin</Badge>}
+                    <Button size="sm" variant="ghost" onClick={() => unlinkUser(u)} title={fr ? 'Délier' : 'Unlink'}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={linkUser} className="space-y-3 border-t border-border/50 pt-4">
+              <div>
+                <Label htmlFor="lue">{fr ? 'Email de l’utilisateur à lier' : 'Email of user to link'}</Label>
+                <Input id="lue" type="email" required value={linkEmail} onChange={(e) => setLinkEmail(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch id="lmo" checked={makeOwner} onCheckedChange={setMakeOwner} />
+                <Label htmlFor="lmo" className="text-sm">{fr ? 'Définir comme responsable' : 'Set as owner'}</Label>
+              </div>
+              <Button type="submit" disabled={busy} className="w-full">
+                <Link2 className="h-4 w-4 mr-1" />
+                {busy ? (fr ? 'Liaison…' : 'Linking…') : fr ? 'Lier l’utilisateur' : 'Link user'}
+              </Button>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>
