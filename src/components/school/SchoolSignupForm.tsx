@@ -55,27 +55,78 @@ export default function SchoolSignupForm() {
       contact_email: form.email.trim().slice(0, 255),
       contact_phone: form.contactPhone.trim().slice(0, 30),
     };
-    sessionStorage.setItem(PENDING_SCHOOL_KEY, JSON.stringify(pending));
 
-    const { error } = await signUp(form.email, form.password, {
-      first_name: form.firstName,
-      last_name: form.lastName,
-      role: 'teacher',
-      phone: form.contactPhone || null,
+    // No confirmation email: create the account, sign in immediately, create the school.
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: form.email.trim(),
+      password: form.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/school`,
+        data: {
+          first_name: form.firstName,
+          last_name: form.lastName,
+          role: 'teacher',
+          phone: form.contactPhone || null,
+        },
+      },
     });
-    setSubmitting(false);
-    if (error) {
-      sessionStorage.removeItem(PENDING_SCHOOL_KEY);
+
+    if (signUpError) {
+      setSubmitting(false);
+      toast({ title: fr ? 'Inscription impossible' : 'Sign up failed', description: signUpError.message, variant: 'destructive' });
       return;
     }
-    toast({
-      title: fr ? 'Compte créé' : 'Account created',
-      description: fr
-        ? 'Confirmez votre email, puis votre espace établissement sera créé automatiquement.'
-        : 'Confirm your email, then your school space will be created automatically.',
+
+    if (!signUpData.session) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      if (signInError) {
+        setSubmitting(false);
+        sessionStorage.setItem(PENDING_SCHOOL_KEY, JSON.stringify(pending));
+        toast({
+          title: fr ? 'Compte créé' : 'Account created',
+          description: fr
+            ? 'Connectez-vous pour finaliser la création de votre établissement.'
+            : 'Sign in to finish creating your school.',
+        });
+        navigate('/auth');
+        return;
+      }
+    }
+
+    const { data, error } = await supabase.rpc('register_establishment', {
+      p_name: pending.name,
+      p_type: pending.type,
+      p_city: pending.city || null,
+      p_country: 'CM',
+      p_contact_email: pending.contact_email || null,
+      p_contact_phone: pending.contact_phone || null,
     });
-    navigate('/verify-email');
+    setSubmitting(false);
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error || !result?.success) {
+      sessionStorage.setItem(PENDING_SCHOOL_KEY, JSON.stringify(pending));
+      toast({
+        title: fr ? 'Établissement à finaliser' : 'School pending creation',
+        description: error?.message || result?.error,
+        variant: 'destructive',
+      });
+      navigate('/schools');
+      return;
+    }
+
+    sessionStorage.removeItem(PENDING_SCHOOL_KEY);
+    toast({
+      title: fr ? 'Établissement enregistré' : 'School registered',
+      description: fr
+        ? 'Votre espace est créé. Il sera actif dès l’approbation par un administrateur.'
+        : 'Your space is created. It will be active once an administrator approves it.',
+    });
+    navigate('/school');
   };
+
 
   return (
     <form onSubmit={submit} className="space-y-4">
