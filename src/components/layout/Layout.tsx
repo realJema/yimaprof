@@ -4,6 +4,8 @@ import Header from './Header';
 import Footer from './Footer';
 import ResumeExamWatcher from '@/components/exam/ResumeExamWatcher';
 import HelpChatBubble from '@/components/chat/HelpChatBubble';
+import ForcePasswordChange from '@/components/auth/ForcePasswordChange';
+
 
 interface LayoutProps {
   children: ReactNode;
