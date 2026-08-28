@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Coins, Wallet } from 'lucide-react';
+import { Coins, ShieldCheck, Wallet } from 'lucide-react';
 
 interface Commission {
   id: string;
@@ -41,7 +41,11 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '' });
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otpId, setOtpId] = useState('');
+  const [code, setCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '', password: '' });
 
   const load = async () => {
     const [{ data: com }, { data: pay }] = await Promise.all([
@@ -70,47 +74,82 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
   const pending = commissions.filter((c) => c.status === 'pending').reduce((s, c) => s + c.amount, 0);
   const paid = commissions.filter((c) => c.status === 'paid').reduce((s, c) => s + c.amount, 0);
 
-  const request = async (e: React.FormEvent) => {
+  const monthly = commissions
+    .filter((c) => new Date(c.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+    .reduce((s, c) => s + c.amount, 0);
+
+  // Step 1: password check + OTP email. Step 2: OTP confirmation creates the payout server-side.
+  const startRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseInt(form.amount, 10);
-    if (!amount || amount < 500 || amount > available) {
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke('payout-security', {
+      body: {
+        action: 'request',
+        establishmentId,
+        amount: parseInt(form.amount, 10),
+        method: form.method,
+        phone: form.phone.trim(),
+        password: form.password,
+      },
+    });
+    setSubmitting(false);
+    if (error || data?.error) {
       toast({
-        title: fr ? 'Montant invalide' : 'Invalid amount',
-        description: fr ? `Minimum 500 FCFA, maximum ${available} FCFA.` : `Minimum 500 FCFA, maximum ${available} FCFA.`,
+        title: fr ? 'Demande refusée' : 'Request refused',
+        description: data?.error || (fr ? 'Vérifiez le montant et votre mot de passe.' : 'Check the amount and your password.'),
         variant: 'destructive',
       });
       return;
     }
-    if (!/^\+?[0-9]{8,15}$/.test(form.phone.trim())) {
-      toast({ title: fr ? 'Numéro invalide' : 'Invalid phone number', variant: 'destructive' });
-      return;
-    }
-    const { error } = await supabase.from('establishment_payouts').insert({
-      establishment_id: establishmentId,
-      amount,
-      method: form.method,
-      phone: form.phone.trim(),
-      status: 'pending',
-      requested_by: user?.id,
+    setOtpId(data.otpId);
+    setStep('otp');
+    toast({
+      title: fr ? 'Code envoyé par email' : 'Code sent by email',
+      description: fr ? 'Saisissez le code à 6 chiffres reçu par email.' : 'Enter the 6-digit code you received by email.',
     });
-    if (error) {
-      toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
+  };
+
+  const confirmRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke('payout-security', {
+      body: { action: 'confirm', establishmentId, otpId, code },
+    });
+    setSubmitting(false);
+    if (error || data?.error) {
+      toast({
+        title: fr ? 'Code invalide' : 'Invalid code',
+        description: data?.error,
+        variant: 'destructive',
+      });
       return;
     }
-    toast({ title: fr ? 'Demande envoyée' : 'Request sent', description: fr ? 'Elle sera traitée sous 48h.' : 'It will be processed within 48h.' });
-    setOpen(false);
-    setForm({ amount: '', method: 'mtn_momo', phone: '' });
+    toast({
+      title: fr ? 'Demande confirmée' : 'Request confirmed',
+      description: fr ? 'Elle sera traitée sous 48h.' : 'It will be processed within 48h.',
+    });
+    closeDialog();
     load();
   };
+
+  const closeDialog = () => {
+    setOpen(false);
+    setStep('form');
+    setCode('');
+    setOtpId('');
+    setForm({ amount: '', method: 'mtn_momo', phone: '', password: '' });
+  };
+
 
   if (loading) return <Skeleton className="h-64 w-full" />;
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         {[
-          { label: fr ? 'Total généré' : 'Total earned', value: total },
           { label: fr ? 'Disponible' : 'Available', value: available },
+          { label: fr ? 'Ce mois' : 'This month', value: monthly },
+          { label: fr ? 'Total généré' : 'Total earned', value: total },
           { label: fr ? 'En attente' : 'Pending', value: pending },
           { label: fr ? 'Déjà versé' : 'Already paid', value: paid },
         ].map((c) => (
@@ -124,42 +163,77 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
       </div>
 
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : closeDialog())}>
           <DialogTrigger asChild>
             <Button size="sm" disabled={available < 500}>
               <Wallet className="h-4 w-4 mr-2" />{fr ? 'Demander un retrait' : 'Request a payout'}
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>{fr ? 'Demande de retrait' : 'Payout request'}</DialogTitle></DialogHeader>
-            <form onSubmit={request} className="space-y-4">
-              <div>
-                <Label htmlFor="am">{fr ? 'Montant (FCFA)' : 'Amount (FCFA)'}</Label>
-                <Input id="am" type="number" min={500} max={available} required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                <p className="text-xs text-muted-foreground mt-1">{fr ? 'Disponible' : 'Available'}: {available.toLocaleString()} FCFA</p>
-              </div>
-              <div>
-                <Label>{fr ? 'Moyen de paiement' : 'Payment method'}</Label>
-                <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
-                    <SelectItem value="orange_money">Orange Money</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="pn">{fr ? 'Numéro' : 'Phone number'}</Label>
-                <Input id="pn" required maxLength={20} placeholder="+2376XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
-                <Button type="submit">{fr ? 'Envoyer' : 'Send'}</Button>
-              </div>
-            </form>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-secondary" />
+                {step === 'form'
+                  ? fr ? 'Demande de retrait' : 'Payout request'
+                  : fr ? 'Confirmation par email' : 'Email confirmation'}
+              </DialogTitle>
+            </DialogHeader>
+            {step === 'form' ? (
+              <form onSubmit={startRequest} className="space-y-4">
+                <div>
+                  <Label htmlFor="am">{fr ? 'Montant (FCFA)' : 'Amount (FCFA)'}</Label>
+                  <Input id="am" type="number" min={500} max={available} required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                  <p className="text-xs text-muted-foreground mt-1">{fr ? 'Disponible' : 'Available'}: {available.toLocaleString()} FCFA</p>
+                </div>
+                <div>
+                  <Label>{fr ? 'Moyen de paiement' : 'Payment method'}</Label>
+                  <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
+                      <SelectItem value="orange_money">Orange Money</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="pn">{fr ? 'Numéro' : 'Phone number'}</Label>
+                  <Input id="pn" required maxLength={20} placeholder="+2376XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="pw">{fr ? 'Votre mot de passe' : 'Your password'}</Label>
+                  <Input id="pw" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {fr
+                      ? 'Un code de confirmation à 6 chiffres vous sera envoyé par email.'
+                      : 'A 6-digit confirmation code will be emailed to you.'}
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={closeDialog}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                  <Button type="submit" disabled={submitting}>{fr ? 'Continuer' : 'Continue'}</Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={confirmRequest} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  {fr
+                    ? 'Saisissez le code à 6 chiffres envoyé par email. Il expire dans 10 minutes et ne peut être utilisé qu’une seule fois.'
+                    : 'Enter the 6-digit code sent by email. It expires in 10 minutes and can only be used once.'}
+                </p>
+                <div>
+                  <Label htmlFor="otp">{fr ? 'Code de confirmation' : 'Confirmation code'}</Label>
+                  <Input id="otp" inputMode="numeric" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={closeDialog}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                  <Button type="submit" disabled={submitting || code.length !== 6}>{fr ? 'Confirmer le retrait' : 'Confirm payout'}</Button>
+                </div>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>
+
 
       <Card>
         <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Coins className="h-5 w-5" />{fr ? 'Commissions de parrainage' : 'Referral commissions'}</CardTitle></CardHeader>

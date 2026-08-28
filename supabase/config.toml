@@ -46,3 +46,10 @@ verify_jwt = false
 
 [functions.ai-grade]
 verify_jwt = false
+
+[functions.school-create-student]
+verify_jwt = true
+
+[functions.payout-security]
+verify_jwt = true
+

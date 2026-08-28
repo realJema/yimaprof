@@ -4,6 +4,8 @@ import Header from './Header';
 import Footer from './Footer';
 import ResumeExamWatcher from '@/components/exam/ResumeExamWatcher';
 import HelpChatBubble from '@/components/chat/HelpChatBubble';
+import ForcePasswordChange from '@/components/auth/ForcePasswordChange';
+
 
 interface LayoutProps {
   children: ReactNode;
@@ -25,7 +27,9 @@ export default function Layout({ children }: LayoutProps) {
         <ResumeExamWatcher />
         {children}
       </main>
+      <ForcePasswordChange />
       <HelpChatBubble />
+
       {!hideFooter && <Footer className="mt-10" />}
     </div>
   );

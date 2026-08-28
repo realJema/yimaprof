@@ -76,10 +76,28 @@ export default function Lessons() {
     return true;
   });
 
+  // Student navigation: Subject -> Chapter -> Lesson (chapters come from lessons.chapter).
+  const grouped = useMemo(() => {
+    const bySubject = new Map<string, Map<string, LessonRow[]>>();
+    filtered.forEach((l) => {
+      const subject = l.subjects?.name_fr || l.subjects?.name_en || (fr ? 'Autres' : 'Others');
+      const chapter = l.chapter || (fr ? 'Général' : 'General');
+      if (!bySubject.has(subject)) bySubject.set(subject, new Map());
+      const chapters = bySubject.get(subject)!;
+      if (!chapters.has(chapter)) chapters.set(chapter, []);
+      chapters.get(chapter)!.push(l);
+    });
+    return Array.from(bySubject.entries()).map(([subject, chapters]) => [
+      subject,
+      Array.from(chapters.entries()),
+    ] as [string, [string, LessonRow[]][]]);
+  }, [filtered, fr]);
+
   const open = (lesson: LessonRow) => {
     if (lesson.is_free || hasActiveSubscription) navigate(`/lessons/${lesson.id}`);
     else setLockOpen(true);
   };
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -138,47 +156,62 @@ export default function Lessons() {
       ) : filtered.length === 0 ? (
         <p className="text-muted-foreground">{fr ? 'Aucune leçon trouvée.' : 'No lesson found.'}</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((lesson) => {
-            const locked = !lesson.is_free && !hasActiveSubscription;
-            return (
-              <Card
-                key={lesson.id}
-                onClick={() => open(lesson)}
-                className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base leading-snug">{lesson.title}</CardTitle>
-                    {locked ? (
-                      <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    ) : lesson.is_free ? (
-                      <Badge variant="secondary" className="shrink-0">
-                        <Sparkles className="h-3 w-3 mr-1" />{fr ? 'Gratuit' : 'Free'}
-                      </Badge>
-                    ) : null}
+        <div className="space-y-10">
+          {grouped.map(([subject, chapters]) => (
+            <section key={subject}>
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-secondary" />{subject}
+              </h2>
+              <div className="space-y-6">
+                {chapters.map(([chapter, items]) => (
+                  <div key={chapter}>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                      {chapter}
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {items.map((lesson) => {
+                        const locked = !lesson.is_free && !hasActiveSubscription;
+                        return (
+                          <Card
+                            key={lesson.id}
+                            onClick={() => open(lesson)}
+                            className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+                          >
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <CardTitle className="text-base leading-snug">{lesson.title}</CardTitle>
+                                {locked ? (
+                                  <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                ) : lesson.is_free ? (
+                                  <Badge variant="secondary" className="shrink-0">
+                                    <Sparkles className="h-3 w-3 mr-1" />{fr ? 'Gratuit' : 'Free'}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <p className="text-sm text-muted-foreground line-clamp-2">{lesson.summary}</p>
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
+                                {lesson.estimated_minutes && (
+                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                    <Clock className="h-3 w-3" />{lesson.estimated_minutes} min
+                                  </span>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-2">{lesson.summary}</p>
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
-                    {(lesson.subjects?.name_fr || lesson.subjects?.name_en) && (
-                      <Badge variant="outline">{lesson.subjects?.name_fr || lesson.subjects?.name_en}</Badge>
-                    )}
-                    {lesson.chapter && <Badge variant="outline">{lesson.chapter}</Badge>}
-                    {lesson.estimated_minutes && (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3" />{lesson.estimated_minutes} min
-                      </span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       )}
+
 
       <Dialog open={lockOpen} onOpenChange={setLockOpen}>
         <DialogContent>

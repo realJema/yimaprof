@@ -41,7 +41,9 @@ export default function LessonDetail() {
 
   const [lesson, setLesson] = useState<LessonDetailRow | null>(null);
   const [exercises, setExercises] = useState<ExerciseRow[]>([]);
+  const [attempts, setAttempts] = useState<Record<string, number>>({});
   const [progress, setProgress] = useState<number>(0);
+  const [timeSpent, setTimeSpent] = useState<number>(0);
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -57,23 +59,79 @@ export default function LessonDetail() {
         supabase.from('lesson_exercises').select('exam_id, exams(id, title)').eq('lesson_id', lessonId).order('order_number'),
       ]);
       setLesson((l as unknown as LessonDetailRow) || null);
-      setExercises((ex as unknown as ExerciseRow[]) || []);
+      const exRows = (ex as unknown as ExerciseRow[]) || [];
+      setExercises(exRows);
 
       if (user) {
         const { data: p } = await supabase
           .from('lesson_progress')
-          .select('progress_percent, status')
+          .select('progress_percent, status, time_spent_seconds')
           .eq('lesson_id', lessonId)
           .eq('user_id', user.id)
           .maybeSingle();
         if (p) {
           setProgress(p.progress_percent);
+          setTimeSpent(p.time_spent_seconds || 0);
           setCompleted(p.status === 'completed');
+        }
+
+        // Best score per linked exercise, so the student sees what is done.
+        if (exRows.length) {
+          const { data: evals } = await supabase
+            .from('user_evaluations')
+            .select('exam_id, total_score, total_possible, mcq_score, mcq_total')
+            .eq('user_id', user.id)
+            .in('exam_id', exRows.map((r) => r.exam_id));
+          const best: Record<string, number> = {};
+          (evals || []).forEach((e) => {
+            const score = Number(e.total_score ?? e.mcq_score ?? 0);
+            const possible = Number(e.total_possible ?? e.mcq_total ?? 0) || 20;
+            const pct = Math.round((score / possible) * 100);
+            best[e.exam_id] = Math.max(best[e.exam_id] ?? 0, pct);
+          });
+          setAttempts(best);
         }
       }
       setLoading(false);
     })();
   }, [lessonId, user]);
+
+  // Reading a lesson counts as progress: mark it "in_progress" on arrival and
+  // accumulate the time spent when the student leaves the page.
+  useEffect(() => {
+    if (!user || !lessonId || loading || !lesson) return;
+    const startedAt = Date.now();
+
+    if (!completed) {
+      supabase.from('lesson_progress').upsert(
+        {
+          lesson_id: lessonId,
+          user_id: user.id,
+          status: 'in_progress',
+          progress_percent: Math.max(progress, 25),
+          last_viewed_at: new Date().toISOString(),
+        },
+        { onConflict: 'lesson_id,user_id' },
+      ).then(() => setProgress((p) => Math.max(p, 25)));
+    }
+
+    return () => {
+      const elapsed = Math.round((Date.now() - startedAt) / 1000);
+      if (elapsed < 5) return;
+      supabase.from('lesson_progress').upsert(
+        {
+          lesson_id: lessonId,
+          user_id: user.id,
+          status: completed ? 'completed' : 'in_progress',
+          progress_percent: completed ? 100 : Math.max(progress, 25),
+          time_spent_seconds: timeSpent + elapsed,
+          last_viewed_at: new Date().toISOString(),
+        },
+        { onConflict: 'lesson_id,user_id' },
+      );
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, lessonId, loading, lesson?.id]);
 
   const markCompleted = async () => {
     if (!user || !lessonId) return;
@@ -86,6 +144,7 @@ export default function LessonDetail() {
     setCompleted(true);
     setProgress(100);
   };
+
 
   if (loading) {
     return (
@@ -187,16 +246,24 @@ export default function LessonDetail() {
                 {exercises.map((ex) => (
                   <Link
                     key={ex.exam_id}
-                    to={`/exam/${ex.exam_id}`}
-                    className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
+                    to={`/exam/${ex.exam_id}?mode=evaluation&lesson=${lesson.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
                   >
-                    <span className="text-sm">{ex.exams?.title}</span>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm min-w-0 truncate">{ex.exams?.title}</span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      {attempts[ex.exam_id] !== undefined && (
+                        <Badge variant={attempts[ex.exam_id] >= 50 ? 'secondary' : 'outline'}>
+                          {attempts[ex.exam_id]}%
+                        </Badge>
+                      )}
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </span>
                   </Link>
                 ))}
               </CardContent>
             </Card>
           )}
+
         </>
       )}
     </div>

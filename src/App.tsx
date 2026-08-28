@@ -38,6 +38,8 @@ import Lessons from "./pages/Lessons";
 import LessonDetail from "./pages/LessonDetail";
 import Schools from "./pages/Schools";
 import SchoolSpace from "./pages/SchoolSpace";
+import StudentProgress from "./pages/Progress";
+
 
 const queryClient = new QueryClient();
 
@@ -81,6 +83,8 @@ const App = () => {
                     <Route path="/exams2" element={<Exams2 />} />
                     <Route path="/lessons" element={<Lessons />} />
                     <Route path="/lessons/:lessonId" element={<LessonDetail />} />
+                    <Route path="/progress" element={<StudentProgress />} />
+
                     <Route path="/schools" element={<Schools />} />
                     <Route path="/school" element={<SchoolSpace />} />
                   <Route path="/settings" element={<Settings />} />
