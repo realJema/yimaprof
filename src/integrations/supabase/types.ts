@@ -1368,6 +1368,67 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_children: {
+        Row: {
+          child_class_id: string | null
+          child_name: string
+          child_user_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          parent_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          child_class_id?: string | null
+          child_name: string
+          child_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          parent_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          child_class_id?: string | null
+          child_name?: string
+          child_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          parent_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_children_child_class_id_fkey"
+            columns: ["child_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_children_child_user_id_fkey"
+            columns: ["child_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_children_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       periods: {
         Row: {
           created_at: string | null
