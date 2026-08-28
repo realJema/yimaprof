@@ -69,6 +69,7 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <RecoveryRedirect />
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Index />} />
