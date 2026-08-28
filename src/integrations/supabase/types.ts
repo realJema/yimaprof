@@ -675,6 +675,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          is_demo: boolean
           logo_url: string | null
           name: string
           owner_id: string | null
@@ -694,6 +695,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           logo_url?: string | null
           name: string
           owner_id?: string | null
@@ -713,6 +715,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           logo_url?: string | null
           name?: string
           owner_id?: string | null
@@ -1405,6 +1408,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          must_change_password: boolean
           phone: string | null
           preferred_language: string | null
           profile_photo_url: string | null
@@ -1420,6 +1424,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          must_change_password?: boolean
           phone?: string | null
           preferred_language?: string | null
           profile_photo_url?: string | null
@@ -1435,6 +1440,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          must_change_password?: boolean
           phone?: string | null
           preferred_language?: string | null
           profile_photo_url?: string | null
@@ -1450,6 +1456,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_otps: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          context: Json
+          created_at: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          purpose: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          context?: Json
+          created_at?: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          purpose: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          context?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          purpose?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       series: {
         Row: {
@@ -1716,6 +1761,7 @@ export type Database = {
           created_at: string | null
           exam_id: string
           id: string
+          lesson_id: string | null
           mcq_score: number | null
           mcq_total: number | null
           time_spent_seconds: number | null
@@ -1730,6 +1776,7 @@ export type Database = {
           created_at?: string | null
           exam_id: string
           id?: string
+          lesson_id?: string | null
           mcq_score?: number | null
           mcq_total?: number | null
           time_spent_seconds?: number | null
@@ -1744,6 +1791,7 @@ export type Database = {
           created_at?: string | null
           exam_id?: string
           id?: string
+          lesson_id?: string | null
           mcq_score?: number | null
           mcq_total?: number | null
           time_spent_seconds?: number | null
@@ -1757,6 +1805,13 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_evaluations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
         ]
