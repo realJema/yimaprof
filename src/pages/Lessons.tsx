@@ -76,10 +76,28 @@ export default function Lessons() {
     return true;
   });
 
+  // Student navigation: Subject -> Chapter -> Lesson (chapters come from lessons.chapter).
+  const grouped = useMemo(() => {
+    const bySubject = new Map<string, Map<string, LessonRow[]>>();
+    filtered.forEach((l) => {
+      const subject = l.subjects?.name_fr || l.subjects?.name_en || (fr ? 'Autres' : 'Others');
+      const chapter = l.chapter || (fr ? 'Général' : 'General');
+      if (!bySubject.has(subject)) bySubject.set(subject, new Map());
+      const chapters = bySubject.get(subject)!;
+      if (!chapters.has(chapter)) chapters.set(chapter, []);
+      chapters.get(chapter)!.push(l);
+    });
+    return Array.from(bySubject.entries()).map(([subject, chapters]) => [
+      subject,
+      Array.from(chapters.entries()),
+    ] as [string, [string, LessonRow[]][]]);
+  }, [filtered, fr]);
+
   const open = (lesson: LessonRow) => {
     if (lesson.is_free || hasActiveSubscription) navigate(`/lessons/${lesson.id}`);
     else setLockOpen(true);
   };
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
