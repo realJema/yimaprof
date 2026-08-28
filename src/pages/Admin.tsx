@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart, Building2 } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart, Building2, Briefcase, Activity } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -31,6 +31,9 @@ import { AffiliateManagement } from '@/components/admin/AffiliateManagement';
 import { SeriesManagement } from '@/components/admin/SeriesManagement';
 import { AIUsageStats } from '@/components/admin/AIUsageStats';
 import { SchoolManagement } from '@/components/admin/SchoolManagement';
+import CommercialManagement from '@/components/admin/CommercialManagement';
+import ParentLinkManagement from '@/components/admin/ParentLinkManagement';
+import SchoolActivity from '@/components/admin/SchoolActivity';
 
 function ConfigSection({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -309,6 +312,9 @@ export default function Admin() {
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'affiliates' && <AffiliateManagement />}
             {activeTab === 'schools' && <SchoolManagement />}
+            {activeTab === 'commercials' && <CommercialManagement />}
+            {activeTab === 'parents' && <ParentLinkManagement />}
+            {activeTab === 'school-activity' && <SchoolActivity />}
             {activeTab === 'config' && (
               <div className="space-y-3 md:space-y-4">
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">{t('system_configuration')}</h2>
