@@ -555,8 +555,11 @@ export default function ExamViewer() {
       total_score: mcqScore?.earnedPoints ?? null,
       total_possible: mcqScore?.totalPoints ?? null,
       time_spent_seconds: timeSpentSeconds,
-      answers: userAnswers
+      answers: userAnswers,
+      // Set when the attempt was launched from a lesson/chapter ("?lesson=<id>").
+      lesson_id: searchParams.get('lesson') || null
     };
+
 
     // If offline, queue immediately.
     if (!navigator.onLine) {
