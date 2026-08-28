@@ -70,38 +70,72 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
   const pending = commissions.filter((c) => c.status === 'pending').reduce((s, c) => s + c.amount, 0);
   const paid = commissions.filter((c) => c.status === 'paid').reduce((s, c) => s + c.amount, 0);
 
-  const request = async (e: React.FormEvent) => {
+  const monthly = commissions
+    .filter((c) => new Date(c.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+    .reduce((s, c) => s + c.amount, 0);
+
+  // Step 1: password check + OTP email. Step 2: OTP confirmation creates the payout server-side.
+  const startRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseInt(form.amount, 10);
-    if (!amount || amount < 500 || amount > available) {
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke('payout-security', {
+      body: {
+        action: 'request',
+        establishmentId,
+        amount: parseInt(form.amount, 10),
+        method: form.method,
+        phone: form.phone.trim(),
+        password: form.password,
+      },
+    });
+    setSubmitting(false);
+    if (error || data?.error) {
       toast({
-        title: fr ? 'Montant invalide' : 'Invalid amount',
-        description: fr ? `Minimum 500 FCFA, maximum ${available} FCFA.` : `Minimum 500 FCFA, maximum ${available} FCFA.`,
+        title: fr ? 'Demande refusée' : 'Request refused',
+        description: data?.error || (fr ? 'Vérifiez le montant et votre mot de passe.' : 'Check the amount and your password.'),
         variant: 'destructive',
       });
       return;
     }
-    if (!/^\+?[0-9]{8,15}$/.test(form.phone.trim())) {
-      toast({ title: fr ? 'Numéro invalide' : 'Invalid phone number', variant: 'destructive' });
-      return;
-    }
-    const { error } = await supabase.from('establishment_payouts').insert({
-      establishment_id: establishmentId,
-      amount,
-      method: form.method,
-      phone: form.phone.trim(),
-      status: 'pending',
-      requested_by: user?.id,
+    setOtpId(data.otpId);
+    setStep('otp');
+    toast({
+      title: fr ? 'Code envoyé par email' : 'Code sent by email',
+      description: fr ? 'Saisissez le code à 6 chiffres reçu par email.' : 'Enter the 6-digit code you received by email.',
     });
-    if (error) {
-      toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
+  };
+
+  const confirmRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke('payout-security', {
+      body: { action: 'confirm', establishmentId, otpId, code },
+    });
+    setSubmitting(false);
+    if (error || data?.error) {
+      toast({
+        title: fr ? 'Code invalide' : 'Invalid code',
+        description: data?.error,
+        variant: 'destructive',
+      });
       return;
     }
-    toast({ title: fr ? 'Demande envoyée' : 'Request sent', description: fr ? 'Elle sera traitée sous 48h.' : 'It will be processed within 48h.' });
-    setOpen(false);
-    setForm({ amount: '', method: 'mtn_momo', phone: '' });
+    toast({
+      title: fr ? 'Demande confirmée' : 'Request confirmed',
+      description: fr ? 'Elle sera traitée sous 48h.' : 'It will be processed within 48h.',
+    });
+    closeDialog();
     load();
   };
+
+  const closeDialog = () => {
+    setOpen(false);
+    setStep('form');
+    setCode('');
+    setOtpId('');
+    setForm({ amount: '', method: 'mtn_momo', phone: '', password: '' });
+  };
+
 
   if (loading) return <Skeleton className="h-64 w-full" />;
 
