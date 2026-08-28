@@ -27,7 +27,9 @@ export default function Layout({ children }: LayoutProps) {
         <ResumeExamWatcher />
         {children}
       </main>
+      <ForcePasswordChange />
       <HelpChatBubble />
+
       {!hideFooter && <Footer className="mt-10" />}
     </div>
   );
