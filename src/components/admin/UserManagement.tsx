@@ -67,6 +67,15 @@ export function UserManagement() {
         };
       });
       
+      // Log profile access by admin for audit trail
+      if (usersWithRoles.length > 0) {
+        await supabase.rpc('log_audit', {
+          p_action: 'profiles_list_viewed',
+          p_target_type: 'profiles',
+          p_metadata: { count: usersWithRoles.length }
+        });
+      }
+      
       setUsers(usersWithRoles);
     } catch (error) {
       console.error('Error fetching users:', error);

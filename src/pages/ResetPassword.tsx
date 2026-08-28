@@ -22,62 +22,26 @@ const ResetPassword = () => {
   const { t } = useLanguage();
 
   useEffect(() => {
-    let cancelled = false;
-
-    // Supabase delivers the recovery credentials either in the URL hash
-    // (implicit flow) or as a ?code= / ?token_hash= query param (PKCE / OTP).
-    const consumeRecoveryLink = async () => {
-      const rawHash = window.location.hash.startsWith("#")
-        ? window.location.hash.slice(1)
-        : window.location.hash;
-      const hashParams = new URLSearchParams(rawHash);
-      const queryParams = new URLSearchParams(window.location.search);
-
-      try {
-        const accessToken = hashParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token");
-        const code = queryParams.get("code");
-        const tokenHash = queryParams.get("token_hash") || hashParams.get("token_hash");
-
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        } else if (tokenHash) {
-          await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
-        } else if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
-        }
-      } catch {
-        // handled below by the session check
-      }
-
-      // Clean the URL so the tokens are not left in the address bar / history
-      if (rawHash || window.location.search) {
-        window.history.replaceState({}, "", "/reset-password");
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!cancelled) {
-        setHasValidToken(!!session);
-        setCheckingAuth(false);
-      }
-    };
-
-    // Recovery events can also arrive through the auth listener
+    // Listen for auth state changes to detect when Supabase processes the recovery token
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) {
+      if (event === 'PASSWORD_RECOVERY') {
         setHasValidToken(true);
-        setCheckingAuth(false);
+      } else if (session) {
+        setHasValidToken(true);
+      } else {
+        setHasValidToken(false);
       }
+      setCheckingAuth(false);
     });
 
-    consumeRecoveryLink();
+    // Also check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasValidToken(!!session);
+      setCheckingAuth(false);
+    });
 
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
-
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
