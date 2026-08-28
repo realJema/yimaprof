@@ -41,7 +41,11 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '' });
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otpId, setOtpId] = useState('');
+  const [code, setCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '', password: '' });
 
   const load = async () => {
     const [{ data: com }, { data: pay }] = await Promise.all([
