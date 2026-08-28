@@ -250,34 +250,49 @@ export default function PaymentProcessing() {
   const handleVerify = async () => {
     if (!transactionId) return;
     setVerifying(true);
-    
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('status, metadata')
-      .eq('id', transactionId)
-      .single();
 
-    if (!error && data) {
-      if (data.status === 'completed') {
-        setStatus('completed');
-        await refreshSubscription();
-        toast({
-          title: t('payment_success'),
-          description: t('payment_success_desc'),
-        });
-      } else if (data.status === 'failed') {
-        setStatus('failed');
-      } else {
-        // Still processing - go back to processing and restart timeout
-        setStatus('processing');
-        toast({
-          title: 'Paiement en cours',
-          description: 'Le paiement n\'est pas encore confirmé. Veuillez patienter.',
-        });
-      }
+    // Ask the server to reconcile with MeSomb (covers a missed webhook)
+    let resolvedStatus: string | null = null;
+    try {
+      const { data: checked } = await supabase.functions.invoke('check-payment-status', {
+        body: { transactionId },
+      });
+      if (checked?.status) resolvedStatus = checked.status as string;
+    } catch (e) {
+      console.warn('Status reconciliation failed, falling back to database read', e);
+    }
+
+    if (!resolvedStatus) {
+      const { data } = await supabase
+        .from('transactions')
+        .select('status')
+        .eq('id', transactionId)
+        .single();
+      resolvedStatus = data?.status ?? null;
+    }
+
+    if (resolvedStatus === 'completed') {
+      isResolvedRef.current = true;
+      setStatus('completed');
+      await refreshSubscription();
+      toast({
+        title: t('payment_success'),
+        description: t('payment_success_desc'),
+      });
+    } else if (resolvedStatus === 'failed') {
+      isResolvedRef.current = true;
+      setStatus('failed');
+    } else {
+      // Still processing - go back to processing and restart timeout
+      setStatus('processing');
+      toast({
+        title: 'Paiement en cours',
+        description: 'Le paiement n\'est pas encore confirmé. Veuillez patienter.',
+      });
     }
     setVerifying(false);
   };
+
 
   const handleRetry = () => {
     cleanupSubscription();

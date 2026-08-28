@@ -1,245 +1,165 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  activateSubscriptionForTransaction,
+  markTransactionFailed,
+  normalizeStatus,
+} from '../_shared/finalizeTransaction.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-mesomb-signature, x-webhook-secret, x-mesomb-secret',
 };
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+async function hmacHex(secret: string, payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Accepts either the raw secret sent in a header/query param, or an HMAC-SHA256
+// signature of the raw body computed with the secret.
+async function isAuthorized(req: Request, url: URL, rawBody: string): Promise<boolean> {
+  const secret = Deno.env.get('MESOMB_WEBHOOK_SECRET');
+  if (!secret) {
+    console.warn('MESOMB_WEBHOOK_SECRET not configured - rejecting webhook');
+    return false;
+  }
+
+  const candidates = [
+    req.headers.get('x-mesomb-signature'),
+    req.headers.get('x-mesomb-secret'),
+    req.headers.get('x-webhook-secret'),
+    req.headers.get('x-signature'),
+    req.headers.get('signature'),
+    url.searchParams.get('secret'),
+    url.searchParams.get('key'),
+  ].filter(Boolean) as string[];
+
+  const authHeader = req.headers.get('authorization');
+  if (authHeader) candidates.push(authHeader.replace(/^Bearer\s+/i, '').trim());
+
+  if (candidates.some((c) => c === secret)) return true;
+
+  const expected = await hmacHex(secret, rawBody);
+  return candidates.some((c) => c.replace(/^sha256=/i, '').toLowerCase() === expected);
+}
+
+// MeSomb payload shapes vary; look for our transaction UUID everywhere plausible.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// deno-lint-ignore no-explicit-any
+function extractIds(payload: any) {
+  const t = payload?.transaction ?? {};
+  const ourIds = [payload?.trxID, payload?.trxid, payload?.reference, t?.trxID, t?.reference, payload?.external_id]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter((v) => UUID_RE.test(v));
+  const providerRefs = [payload?.pk, t?.pk, payload?.id, t?.id]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean);
+  const status = payload?.status ?? t?.status ?? payload?.state;
+  return { ourIds: [...new Set(ourIds)], providerRefs: [...new Set(providerRefs)], status };
+}
+
 serve(async (req) => {
-  console.log('MeSomb Webhook received');
-  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const url = new URL(req.url);
+    const rawBody = await req.text();
+
+    if (!(await isAuthorized(req, url, rawBody))) {
+      console.error('Unauthorized webhook call');
+      return json({ error: 'Unauthorized' }, 401);
+    }
+
+    // deno-lint-ignore no-explicit-any
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      // Some providers post form-encoded bodies
+      payload = Object.fromEntries(new URLSearchParams(rawBody));
+    }
+    console.log('Webhook payload:', JSON.stringify(payload));
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase configuration');
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Server configuration error' }, 500);
     }
-    
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    // Parse webhook payload from MeSomb
-    const payload = await req.json();
-    console.log('Webhook payload:', JSON.stringify(payload, null, 2));
-    
-    // MeSomb webhook payload structure:
-    // - pk: MeSomb transaction ID
-    // - status: SUCCESS | FAILED | PENDING | REFUNDED
-    // - reference: Our reference field (sub_xxx)
-    // - trxID: Our transaction UUID (this is what we use)
-    // - amount, fees, service, currency, etc.
-    
-    // MeSomb sends our transaction ID in the 'reference' field (what we passed as trxID)
-    // Note: trxID in our request becomes 'reference' in the webhook payload
-    let ourTransactionId = payload.reference || payload.trxID;
-    
-    if (!ourTransactionId) {
-      console.error('No transaction ID found in webhook payload');
-      return new Response(JSON.stringify({ error: 'Missing transaction ID' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    console.log('Using transaction ID:', ourTransactionId);
-    
-    const mesombStatus = payload.status;
-    console.log(`Processing transaction ${ourTransactionId} with status ${mesombStatus}`);
-    
-    // Get transaction from database
-    const { data: tx, error: txError } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('id', ourTransactionId)
-      .single();
-    
-    if (txError || !tx) {
-      console.error('Transaction not found:', ourTransactionId, txError);
-      return new Response(JSON.stringify({ error: 'Transaction not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    console.log('Found transaction:', tx.id, 'Current status:', tx.status);
-    
-    // Idempotency: prevent duplicate processing
-    if (tx.status === 'completed') {
-      console.log('Transaction already completed, ignoring webhook');
-      return new Response(JSON.stringify({ message: 'Already completed' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    if (tx.status === 'failed') {
-      console.log('Transaction already failed, ignoring webhook');
-      return new Response(JSON.stringify({ message: 'Already failed' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    const metadata = (tx.metadata || {}) as { plan_id?: string; referred_by?: string };
-    
-    if (mesombStatus === 'SUCCESS') {
-      console.log('Payment successful, activating subscription...');
-      
-      if (!metadata.plan_id) {
-        console.error('No plan_id in transaction metadata');
-        return new Response(JSON.stringify({ error: 'Missing plan_id in metadata' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      // Get plan duration
-      const { data: plan } = await supabase
-        .from('subscription_plans')
-        .select('duration_days')
-        .eq('id', metadata.plan_id)
-        .single();
-      
-      const durationDays = plan?.duration_days || 30;
-      const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
-      
-      // Cancel any existing active subscription for this user
-      const { error: cancelError } = await supabase
-        .from('subscriptions')
-        .update({ 
-          status: 'canceled', 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('user_id', tx.user_id)
-        .eq('status', 'active');
-      
-      if (cancelError) {
-        console.log('Error canceling existing subscription (may not exist):', cancelError);
-      }
-      
-      // Create new subscription
-      const { data: newSub, error: subError } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: tx.user_id,
-          plan_id: metadata.plan_id,
-          status: 'active',
-          started_at: new Date().toISOString(),
-          expires_at: expiresAt,
-          auto_renew: true,
-          referred_by: metadata.referred_by || null
-        })
-        .select()
-        .single();
-      
-      if (subError) {
-        console.error('Failed to create subscription:', subError);
-        return new Response(JSON.stringify({ error: 'Failed to create subscription' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      console.log('Subscription created:', newSub.id);
-      
-      // Update transaction to completed
-      const { error: updateError } = await supabase
-        .from('transactions')
-        .update({
-          status: 'completed',
-          subscription_id: newSub.id,
-          provider_reference: payload.pk || tx.provider_reference,
-          metadata: {
-            ...metadata,
-            mesomb_webhook: payload,
-            completed_at: new Date().toISOString()
-          }
-        })
-        .eq('id', ourTransactionId);
-      
-      if (updateError) {
-        console.error('Failed to update transaction:', updateError);
-        // Subscription was created, so we return success anyway
-      }
-      
-      console.log('Transaction completed successfully');
-      
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: 'Payment completed',
-        subscription_id: newSub.id
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-      
-    } else if (mesombStatus === 'FAILED' || mesombStatus === 'REFUNDED' || mesombStatus === 'CANCELLED') {
-      console.log(`Payment ${mesombStatus}, marking transaction as failed`);
-      
-      // Update transaction to failed
-      const { error: updateError } = await supabase
-        .from('transactions')
-        .update({
-          status: 'failed',
-          metadata: {
-            ...metadata,
-            mesomb_webhook: payload,
-            failure_reason: `MeSomb status: ${mesombStatus}`,
-            failed_at: new Date().toISOString()
-          }
-        })
-        .eq('id', ourTransactionId);
-      
-      if (updateError) {
-        console.error('Failed to update transaction:', updateError);
-      }
-      
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: 'Payment marked as failed'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-      
-    } else if (mesombStatus === 'PENDING') {
-      console.log('Payment still pending, no action taken');
-      
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: 'Payment still pending'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Unknown status
-    console.log('Unknown MeSomb status:', mesombStatus);
-    return new Response(JSON.stringify({ 
-      message: `Unknown status: ${mesombStatus}`
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
+    const { ourIds, providerRefs, status } = extractIds(payload);
+    console.log('Extracted:', { ourIds, providerRefs, status });
+
+    // deno-lint-ignore no-explicit-any
+    let tx: any = null;
+    if (ourIds.length > 0) {
+      const { data } = await supabase.from('transactions').select('*').in('id', ourIds).limit(1);
+      tx = data?.[0] ?? null;
+    }
+    if (!tx && providerRefs.length > 0) {
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .in('provider_reference', providerRefs)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      tx = data?.[0] ?? null;
+    }
+
+    if (!tx) {
+      console.error('Transaction not found for webhook', { ourIds, providerRefs });
+      return json({ error: 'Transaction not found' }, 404);
+    }
+
+    console.log('Found transaction:', tx.id, 'current status:', tx.status);
+
+    if (tx.status === 'completed' || tx.status === 'failed') {
+      return json({ message: `Already ${tx.status}` });
+    }
+
+    const normalized = normalizeStatus(status);
+
+    if (normalized === 'success') {
+      if (providerRefs[0] && !tx.provider_reference) {
+        await supabase.from('transactions').update({ provider_reference: providerRefs[0] }).eq('id', tx.id);
+      }
+      const result = await activateSubscriptionForTransaction(supabase, tx, {
+        mesomb_webhook: payload,
+        confirmed_by: 'webhook',
+      });
+      if (!result.ok) return json({ error: result.error }, 400);
+      return json({ success: true, message: 'Payment completed', subscription_id: result.subscriptionId });
+    }
+
+    if (normalized === 'failed') {
+      await markTransactionFailed(supabase, tx, `MeSomb status: ${status}`, {
+        mesomb_webhook: payload,
+        confirmed_by: 'webhook',
+      });
+      return json({ success: true, message: 'Payment marked as failed' });
+    }
+
+    console.log('Non-terminal or unknown status, no action:', status);
+    return json({ success: true, message: `No action for status: ${status}` });
   } catch (error) {
     console.error('Webhook processing error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: 'Internal server error' }, 500);
   }
 });

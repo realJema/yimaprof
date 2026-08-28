@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { PaymentOperation, RandomGenerator } from 'https://esm.sh/@hachther/mesomb@2.0.1';
+import {
+  activateSubscriptionForTransaction,
+  markTransactionFailed,
+  normalizeStatus,
+} from '../_shared/finalizeTransaction.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -202,8 +207,9 @@ serve(async (req) => {
     
     console.log('Transaction set to processing, starting SDK call (fire-and-forget)');
     
-    // Fire-and-forget: Start the SDK call but don't await it
-    // The webhook will be the authoritative source for payment completion
+    // Fire-and-forget: Start the SDK call but don't await it.
+    // The webhook stays authoritative, but if the SDK already reports a final
+    // outcome we finalise here so a missed webhook can't block a paid user.
     paymentOperation.makeCollect(collectRequest)
       .then(async (response) => {
         console.log('MeSomb SDK response (background):', {
@@ -212,25 +218,50 @@ serve(async (req) => {
           message: response.message,
           reference: response.reference
         });
-        
-        // Update transaction with MeSomb response (for debugging/tracking)
+
         const providerRef = response.reference || response.transaction?.pk || null;
+        const sdkMetadata = {
+          ...transactionMetadata,
+          mesomb_status: response.status,
+          mesomb_message: response.message,
+          mesomb_success: response.isOperationSuccess(),
+          sdk_returned_at: new Date().toISOString()
+        };
+
         await supabase.from('transactions').update({
           provider_reference: providerRef,
-          metadata: { 
-            ...transactionMetadata, 
-            mesomb_status: response.status,
-            mesomb_message: response.message,
-            mesomb_success: response.isOperationSuccess(),
-            sdk_returned_at: new Date().toISOString()
-          }
+          metadata: sdkMetadata
         }).eq('id', pendingTransaction.id);
+
+        // Re-read the row: the webhook may already have finalised it.
+        const { data: freshTx } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('id', pendingTransaction.id)
+          .single();
+
+        if (!freshTx || freshTx.status === 'completed' || freshTx.status === 'failed') return;
+
+        const normalized = normalizeStatus(response.status);
+        if (normalized === 'success' || response.isOperationSuccess()) {
+          const result = await activateSubscriptionForTransaction(supabase, freshTx, {
+            confirmed_by: 'sdk',
+            mesomb_status: response.status,
+            mesomb_message: response.message
+          });
+          console.log('SDK finalisation result:', result);
+        } else if (normalized === 'failed') {
+          await markTransactionFailed(supabase, freshTx, `MeSomb status: ${response.status}`, {
+            confirmed_by: 'sdk',
+            mesomb_message: response.message
+          });
+        }
       })
       .catch((error) => {
         console.error('MeSomb SDK error (background):', error);
         // Don't update to failed - webhook is authoritative
-        // Just log for debugging
       });
+
     
     // Return immediately - don't wait for SDK response
     // Frontend will show "Confirm on your phone" right away
