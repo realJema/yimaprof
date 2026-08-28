@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { PaymentOperation, RandomGenerator } from 'https://esm.sh/@hachther/mesomb@2.0.1';
+import {
+  activateSubscriptionForTransaction,
+  markTransactionFailed,
+  normalizeStatus,
+} from '../_shared/finalizeTransaction.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
