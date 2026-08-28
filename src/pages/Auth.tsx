@@ -96,20 +96,8 @@ export default function Auth() {
     if (!error) {
       // Handle referral code
       if (referralCode) {
-        try {
-          // Find the affiliate by username
-          const { data: affiliateMatches } = await supabase.rpc('find_affiliate_by_username', {
-            _username: referralCode.toLowerCase(),
-          });
-
-          // Store referral in localStorage to be used when subscription is created
-          const affiliateProfile = affiliateMatches?.[0];
-          if (affiliateProfile) {
-            localStorage.setItem('referral_affiliate_id', affiliateProfile.id);
-          }
-        } catch (err) {
-          console.error('Error processing referral:', err);
-        }
+        // Resolved later, once the user is signed in (affiliate lookup requires a session)
+        localStorage.setItem('pending_referral_code', referralCode.toLowerCase());
       }
       
       // Navigate to verify email page

@@ -82,7 +82,7 @@ export const useExamFormData = () => {
     queryKey: ['establishments'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('establishments')
+        .from('establishments_directory')
         .select('*')
         .order('name');
       
