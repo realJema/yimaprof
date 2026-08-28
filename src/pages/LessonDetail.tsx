@@ -246,16 +246,24 @@ export default function LessonDetail() {
                 {exercises.map((ex) => (
                   <Link
                     key={ex.exam_id}
-                    to={`/exam/${ex.exam_id}`}
-                    className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
+                    to={`/exam/${ex.exam_id}?mode=evaluation&lesson=${lesson.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
                   >
-                    <span className="text-sm">{ex.exams?.title}</span>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm min-w-0 truncate">{ex.exams?.title}</span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      {attempts[ex.exam_id] !== undefined && (
+                        <Badge variant={attempts[ex.exam_id] >= 50 ? 'secondary' : 'outline'}>
+                          {attempts[ex.exam_id]}%
+                        </Badge>
+                      )}
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </span>
                   </Link>
                 ))}
               </CardContent>
             </Card>
           )}
+
         </>
       )}
     </div>
