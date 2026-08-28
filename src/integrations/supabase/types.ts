@@ -1915,6 +1915,22 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_commercials: {
+        Args: never
+        Returns: {
+          active_referrals: number
+          email: string
+          first_name: string
+          last_name: string
+          last_referral_at: string
+          paid_earned: number
+          pending_earned: number
+          referred_count: number
+          total_earned: number
+          user_id: string
+          username: string
+        }[]
+      }
       admin_list_establishment_users: {
         Args: { p_establishment_id: string }
         Returns: {
@@ -1925,6 +1941,10 @@ export type Database = {
           is_school_admin: boolean
           last_name: string
         }[]
+      }
+      admin_set_commercial: {
+        Args: { p_enabled: boolean; p_user_id: string }
+        Returns: Json
       }
       admin_set_establishment_approval: {
         Args: {
@@ -1958,6 +1978,22 @@ export type Database = {
         Returns: Json
       }
       check_subscription_expiry: { Args: never; Returns: number }
+      commercial_overview: { Args: never; Returns: Json }
+      commercial_referrals: {
+        Args: never
+        Returns: {
+          amount: number
+          commission: number
+          commission_status: string
+          expires_at: string
+          plan_name: string
+          referred_name: string
+          referred_username: string
+          status: string
+          subscribed_at: string
+          subscription_id: string
+        }[]
+      }
       current_establishment_id: { Args: never; Returns: string }
       establishment_results: {
         Args: { p_establishment_id: string }
