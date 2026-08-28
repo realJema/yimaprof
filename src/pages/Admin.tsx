@@ -143,7 +143,11 @@ export default function Admin() {
     { id: 'overview', label: t('overview'), icon: BarChart3 },
     { id: 'users', label: t('users'), icon: Users },
     { id: 'affiliates', label: language === 'fr' ? 'Affiliés' : 'Affiliates', icon: Heart },
+    { id: 'commercials', label: language === 'fr' ? 'Commerciaux' : 'Sales reps', icon: Briefcase },
+    { id: 'parents', label: language === 'fr' ? 'Parents' : 'Parents', icon: Users },
     { id: 'schools', label: language === 'fr' ? 'Écoles' : 'Schools', icon: Building2 },
+    { id: 'school-activity', label: language === 'fr' ? 'Activité écoles' : 'School activity', icon: Activity },
+
     { id: 'config', label: language === 'fr' ? 'Config' : 'Config', icon: Settings },
     { id: 'plans', label: t('plans'), icon: CreditCard },
     { id: 'subscriptions', label: language === 'fr' ? 'Abonnements' : 'Subs', icon: Shield },
