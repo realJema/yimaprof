@@ -2022,6 +2022,7 @@ export type Database = {
         | "editor"
         | "school_admin"
         | "commercial"
+        | "parent"
       feedback_status: "new" | "reviewed" | "replied"
       payment_provider: "mtn_momo" | "orange_money" | "mesomb"
       subscription_status: "active" | "expired" | "canceled" | "pending"
@@ -2166,6 +2167,7 @@ export const Constants = {
         "editor",
         "school_admin",
         "commercial",
+        "parent",
       ],
       feedback_status: ["new", "reviewed", "replied"],
       payment_provider: ["mtn_momo", "orange_money", "mesomb"],
