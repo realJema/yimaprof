@@ -164,7 +164,7 @@ export default function ExamList() {
           // Fetch establishment
           if (examAny.establishment_id) {
             const { data: estData } = await sbAny
-              .from('establishments')
+              .from('establishments_directory')
               .select('name')
               .eq('id', examAny.establishment_id)
               .maybeSingle();

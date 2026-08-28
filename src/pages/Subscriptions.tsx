@@ -70,7 +70,7 @@ export default function Subscriptions() {
 
   useEffect(() => {
     // Check for referral code in URL
-    const refCode = searchParams.get('ref');
+    const refCode = searchParams.get('ref') || localStorage.getItem('pending_referral_code');
     if (refCode) {
       setReferralUsername(refCode);
       validateReferral(refCode);

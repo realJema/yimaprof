@@ -91,7 +91,7 @@ export default function Exams() {
   const fetchEstablishments = async () => {
     try {
       const { data, error } = await supabase
-        .from('establishments')
+        .from('establishments_directory')
         .select('id, name')
         .order('name');
       
