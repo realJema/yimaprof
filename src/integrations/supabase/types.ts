@@ -1971,6 +1971,47 @@ export type Database = {
           status: string
         }[]
       }
+      admin_school_activity: {
+        Args: never
+        Returns: {
+          approval_status: string
+          average_percent: number
+          challenges_active: number
+          challenges_total: number
+          city: string
+          classes_total: number
+          commissions_pending: number
+          commissions_total: number
+          created_at: string
+          establishment_id: string
+          evaluations_total: number
+          is_demo: boolean
+          last_activity: string
+          lessons_completed: number
+          lessons_total: number
+          linked_accounts: number
+          name: string
+          owner_email: string
+          referral_code: string
+          students_active: number
+          students_total: number
+        }[]
+      }
+      admin_school_challenges: {
+        Args: never
+        Returns: {
+          average_percent: number
+          ends_at: string
+          establishment_id: string
+          id: string
+          participants: number
+          school_name: string
+          scope: string
+          starts_at: string
+          status: string
+          title: string
+        }[]
+      }
       admin_set_commercial: {
         Args: { p_enabled: boolean; p_user_id: string }
         Returns: Json
