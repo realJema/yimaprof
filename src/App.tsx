@@ -23,6 +23,8 @@ import Admin from "./pages/Admin";
 import AdminExams from "./pages/AdminExams";
 import ExamManager from "./pages/ExamManager";
 import Affiliate from "./pages/Affiliate";
+import CommercialDashboard from "./pages/CommercialDashboard";
+import ParentDashboard from "./pages/ParentDashboard";
 import Notifications from "./pages/Notifications";
 import TestNotifications from "./pages/TestNotifications";
 import WriteToUs from "./pages/WriteToUs";
@@ -90,6 +92,8 @@ const App = () => {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
                     <Route path="/affiliate" element={<Affiliate />} />
+                    <Route path="/commercial" element={<CommercialDashboard />} />
+                    <Route path="/parent" element={<ParentDashboard />} />
                     <Route path="/payment" element={<Payment />} />
                     <Route path="/payment-processing" element={<PaymentProcessing />} />
                     <Route path="/admin" element={<Admin />} />

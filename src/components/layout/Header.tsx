@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School, TrendingUp } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School, TrendingUp, Briefcase, Users } from 'lucide-react';
 import { useEstablishment } from '@/hooks/useEstablishment';
+import { useUserRoles } from '@/hooks/useUserRoles';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Logo } from '@/components/ui/logo';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -27,6 +28,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { establishment, isSchoolAdmin } = useEstablishment();
+  const { isCommercial, isParent } = useUserRoles();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditor, setIsEditor] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -143,6 +145,20 @@ export default function Header() {
       to: '/subscriptions',
       icon: CreditCard,
       label: language === 'fr' ? 'Abonnements' : 'Subscriptions'
+    });
+  }
+  if (isCommercial) {
+    navItems.push({
+      to: '/commercial',
+      icon: Briefcase,
+      label: language === 'fr' ? 'Espace Commercial' : 'Commercial space'
+    });
+  }
+  if (isParent) {
+    navItems.push({
+      to: '/parent',
+      icon: Users,
+      label: language === 'fr' ? 'Espace Parent' : 'Parent space'
     });
   }
   navItems.push({

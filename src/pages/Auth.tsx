@@ -48,7 +48,9 @@ export default function Auth() {
     role: "student",
     age: "",
     phone: "",
+    username: "",
   });
+  const [childrenNames, setChildrenNames] = useState<string[]>([""]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -83,6 +85,11 @@ export default function Auth() {
       role: formData.role,
       age: formData.age ? parseInt(formData.age) : null,
       phone: formData.phone || null,
+      username: formData.username.trim().toLowerCase() || null,
+      children:
+        formData.role === "parent"
+          ? childrenNames.map((n) => n.trim()).filter((n) => n.length >= 2)
+          : [],
     });
     
     // If signup successful
@@ -372,6 +379,22 @@ export default function Auth() {
                   </div>
                   
                   <div className="space-y-2">
+                    <Label htmlFor="username">Nom d'utilisateur</Label>
+                    <Input
+                      id="username"
+                      placeholder="ex : paul_ndjock"
+                      value={formData.username}
+                      onChange={(e) => handleInputChange("username", e.target.value.replace(/[^a-zA-Z0-9_.]/g, "").toLowerCase())}
+                      minLength={3}
+                      maxLength={30}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Identifiant unique visible sur la plateforme (lettres, chiffres, _ et .).
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="role">Vous êtes</Label>
                     <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                       <SelectTrigger>
@@ -384,6 +407,33 @@ export default function Auth() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {formData.role === "parent" && (
+                    <div className="space-y-2 rounded-lg border border-border p-3">
+                      <Label>Vos enfants</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Indiquez le nom de vos enfants. Un administrateur validera le rattachement à leur compte élève.
+                      </p>
+                      {childrenNames.map((name, index) => (
+                        <Input
+                          key={index}
+                          placeholder={`Nom de l'enfant ${index + 1}`}
+                          value={name}
+                          onChange={(e) =>
+                            setChildrenNames((prev) => prev.map((v, i) => (i === index ? e.target.value : v)))
+                          }
+                        />
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setChildrenNames((prev) => [...prev, ""])}
+                      >
+                        Ajouter un enfant
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
