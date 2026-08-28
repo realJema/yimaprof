@@ -45,15 +45,25 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', ''),
-    );
-    if (userError || !user) return json({ error: 'Unauthorized' }, 401);
+    // Either an admin JWT, or the internal setup key (used for one-off provisioning).
+    const seedSecret = Deno.env.get('DEMO_SEED_SECRET');
+    const providedSecret = req.headers.get('x-seed-secret');
+    const viaSecret = Boolean(seedSecret && providedSecret && providedSecret === seedSecret);
 
-    const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
-    if (!isAdmin) return json({ error: 'Admin only' }, 403);
+    let actorId: string | null = null;
+    if (!viaSecret) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) return json({ error: 'Unauthorized' }, 401);
+      const { data: { user }, error: userError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', ''),
+      );
+      if (userError || !user) return json({ error: 'Unauthorized' }, 401);
+
+      const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      if (!isAdmin) return json({ error: 'Admin only' }, 403);
+      actorId = user.id;
+    }
+
 
     const ids: Record<string, string> = {};
 
