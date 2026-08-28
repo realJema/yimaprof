@@ -162,42 +162,77 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
       </div>
 
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : closeDialog())}>
           <DialogTrigger asChild>
             <Button size="sm" disabled={available < 500}>
               <Wallet className="h-4 w-4 mr-2" />{fr ? 'Demander un retrait' : 'Request a payout'}
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>{fr ? 'Demande de retrait' : 'Payout request'}</DialogTitle></DialogHeader>
-            <form onSubmit={request} className="space-y-4">
-              <div>
-                <Label htmlFor="am">{fr ? 'Montant (FCFA)' : 'Amount (FCFA)'}</Label>
-                <Input id="am" type="number" min={500} max={available} required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                <p className="text-xs text-muted-foreground mt-1">{fr ? 'Disponible' : 'Available'}: {available.toLocaleString()} FCFA</p>
-              </div>
-              <div>
-                <Label>{fr ? 'Moyen de paiement' : 'Payment method'}</Label>
-                <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
-                    <SelectItem value="orange_money">Orange Money</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="pn">{fr ? 'Numéro' : 'Phone number'}</Label>
-                <Input id="pn" required maxLength={20} placeholder="+2376XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
-                <Button type="submit">{fr ? 'Envoyer' : 'Send'}</Button>
-              </div>
-            </form>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-secondary" />
+                {step === 'form'
+                  ? fr ? 'Demande de retrait' : 'Payout request'
+                  : fr ? 'Confirmation par email' : 'Email confirmation'}
+              </DialogTitle>
+            </DialogHeader>
+            {step === 'form' ? (
+              <form onSubmit={startRequest} className="space-y-4">
+                <div>
+                  <Label htmlFor="am">{fr ? 'Montant (FCFA)' : 'Amount (FCFA)'}</Label>
+                  <Input id="am" type="number" min={500} max={available} required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                  <p className="text-xs text-muted-foreground mt-1">{fr ? 'Disponible' : 'Available'}: {available.toLocaleString()} FCFA</p>
+                </div>
+                <div>
+                  <Label>{fr ? 'Moyen de paiement' : 'Payment method'}</Label>
+                  <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
+                      <SelectItem value="orange_money">Orange Money</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="pn">{fr ? 'Numéro' : 'Phone number'}</Label>
+                  <Input id="pn" required maxLength={20} placeholder="+2376XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="pw">{fr ? 'Votre mot de passe' : 'Your password'}</Label>
+                  <Input id="pw" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {fr
+                      ? 'Un code de confirmation à 6 chiffres vous sera envoyé par email.'
+                      : 'A 6-digit confirmation code will be emailed to you.'}
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={closeDialog}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                  <Button type="submit" disabled={submitting}>{fr ? 'Continuer' : 'Continue'}</Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={confirmRequest} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  {fr
+                    ? 'Saisissez le code à 6 chiffres envoyé par email. Il expire dans 10 minutes et ne peut être utilisé qu’une seule fois.'
+                    : 'Enter the 6-digit code sent by email. It expires in 10 minutes and can only be used once.'}
+                </p>
+                <div>
+                  <Label htmlFor="otp">{fr ? 'Code de confirmation' : 'Confirmation code'}</Label>
+                  <Input id="otp" inputMode="numeric" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={closeDialog}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                  <Button type="submit" disabled={submitting || code.length !== 6}>{fr ? 'Confirmer le retrait' : 'Confirm payout'}</Button>
+                </div>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>
+
 
       <Card>
         <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Coins className="h-5 w-5" />{fr ? 'Commissions de parrainage' : 'Referral commissions'}</CardTitle></CardHeader>
