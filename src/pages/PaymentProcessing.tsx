@@ -397,7 +397,7 @@ export default function PaymentProcessing() {
                       <div className="flex items-start gap-2">
                         <Phone className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                         <p className="text-sm text-foreground">
-                          Composez <strong className="text-primary">#150*50#</strong> pour valider comme recommandé
+                          Composez <strong className="text-primary">{carrier === 'MTN' ? '*126#' : '#150*50#'}</strong> pour valider comme recommandé
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground pl-6">
