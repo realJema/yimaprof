@@ -1,49 +1,58 @@
-import React, { useEffect } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import RecoveryRedirect from "@/components/auth/RecoveryRedirect";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import Layout from "@/components/layout/Layout";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Exams2 from "./pages/Exams2";
-import ExamViewer from "./pages/ExamViewer";
-import Settings from "./pages/Settings";
-import Subscriptions from "./pages/Subscriptions";
-import Payment from "./pages/Payment";
-import PaymentProcessing from "./pages/PaymentProcessing";
-import Admin from "./pages/Admin";
-import AdminExams from "./pages/AdminExams";
-import ExamManager from "./pages/ExamManager";
-import Affiliate from "./pages/Affiliate";
-import CommercialDashboard from "./pages/CommercialDashboard";
-import ParentDashboard from "./pages/ParentDashboard";
-import Notifications from "./pages/Notifications";
-import TestNotifications from "./pages/TestNotifications";
-import WriteToUs from "./pages/WriteToUs";
-import Forum from "./pages/Forum";
-import ForumTopic from "./pages/ForumTopic";
-import NotFound from "./pages/NotFound";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import VerifyEmail from "./pages/VerifyEmail";
-import Lessons from "./pages/Lessons";
-import LessonDetail from "./pages/LessonDetail";
-import Schools from "./pages/Schools";
-import SchoolSpace from "./pages/SchoolSpace";
-import StudentProgress from "./pages/Progress";
+
+const Auth = lazy(() => import("./pages/Auth"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Exams2 = lazy(() => import("./pages/Exams2"));
+const ExamViewer = lazy(() => import("./pages/ExamViewer"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Subscriptions = lazy(() => import("./pages/Subscriptions"));
+const Payment = lazy(() => import("./pages/Payment"));
+const PaymentProcessing = lazy(() => import("./pages/PaymentProcessing"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminExams = lazy(() => import("./pages/AdminExams"));
+const ExamManager = lazy(() => import("./pages/ExamManager"));
+const Affiliate = lazy(() => import("./pages/Affiliate"));
+const CommercialDashboard = lazy(() => import("./pages/CommercialDashboard"));
+const ParentDashboard = lazy(() => import("./pages/ParentDashboard"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const TestNotifications = lazy(() => import("./pages/TestNotifications"));
+const WriteToUs = lazy(() => import("./pages/WriteToUs"));
+const Forum = lazy(() => import("./pages/Forum"));
+const ForumTopic = lazy(() => import("./pages/ForumTopic"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const Lessons = lazy(() => import("./pages/Lessons"));
+const LessonDetail = lazy(() => import("./pages/LessonDetail"));
+const Schools = lazy(() => import("./pages/Schools"));
+const SchoolSpace = lazy(() => import("./pages/SchoolSpace"));
+const StudentProgress = lazy(() => import("./pages/Progress"));
 
 
 const queryClient = new QueryClient();
+
+const RouteLoader = () => (
+  <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Chargement">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+  </div>
+);
 
 const App = () => {
   // Disable right-click globally
@@ -69,8 +78,10 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <RecoveryRedirect />
                 <Layout>
-                  <Routes>
+                  <Suspense fallback={<RouteLoader />}>
+                    <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
@@ -111,7 +122,8 @@ const App = () => {
                     <Route path="/forum/:topicId" element={<ForumTopic />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
-                  </Routes>
+                    </Routes>
+                  </Suspense>
                 </Layout>
               </BrowserRouter>
             </TooltipProvider>
