@@ -123,7 +123,13 @@ export default function Header() {
       icon: BarChart3,
       label: t('dashboard')
     });
+    navItems.push({
+      to: '/progress',
+      icon: TrendingUp,
+      label: language === 'fr' ? 'Ma progression' : 'My progress'
+    });
   }
+
   if (isSchoolAdmin) {
     navItems.push({
       to: '/school',
