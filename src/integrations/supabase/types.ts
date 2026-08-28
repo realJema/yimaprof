@@ -1906,6 +1906,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_parent_link: {
+        Args: {
+          p_child_identifier: string
+          p_child_name?: string
+          p_parent_identifier: string
+        }
+        Returns: Json
+      }
+      admin_delete_parent_link: { Args: { p_link_id: string }; Returns: Json }
+      admin_link_parent_child: {
+        Args: { p_child_identifier: string; p_link_id: string }
+        Returns: Json
+      }
       admin_link_user_to_establishment: {
         Args: {
           p_email: string
@@ -1940,6 +1953,22 @@ export type Database = {
           is_owner: boolean
           is_school_admin: boolean
           last_name: string
+        }[]
+      }
+      admin_list_parent_links: {
+        Args: never
+        Returns: {
+          child_email: string
+          child_name: string
+          child_user_id: string
+          child_username: string
+          created_at: string
+          link_id: string
+          parent_email: string
+          parent_id: string
+          parent_name: string
+          parent_username: string
+          status: string
         }[]
       }
       admin_set_commercial: {
@@ -2069,6 +2098,37 @@ export type Database = {
           p_target_type: string
         }
         Returns: string
+      }
+      parent_child_results: {
+        Args: { p_child_user_id: string }
+        Returns: {
+          completed_at: string
+          evaluation_id: string
+          exam_title: string
+          lesson_title: string
+          percent: number
+          possible: number
+          score: number
+          subject_name: string
+          time_spent_seconds: number
+        }[]
+      }
+      parent_children_overview: {
+        Args: never
+        Returns: {
+          average_percent: number
+          child_name: string
+          child_user_id: string
+          child_username: string
+          class_name: string
+          evaluations_count: number
+          last_activity: string
+          lessons_completed: number
+          lessons_started: number
+          link_id: string
+          status: string
+          time_spent_seconds: number
+        }[]
       }
       register_establishment: {
         Args: {
