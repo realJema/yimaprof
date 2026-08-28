@@ -2015,7 +2015,13 @@ export type Database = {
           }
     }
     Enums: {
-      app_role: "admin" | "teacher" | "student" | "editor" | "school_admin"
+      app_role:
+        | "admin"
+        | "teacher"
+        | "student"
+        | "editor"
+        | "school_admin"
+        | "commercial"
       feedback_status: "new" | "reviewed" | "replied"
       payment_provider: "mtn_momo" | "orange_money" | "mesomb"
       subscription_status: "active" | "expired" | "canceled" | "pending"
@@ -2153,7 +2159,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "teacher", "student", "editor", "school_admin"],
+      app_role: [
+        "admin",
+        "teacher",
+        "student",
+        "editor",
+        "school_admin",
+        "commercial",
+      ],
       feedback_status: ["new", "reviewed", "replied"],
       payment_provider: ["mtn_momo", "orange_money", "mesomb"],
       subscription_status: ["active", "expired", "canceled", "pending"],
