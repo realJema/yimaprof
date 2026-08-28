@@ -145,10 +145,11 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         {[
-          { label: fr ? 'Total généré' : 'Total earned', value: total },
           { label: fr ? 'Disponible' : 'Available', value: available },
+          { label: fr ? 'Ce mois' : 'This month', value: monthly },
+          { label: fr ? 'Total généré' : 'Total earned', value: total },
           { label: fr ? 'En attente' : 'Pending', value: pending },
           { label: fr ? 'Déjà versé' : 'Already paid', value: paid },
         ].map((c) => (
