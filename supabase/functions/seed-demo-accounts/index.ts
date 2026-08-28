@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
           child_user_id: childId,
           child_name: child.name,
           status: 'linked',
-          created_by: user.id,
+          created_by: actorId,
         });
       }
     }
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
         parent_id: parentId,
         child_name: 'Emmanuel Démo',
         status: 'pending',
-        created_by: user.id,
+        created_by: actorId,
       });
     }
 
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     await supabase
       .from('affiliate_applications')
       .upsert(
-        { user_id: commercialId, status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user.id },
+        { user_id: commercialId, status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: actorId },
         { onConflict: 'user_id' },
       );
 
