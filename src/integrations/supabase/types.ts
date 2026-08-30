@@ -208,6 +208,95 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_attempts: {
+        Row: {
+          answers: Json
+          challenge_id: string
+          class_id: string | null
+          created_at: string
+          establishment_id: string | null
+          graded_out_of: number
+          id: string
+          score: number | null
+          score_scaled: number | null
+          started_at: string | null
+          status: string
+          submitted_at: string | null
+          time_spent_seconds: number
+          total_possible: number | null
+          updated_at: string
+          user_id: string
+          viewed_before: boolean
+        }
+        Insert: {
+          answers?: Json
+          challenge_id: string
+          class_id?: string | null
+          created_at?: string
+          establishment_id?: string | null
+          graded_out_of?: number
+          id?: string
+          score?: number | null
+          score_scaled?: number | null
+          started_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          time_spent_seconds?: number
+          total_possible?: number | null
+          updated_at?: string
+          user_id: string
+          viewed_before?: boolean
+        }
+        Update: {
+          answers?: Json
+          challenge_id?: string
+          class_id?: string | null
+          created_at?: string
+          establishment_id?: string | null
+          graded_out_of?: number
+          id?: string
+          score?: number | null
+          score_scaled?: number | null
+          started_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          time_spent_seconds?: number
+          total_possible?: number | null
+          updated_at?: string
+          user_id?: string
+          viewed_before?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_attempts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_attempts_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_attempts_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_attempts_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           average_percent: number
@@ -269,12 +358,20 @@ export type Database = {
       challenges: {
         Row: {
           class_id: string | null
+          country: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          duration_minutes: number
+          eligible_class_ids: string[]
+          eligible_series_ids: string[]
           ends_at: string
-          establishment_id: string
+          establishment_id: string | null
+          exam_id: string | null
+          graded_out_of: number
           id: string
+          max_attempts: number
+          region: string | null
           reward: string | null
           scope: string
           starts_at: string
@@ -285,12 +382,20 @@ export type Database = {
         }
         Insert: {
           class_id?: string | null
+          country?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          duration_minutes?: number
+          eligible_class_ids?: string[]
+          eligible_series_ids?: string[]
           ends_at?: string
-          establishment_id: string
+          establishment_id?: string | null
+          exam_id?: string | null
+          graded_out_of?: number
           id?: string
+          max_attempts?: number
+          region?: string | null
           reward?: string | null
           scope?: string
           starts_at?: string
@@ -301,12 +406,20 @@ export type Database = {
         }
         Update: {
           class_id?: string | null
+          country?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          duration_minutes?: number
+          eligible_class_ids?: string[]
+          eligible_series_ids?: string[]
           ends_at?: string
-          establishment_id?: string
+          establishment_id?: string | null
+          exam_id?: string | null
+          graded_out_of?: number
           id?: string
+          max_attempts?: number
+          region?: string | null
           reward?: string | null
           scope?: string
           starts_at?: string
@@ -335,6 +448,13 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
             referencedColumns: ["id"]
           },
           {
@@ -1142,21 +1262,27 @@ export type Database = {
           exam_id: string
           id: string
           lesson_id: string
+          level: string
           order_number: number
+          title: string | null
         }
         Insert: {
           created_at?: string
           exam_id: string
           id?: string
           lesson_id: string
+          level?: string
           order_number?: number
+          title?: string | null
         }
         Update: {
           created_at?: string
           exam_id?: string
           id?: string
           lesson_id?: string
+          level?: string
           order_number?: number
+          title?: string | null
         }
         Relationships: [
           {
@@ -1877,14 +2003,17 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           exam_id: string
+          graded_out_of: number
           id: string
           lesson_id: string | null
           mcq_score: number | null
           mcq_total: number | null
+          score_scaled: number | null
           time_spent_seconds: number | null
           total_possible: number | null
           total_score: number | null
           user_id: string
+          viewed_before: boolean
         }
         Insert: {
           answers?: Json | null
@@ -1892,14 +2021,17 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           exam_id: string
+          graded_out_of?: number
           id?: string
           lesson_id?: string | null
           mcq_score?: number | null
           mcq_total?: number | null
+          score_scaled?: number | null
           time_spent_seconds?: number | null
           total_possible?: number | null
           total_score?: number | null
           user_id: string
+          viewed_before?: boolean
         }
         Update: {
           answers?: Json | null
@@ -1907,14 +2039,17 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           exam_id?: string
+          graded_out_of?: number
           id?: string
           lesson_id?: string | null
           mcq_score?: number | null
           mcq_total?: number | null
+          score_scaled?: number | null
           time_spent_seconds?: number | null
           total_possible?: number | null
           total_score?: number | null
           user_id?: string
+          viewed_before?: boolean
         }
         Relationships: [
           {
