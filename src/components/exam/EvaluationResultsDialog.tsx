@@ -5,6 +5,7 @@ import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye, Award, Loa
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { formatGrade } from '@/lib/grading';
 
 interface AiFeedbackItem {
   questionIndex: number;
@@ -53,6 +54,11 @@ export function EvaluationResultsDialog({
   const percentage = hasFullScore 
     ? Math.round((score.earnedPoints! / score.totalPoints!) * 100) 
     : (score && score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0);
+
+  // Grades are absolute (out of 20 by default); the percentage stays secondary.
+  const grade = hasFullScore
+    ? formatGrade(score!.earnedPoints, score!.totalPoints)
+    : formatGrade(score?.correct ?? 0, score?.total ?? 0);
   
   const getScoreColor = () => {
     if (percentage >= 80) return 'text-emerald-600 dark:text-emerald-400';
@@ -98,10 +104,11 @@ export function EvaluationResultsDialog({
                       </>
                     ) : (
                       <>
-                        <ScoreIcon className={cn("h-8 w-8 mx-auto mb-1", getScoreColor())} />
-                        <span className={cn("text-3xl font-bold", getScoreColor())}>
-                          {percentage}%
+                        <ScoreIcon className={cn("h-6 w-6 mx-auto mb-1", getScoreColor())} />
+                        <span className={cn("text-2xl font-bold leading-none", getScoreColor())}>
+                          {grade}
                         </span>
+                        <span className="mt-1 block text-[11px] text-muted-foreground">{percentage}%</span>
                       </>
                     )}
                   </div>
@@ -125,7 +132,7 @@ export function EvaluationResultsDialog({
                     <Award className="h-5 w-5 mx-auto mb-1 text-primary" />
                     <p className="text-lg font-semibold">{score.earnedPoints}/{score.totalPoints}</p>
                     <p className="text-xs text-muted-foreground">
-                      {language === 'fr' ? 'Score total' : 'Total Score'}
+                      {language === 'fr' ? 'Points obtenus' : 'Points earned'}
                     </p>
                   </div>
                 )}
