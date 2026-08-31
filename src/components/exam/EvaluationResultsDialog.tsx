@@ -5,6 +5,7 @@ import { Trophy, Target, Clock, RotateCcw, CheckCircle, XCircle, Eye, Award, Loa
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { formatGrade } from '@/lib/grading';
 
 interface AiFeedbackItem {
   questionIndex: number;
@@ -53,6 +54,11 @@ export function EvaluationResultsDialog({
   const percentage = hasFullScore 
     ? Math.round((score.earnedPoints! / score.totalPoints!) * 100) 
     : (score && score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0);
+
+  // Grades are absolute (out of 20 by default); the percentage stays secondary.
+  const grade = hasFullScore
+    ? formatGrade(score!.earnedPoints, score!.totalPoints)
+    : formatGrade(score?.correct ?? 0, score?.total ?? 0);
   
   const getScoreColor = () => {
     if (percentage >= 80) return 'text-emerald-600 dark:text-emerald-400';

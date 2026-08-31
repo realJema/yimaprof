@@ -44,6 +44,8 @@ const LessonDetail = lazy(() => import("./pages/LessonDetail"));
 const Schools = lazy(() => import("./pages/Schools"));
 const SchoolSpace = lazy(() => import("./pages/SchoolSpace"));
 const StudentProgress = lazy(() => import("./pages/Progress"));
+const Challenges = lazy(() => import("./pages/Challenges"));
+const ChallengeDetail = lazy(() => import("./pages/ChallengeDetail"));
 
 
 const queryClient = new QueryClient();
@@ -97,6 +99,8 @@ const App = () => {
                     <Route path="/lessons" element={<Lessons />} />
                     <Route path="/lessons/:lessonId" element={<LessonDetail />} />
                     <Route path="/progress" element={<StudentProgress />} />
+                    <Route path="/challenges" element={<Challenges />} />
+                    <Route path="/challenges/:challengeId" element={<ChallengeDetail />} />
 
                     <Route path="/schools" element={<Schools />} />
                     <Route path="/school" element={<SchoolSpace />} />
