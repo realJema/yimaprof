@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FileText, Clock, ArrowLeft, X, Play, CheckCircle, BookOpen, WifiOff, RefreshCw, Crown, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { DEFAULT_GRADE_SCALE, scaleScore } from '@/lib/grading';
 import { ExamSidebar } from '@/components/exam/ExamSidebar';
 import { ZoomControls } from '@/components/exam/ZoomControls';
 import { EvaluationRulesDialog } from '@/components/exam/EvaluationRulesDialog';
@@ -554,6 +555,8 @@ export default function ExamViewer() {
       mcq_total: mcqScore?.total ?? null,
       total_score: mcqScore?.earnedPoints ?? null,
       total_possible: mcqScore?.totalPoints ?? null,
+      graded_out_of: DEFAULT_GRADE_SCALE,
+      score_scaled: scaleScore(mcqScore?.earnedPoints, mcqScore?.totalPoints),
       time_spent_seconds: timeSpentSeconds,
       answers: userAnswers,
       // Set when the attempt was launched from a lesson/chapter ("?lesson=<id>").
@@ -716,7 +719,11 @@ export default function ExamViewer() {
       // Update database with AI scores
       if (user && examId) {
         await supabase.from('user_evaluations')
-          .update({ total_score: newScore.earnedPoints })
+          .update({
+            total_score: newScore.earnedPoints,
+            score_scaled: scaleScore(newScore.earnedPoints, newScore.totalPoints),
+            graded_out_of: DEFAULT_GRADE_SCALE,
+          })
           .eq('user_id', user.id)
           .eq('exam_id', examId)
           .eq('attempt_number', currentAttemptNumber);
