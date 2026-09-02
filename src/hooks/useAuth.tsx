@@ -233,17 +233,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
-      // Try a real refresh before considering the user signed out.
-      const { data: refreshed } = await supabase.auth.refreshSession();
-      if (refreshed?.session) {
-        setSession(refreshed.session);
-        setUser(refreshed.session.user);
+      // Try a throttled, single-flight refresh before considering the user signed out.
+      const refreshed = await safeRefresh(true);
+      if (refreshed) {
+        setSession(refreshed);
+        setUser(refreshed.user);
         return true;
       }
 
-      setUser(null);
-      setSession(null);
-      return false;
+      return !!sessionRef.current;
+
     } catch (e) {
       console.error('Session refresh failed:', e);
       // Network/storage error: keep the existing session instead of logging out.
