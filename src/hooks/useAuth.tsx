@@ -25,10 +25,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // because of a transient storage/network hiccup (preview iframes, offline, etc.).
   const explicitSignOutRef = useRef(false);
   const sessionRef = useRef<Session | null>(null);
+  // Refresh-token rotation is single-use: concurrent refreshes revoke each other and
+  // hit Supabase's rate limit (429), which used to look like an instant logout.
+  const inFlightRefreshRef = useRef<Promise<Session | null> | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  // Refresh at most once a minute, never in parallel, and only when the token is
+  // close to expiry. Returns the best session we know about.
+  const safeRefresh = async (force = false): Promise<Session | null> => {
+    const current = sessionRef.current;
+    const expiresAt = current?.expires_at ? current.expires_at * 1000 : 0;
+    const expiringSoon = !expiresAt || expiresAt - Date.now() < 120_000;
+    if (!force && !expiringSoon) return current;
+    if (Date.now() - lastRefreshAtRef.current < 60_000) return current;
+    if (inFlightRefreshRef.current) return inFlightRefreshRef.current;
+
+    const p = (async () => {
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error) return sessionRef.current;
+        return data?.session ?? sessionRef.current;
+      } catch {
+        return sessionRef.current;
+      } finally {
+        lastRefreshAtRef.current = Date.now();
+        inFlightRefreshRef.current = null;
+      }
+    })();
+    inFlightRefreshRef.current = p;
+    return p;
+  };
+
 
   useEffect(() => {
     let mounted = true;
