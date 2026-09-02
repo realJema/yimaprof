@@ -157,12 +157,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    explicitSignOutRef.current = true;
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
     toast({
       title: "Déconnexion",
       description: "À bientôt sur YIMA !",
     });
   };
+
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
