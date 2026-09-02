@@ -106,20 +106,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           apply(data.session);
           return;
         }
-        const { data: refreshed } = await supabase.auth.refreshSession();
+        const recovered = await safeRefresh(true);
         if (!mounted) return;
-        if (refreshed?.session) apply(refreshed.session);
-        else apply(null);
+        // Keep whatever session we still hold rather than logging out on a
+        // transient failure (rate limit, offline, rotation race).
+        if (recovered) apply(recovered);
       })();
     });
 
-    // Re-validate (and silently refresh) when the tab wakes up or reconnects.
+    // Re-validate (throttled) when the tab wakes up or reconnects.
     const revalidate = async () => {
       if (explicitSignOutRef.current) return;
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
       if (data.session) apply(data.session);
+      else await safeRefresh();
     };
+
     const onVisibility = () => {
       if (document.visibilityState === "visible") revalidate();
     };
