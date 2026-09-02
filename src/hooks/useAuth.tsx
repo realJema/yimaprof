@@ -191,26 +191,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshSession = async (): Promise<boolean> => {
     try {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
-      if (error || !currentSession) {
-        // Session is invalid, clear state
-        setUser(null);
-        setSession(null);
-        return false;
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        return true;
       }
-      
-      // Update state with refreshed session
-      setSession(currentSession);
-      setUser(currentSession.user);
-      return true;
-    } catch (e) {
-      console.error('Session refresh failed:', e);
+
+      // Try a real refresh before considering the user signed out.
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      if (refreshed?.session) {
+        setSession(refreshed.session);
+        setUser(refreshed.session.user);
+        return true;
+      }
+
       setUser(null);
       setSession(null);
       return false;
+    } catch (e) {
+      console.error('Session refresh failed:', e);
+      // Network/storage error: keep the existing session instead of logging out.
+      return !!sessionRef.current;
     }
   };
+
 
   const value = {
     user,
