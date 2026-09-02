@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,43 +21,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  // True only while the user explicitly signs out, so we never drop the session
+  // because of a transient storage/network hiccup (preview iframes, offline, etc.).
+  const explicitSignOutRef = useRef(false);
+  const sessionRef = useRef<Session | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     let mounted = true;
 
+    const apply = (next: Session | null) => {
+      if (!mounted) return;
+      setSession(next);
+      setUser(next?.user ?? null);
+      setLoading(false);
+    };
+
     // Check for existing session first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+      if (session) apply(session);
+      else if (mounted) setLoading(false);
     });
 
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          setLoading(false);
-          
-          // Handle token refresh failures - clear stale state
-          if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-            if (!session) {
-              setUser(null);
-              setSession(null);
-            }
-          }
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!mounted) return;
+
+      if (nextSession) {
+        explicitSignOutRef.current = false;
+        apply(nextSession);
+        return;
       }
-    );
+
+      // A null session that we did not ask for: keep the current one and try to
+      // recover it instead of logging the user out.
+      if (event === "SIGNED_OUT" && explicitSignOutRef.current) {
+        apply(null);
+        return;
+      }
+
+      if (!sessionRef.current) {
+        setLoading(false);
+        return;
+      }
+
+      (async () => {
+        const { data } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (data.session) {
+          apply(data.session);
+          return;
+        }
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (!mounted) return;
+        if (refreshed?.session) apply(refreshed.session);
+        else apply(null);
+      })();
+    });
+
+    // Re-validate (and silently refresh) when the tab wakes up or reconnects.
+    const revalidate = async () => {
+      if (explicitSignOutRef.current) return;
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+      if (data.session) apply(data.session);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") revalidate();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", revalidate);
+    window.addEventListener("focus", revalidate);
 
     return () => {
       mounted = false;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", revalidate);
+      window.removeEventListener("focus", revalidate);
       subscription.unsubscribe();
     };
   }, []);
+
 
   const signUp = async (email: string, password: string, metadata: any = {}) => {
     const redirectUrl = `${window.location.origin}/`;
@@ -110,12 +157,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    explicitSignOutRef.current = true;
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
     toast({
       title: "Déconnexion",
       description: "À bientôt sur YIMA !",
     });
   };
+
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -140,26 +191,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshSession = async (): Promise<boolean> => {
     try {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
-      if (error || !currentSession) {
-        // Session is invalid, clear state
-        setUser(null);
-        setSession(null);
-        return false;
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        return true;
       }
-      
-      // Update state with refreshed session
-      setSession(currentSession);
-      setUser(currentSession.user);
-      return true;
-    } catch (e) {
-      console.error('Session refresh failed:', e);
+
+      // Try a real refresh before considering the user signed out.
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      if (refreshed?.session) {
+        setSession(refreshed.session);
+        setUser(refreshed.session.user);
+        return true;
+      }
+
       setUser(null);
       setSession(null);
       return false;
+    } catch (e) {
+      console.error('Session refresh failed:', e);
+      // Network/storage error: keep the existing session instead of logging out.
+      return !!sessionRef.current;
     }
   };
+
 
   const value = {
     user,
