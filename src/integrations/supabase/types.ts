@@ -1354,6 +1354,8 @@ export type Database = {
           created_by: string | null
           establishment_id: string | null
           estimated_minutes: number | null
+          file_embed_url: string | null
+          file_provider: string | null
           file_url: string | null
           id: string
           is_free: boolean
@@ -1375,6 +1377,8 @@ export type Database = {
           created_by?: string | null
           establishment_id?: string | null
           estimated_minutes?: number | null
+          file_embed_url?: string | null
+          file_provider?: string | null
           file_url?: string | null
           id?: string
           is_free?: boolean
@@ -1396,6 +1400,8 @@ export type Database = {
           created_by?: string | null
           establishment_id?: string | null
           estimated_minutes?: number | null
+          file_embed_url?: string | null
+          file_provider?: string | null
           file_url?: string | null
           id?: string
           is_free?: boolean
