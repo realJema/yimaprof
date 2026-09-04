@@ -13,7 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Eye, Plus, Trash2 } from 'lucide-react';
+import LessonDocumentField from '@/components/admin/LessonDocumentField';
+import { BookOpen, Eye, FileText, Plus, Trash2 } from 'lucide-react';
 
 interface Lesson {
   id: string;
