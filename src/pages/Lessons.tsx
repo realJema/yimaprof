@@ -21,11 +21,13 @@ interface LessonRow {
   language: string;
   estimated_minutes: number | null;
   is_free: boolean;
+  file_url: string | null;
   class_id: string | null;
   subject_id: string | null;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
 }
+
 
 export default function Lessons() {
   const { language } = useLanguage();
