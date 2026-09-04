@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
-import { BookOpen, Clock, Lock, Search, Sparkles } from 'lucide-react';
+import { BookOpen, Clock, FileText, Lock, Search, Sparkles } from 'lucide-react';
 
 interface LessonRow {
   id: string;
