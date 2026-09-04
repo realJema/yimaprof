@@ -114,6 +114,7 @@ const App = () => {
                     <Route path="/payment-processing" element={<PaymentProcessing />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/admin/exams" element={<AdminExams />} />
+                    <Route path="/admin/lessons" element={<AdminLessons />} />
                     <Route path="/admin/exam/new" element={<ExamManager />} />
                     <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
                     <Route path="/about" element={<About />} />
