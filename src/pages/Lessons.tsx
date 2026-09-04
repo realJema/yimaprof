@@ -46,7 +46,7 @@ export default function Lessons() {
     (async () => {
       const { data } = await supabase
         .from('lessons')
-        .select('id, title, summary, chapter, language, estimated_minutes, is_free, class_id, subject_id, classes(display_name), subjects(name_fr, name_en)')
+        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, classes(display_name), subjects(name_fr, name_en)')
         .eq('is_published', true)
         .order('order_number');
       setLessons((data as unknown as LessonRow[]) || []);
