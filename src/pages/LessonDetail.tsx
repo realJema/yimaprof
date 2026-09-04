@@ -223,19 +223,24 @@ export default function LessonDetail() {
             </Card>
           )}
 
-          <Card>
-            <CardContent className="py-6 prose-sm max-w-none">
-              <MarkdownText text={lesson.content} />
-            </CardContent>
-          </Card>
-
-          {lesson.file_url && (
-            <Button variant="outline" className="mt-4" asChild>
-              <a href={lesson.file_url} target="_blank" rel="noreferrer">
-                <FileText className="h-4 w-4 mr-2" />{fr ? 'Fiche PDF' : 'PDF handout'}
-              </a>
-            </Button>
+          {doc?.embedUrl ? (
+            <LessonDocumentViewer fileUrl={lesson.file_url} title={lesson.title} />
+          ) : (
+            <Card>
+              <CardContent className="py-6 prose-sm max-w-none">
+                <MarkdownText text={lesson.content} />
+              </CardContent>
+            </Card>
           )}
+
+          {doc?.embedUrl && lesson.content && (
+            <Card className="mt-4">
+              <CardContent className="py-6 prose-sm max-w-none">
+                <MarkdownText text={lesson.content} />
+              </CardContent>
+            </Card>
+          )}
+
 
           {exercises.length > 0 && (
             <Card className="mt-8">
