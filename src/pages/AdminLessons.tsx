@@ -73,7 +73,6 @@ export default function AdminLessons() {
         title={fr ? 'Gestion des leçons | Yimaprof' : 'Lesson management | Yimaprof'}
         description={fr ? 'Espace administrateur de gestion des leçons.' : 'Administrator lesson management area.'}
         path="/admin/lessons"
-        path="/admin/lessons"
       />
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
