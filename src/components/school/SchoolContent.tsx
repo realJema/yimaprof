@@ -22,6 +22,7 @@ interface Lesson {
   summary: string | null;
   chapter: string | null;
   is_published: boolean;
+  file_url: string | null;
   view_count: number;
   class_id: string | null;
   subject_id: string | null;
@@ -47,7 +48,7 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
     const [{ data: ls }, { data: cl }, { data: su }] = await Promise.all([
       supabase
         .from('lessons')
-        .select('id, title, summary, chapter, is_published, view_count, class_id, subject_id, created_at')
+        .select('id, title, summary, chapter, is_published, file_url, view_count, class_id, subject_id, created_at')
         .eq('establishment_id', establishmentId)
         .order('created_at', { ascending: false }),
       supabase.from('establishment_classes').select('classes(id, display_name)').eq('establishment_id', establishmentId),
@@ -203,6 +204,9 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {l.file_url && (
+                  <Badge variant="outline" className="gap-1"><FileText className="h-3 w-3" />Document</Badge>
+                )}
                 <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-3 w-3" />{l.view_count}</span>
                 <Badge variant={l.is_published ? 'secondary' : 'outline'} className="cursor-pointer" onClick={() => togglePublish(l)}>
                   {l.is_published ? (fr ? 'Publié' : 'Published') : fr ? 'Brouillon' : 'Draft'}
