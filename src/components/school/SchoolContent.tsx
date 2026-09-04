@@ -74,6 +74,7 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
       title: form.title.trim().slice(0, 200),
       summary: form.summary.trim().slice(0, 500) || null,
       content: form.content.trim() || null,
+      file_url: form.file_url.trim() || null,
       chapter: form.chapter.trim().slice(0, 120) || null,
       class_id: form.class_id || null,
       subject_id: form.subject_id || null,
