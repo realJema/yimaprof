@@ -132,10 +132,20 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
                 <Label htmlFor="ls">{fr ? 'Résumé' : 'Summary'}</Label>
                 <Textarea id="ls" maxLength={500} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
               </div>
-              <div>
-                <Label htmlFor="lc">{fr ? 'Contenu de la leçon' : 'Lesson content'}</Label>
-                <Textarea id="lc" rows={6} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-              </div>
+              <LessonDocumentField value={form.file_url} onChange={(v) => setForm({ ...form, file_url: v })} id="school-lesson-doc" />
+              <details className="rounded-lg border p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  {fr ? 'Contenu texte (optionnel)' : 'Text content (optional)'}
+                </summary>
+                <Textarea
+                  id="lc"
+                  rows={6}
+                  className="mt-3"
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                />
+              </details>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>{fr ? 'Classe' : 'Class'}</Label>
