@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import SeoHead from '@/components/SeoHead';
+import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
+import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
@@ -168,6 +170,7 @@ export default function LessonDetail() {
 
   const locked = !lesson.is_free && !hasActiveSubscription;
   const subjectName = lesson.subjects?.name_fr || lesson.subjects?.name_en;
+  const doc = resolveLessonDoc(lesson.file_url);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -223,19 +226,24 @@ export default function LessonDetail() {
             </Card>
           )}
 
-          <Card>
-            <CardContent className="py-6 prose-sm max-w-none">
-              <MarkdownText text={lesson.content} />
-            </CardContent>
-          </Card>
-
-          {lesson.file_url && (
-            <Button variant="outline" className="mt-4" asChild>
-              <a href={lesson.file_url} target="_blank" rel="noreferrer">
-                <FileText className="h-4 w-4 mr-2" />{fr ? 'Fiche PDF' : 'PDF handout'}
-              </a>
-            </Button>
+          {doc?.embedUrl ? (
+            <LessonDocumentViewer fileUrl={lesson.file_url} title={lesson.title} />
+          ) : (
+            <Card>
+              <CardContent className="py-6 prose-sm max-w-none">
+                <MarkdownText text={lesson.content} />
+              </CardContent>
+            </Card>
           )}
+
+          {doc?.embedUrl && lesson.content && (
+            <Card className="mt-4">
+              <CardContent className="py-6 prose-sm max-w-none">
+                <MarkdownText text={lesson.content} />
+              </CardContent>
+            </Card>
+          )}
+
 
           {exercises.length > 0 && (
             <Card className="mt-8">

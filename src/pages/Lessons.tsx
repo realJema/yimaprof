@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
-import { BookOpen, Clock, Lock, Search, Sparkles } from 'lucide-react';
+import { BookOpen, Clock, FileText, Lock, Search, Sparkles } from 'lucide-react';
 
 interface LessonRow {
   id: string;
@@ -21,11 +21,13 @@ interface LessonRow {
   language: string;
   estimated_minutes: number | null;
   is_free: boolean;
+  file_url: string | null;
   class_id: string | null;
   subject_id: string | null;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
 }
+
 
 export default function Lessons() {
   const { language } = useLanguage();
@@ -44,7 +46,7 @@ export default function Lessons() {
     (async () => {
       const { data } = await supabase
         .from('lessons')
-        .select('id, title, summary, chapter, language, estimated_minutes, is_free, class_id, subject_id, classes(display_name), subjects(name_fr, name_en)')
+        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, classes(display_name), subjects(name_fr, name_en)')
         .eq('is_published', true)
         .order('order_number');
       setLessons((data as unknown as LessonRow[]) || []);
@@ -193,6 +195,11 @@ export default function Lessons() {
                               <p className="text-sm text-muted-foreground line-clamp-2">{lesson.summary}</p>
                               <div className="flex flex-wrap items-center gap-2 text-xs">
                                 {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
+                                {lesson.file_url && (
+                                  <Badge variant="outline" className="gap-1">
+                                    <FileText className="h-3 w-3" />{fr ? 'Document' : 'Document'}
+                                  </Badge>
+                                )}
                                 {lesson.estimated_minutes && (
                                   <span className="flex items-center gap-1 text-muted-foreground">
                                     <Clock className="h-3 w-3" />{lesson.estimated_minutes} min

@@ -184,6 +184,12 @@ export default function Admin() {
                   <span className="sm:hidden">{language === 'fr' ? 'Examens' : 'Exams'}</span>
                 </Button>
               </Link>
+              <Link to="/admin/lessons">
+                <Button variant="outline" size="sm" className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm">
+                  <BookOpen className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <span>{language === 'fr' ? 'Leçons' : 'Lessons'}</span>
+                </Button>
+              </Link>
               <Badge variant="secondary" className="items-center gap-1.5 hidden md:flex">
                 <BarChart3 className="h-4 w-4" />
                 {t('admin_access')}

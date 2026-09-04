@@ -13,7 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookOpen, Eye, Plus, Trash2 } from 'lucide-react';
+import LessonDocumentField from '@/components/admin/LessonDocumentField';
+import { BookOpen, Eye, FileText, Plus, Trash2 } from 'lucide-react';
 
 interface Lesson {
   id: string;
@@ -21,6 +22,7 @@ interface Lesson {
   summary: string | null;
   chapter: string | null;
   is_published: boolean;
+  file_url: string | null;
   view_count: number;
   class_id: string | null;
   subject_id: string | null;
@@ -40,13 +42,13 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', summary: '', content: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
+  const [form, setForm] = useState({ title: '', summary: '', content: '', file_url: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
 
   const load = async () => {
     const [{ data: ls }, { data: cl }, { data: su }] = await Promise.all([
       supabase
         .from('lessons')
-        .select('id, title, summary, chapter, is_published, view_count, class_id, subject_id, created_at')
+        .select('id, title, summary, chapter, is_published, file_url, view_count, class_id, subject_id, created_at')
         .eq('establishment_id', establishmentId)
         .order('created_at', { ascending: false }),
       supabase.from('establishment_classes').select('classes(id, display_name)').eq('establishment_id', establishmentId),
@@ -73,6 +75,7 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
       title: form.title.trim().slice(0, 200),
       summary: form.summary.trim().slice(0, 500) || null,
       content: form.content.trim() || null,
+      file_url: form.file_url.trim() || null,
       chapter: form.chapter.trim().slice(0, 120) || null,
       class_id: form.class_id || null,
       subject_id: form.subject_id || null,
@@ -90,7 +93,7 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
     }
     toast({ title: fr ? 'Contenu ajouté' : 'Content added' });
     setOpen(false);
-    setForm({ title: '', summary: '', content: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
+    setForm({ title: '', summary: '', content: '', file_url: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
     load();
   };
 
@@ -132,10 +135,20 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
                 <Label htmlFor="ls">{fr ? 'Résumé' : 'Summary'}</Label>
                 <Textarea id="ls" maxLength={500} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
               </div>
-              <div>
-                <Label htmlFor="lc">{fr ? 'Contenu de la leçon' : 'Lesson content'}</Label>
-                <Textarea id="lc" rows={6} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-              </div>
+              <LessonDocumentField value={form.file_url} onChange={(v) => setForm({ ...form, file_url: v })} id="school-lesson-doc" />
+              <details className="rounded-lg border p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  {fr ? 'Contenu texte (optionnel)' : 'Text content (optional)'}
+                </summary>
+                <Textarea
+                  id="lc"
+                  rows={6}
+                  className="mt-3"
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                />
+              </details>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>{fr ? 'Classe' : 'Class'}</Label>
@@ -191,6 +204,9 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {l.file_url && (
+                  <Badge variant="outline" className="gap-1"><FileText className="h-3 w-3" />Document</Badge>
+                )}
                 <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-3 w-3" />{l.view_count}</span>
                 <Badge variant={l.is_published ? 'secondary' : 'outline'} className="cursor-pointer" onClick={() => togglePublish(l)}>
                   {l.is_published ? (fr ? 'Publié' : 'Published') : fr ? 'Brouillon' : 'Draft'}
