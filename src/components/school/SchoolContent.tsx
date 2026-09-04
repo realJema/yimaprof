@@ -41,7 +41,7 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', summary: '', content: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
+  const [form, setForm] = useState({ title: '', summary: '', content: '', file_url: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
 
   const load = async () => {
     const [{ data: ls }, { data: cl }, { data: su }] = await Promise.all([
