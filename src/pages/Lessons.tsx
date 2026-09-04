@@ -195,6 +195,11 @@ export default function Lessons() {
                               <p className="text-sm text-muted-foreground line-clamp-2">{lesson.summary}</p>
                               <div className="flex flex-wrap items-center gap-2 text-xs">
                                 {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
+                                {lesson.file_url && (
+                                  <Badge variant="outline" className="gap-1">
+                                    <FileText className="h-3 w-3" />{fr ? 'Document' : 'Document'}
+                                  </Badge>
+                                )}
                                 {lesson.estimated_minutes && (
                                   <span className="flex items-center gap-1 text-muted-foreground">
                                     <Clock className="h-3 w-3" />{lesson.estimated_minutes} min
