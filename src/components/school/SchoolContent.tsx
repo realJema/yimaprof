@@ -92,7 +92,7 @@ export default function SchoolContent({ establishmentId }: { establishmentId: st
     }
     toast({ title: fr ? 'Contenu ajouté' : 'Content added' });
     setOpen(false);
-    setForm({ title: '', summary: '', content: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
+    setForm({ title: '', summary: '', content: '', file_url: '', chapter: '', class_id: '', subject_id: '', minutes: '15', is_published: true });
     load();
   };
 
