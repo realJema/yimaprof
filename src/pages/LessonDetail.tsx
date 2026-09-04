@@ -170,6 +170,7 @@ export default function LessonDetail() {
 
   const locked = !lesson.is_free && !hasActiveSubscription;
   const subjectName = lesson.subjects?.name_fr || lesson.subjects?.name_en;
+  const doc = resolveLessonDoc(lesson.file_url);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
