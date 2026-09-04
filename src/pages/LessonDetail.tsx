@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import SeoHead from '@/components/SeoHead';
+import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
+import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
