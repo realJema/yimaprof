@@ -14,8 +14,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LessonDocumentField from '@/components/admin/LessonDocumentField';
+import LessonQuestionsEditor from '@/components/admin/LessonQuestionsEditor';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
+import { LessonQuestion, parseLessonQuestions } from '@/lib/lessonQuestions';
 import { BookOpen, Copy, Edit, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
 
 interface LessonRow {
@@ -36,6 +38,7 @@ interface LessonRow {
   is_free: boolean;
   view_count: number;
   created_at: string;
+  questions?: unknown;
 }
 
 interface Option {
@@ -57,6 +60,7 @@ const emptyForm = {
   minutes: '20',
   is_published: true,
   is_free: false,
+  questions: [] as LessonQuestion[],
 };
 
 export default function LessonManagement() {
@@ -85,12 +89,7 @@ export default function LessonManagement() {
 
   const load = useCallback(async () => {
     const [{ data: ls }, { data: cl }, { data: su }, { data: se }] = await Promise.all([
-      supabase
-        .from('lessons')
-        .select(
-          'id, title, summary, content, file_url, chapter, class_id, subject_id, series_id, establishment_id, language, estimated_minutes, order_number, is_published, is_free, view_count, created_at',
-        )
-        .order('created_at', { ascending: false }),
+      supabase.from('lessons').select('*').order('created_at', { ascending: false }),
       supabase.from('classes').select('id, display_name').order('display_name'),
       supabase.from('subjects').select('id, name, name_fr, name_en').eq('is_active', true).order('name'),
       supabase.from('series').select('id, code, name_fr, name_en, name').eq('is_active', true).order('order_number'),
