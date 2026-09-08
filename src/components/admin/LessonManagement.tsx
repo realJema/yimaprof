@@ -162,6 +162,7 @@ export default function LessonManagement() {
       minutes: String(l.estimated_minutes ?? 20),
       is_published: l.is_published,
       is_free: l.is_free,
+      questions: parseLessonQuestions(l.questions),
     });
     setOpen(true);
   };
@@ -184,13 +185,14 @@ export default function LessonManagement() {
       estimated_minutes: Number(form.minutes) || null,
       is_published: form.is_published,
       is_free: form.is_free,
+      questions: form.questions.filter((q) => q.prompt.trim().length > 0),
     };
 
     const { error } = form.id
-      ? await supabase.from('lessons').update(payload).eq('id', form.id)
+      ? await supabase.from('lessons').update(payload as never).eq('id', form.id)
       : await supabase
           .from('lessons')
-          .insert({ ...payload, order_number: lessons.length + 1, created_by: user?.id });
+          .insert({ ...payload, order_number: lessons.length + 1, created_by: user?.id } as never);
 
     setSaving(false);
     if (error) {
