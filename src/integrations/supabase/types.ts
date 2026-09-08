@@ -1362,6 +1362,7 @@ export type Database = {
           is_published: boolean
           language: string
           order_number: number
+          questions: Json
           series_id: string | null
           subject_id: string | null
           summary: string | null
@@ -1385,6 +1386,7 @@ export type Database = {
           is_published?: boolean
           language?: string
           order_number?: number
+          questions?: Json
           series_id?: string | null
           subject_id?: string | null
           summary?: string | null
@@ -1408,6 +1410,7 @@ export type Database = {
           is_published?: boolean
           language?: string
           order_number?: number
+          questions?: Json
           series_id?: string | null
           subject_id?: string | null
           summary?: string | null
