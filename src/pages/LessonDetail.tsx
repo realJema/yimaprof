@@ -12,7 +12,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import SeoHead from '@/components/SeoHead';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
+import LessonQuestions from '@/components/lesson/LessonQuestions';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
+import { parseLessonQuestions } from '@/lib/lessonQuestions';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
@@ -24,6 +26,7 @@ interface LessonDetailRow {
   chapter: string | null;
   estimated_minutes: number | null;
   is_free: boolean;
+  questions?: unknown;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
 }
@@ -55,7 +58,7 @@ export default function LessonDetail() {
       const [{ data: l }, { data: ex }] = await Promise.all([
         supabase
           .from('lessons')
-          .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, classes(display_name), subjects(name_fr, name_en)')
+          .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, classes(display_name), subjects(name_fr, name_en)')
           .eq('id', lessonId)
           .maybeSingle(),
         supabase.from('lesson_exercises').select('exam_id, exams(id, title)').eq('lesson_id', lessonId).order('order_number'),
@@ -244,6 +247,8 @@ export default function LessonDetail() {
             </Card>
           )}
 
+
+          <LessonQuestions questions={parseLessonQuestions(lesson.questions)} />
 
           {exercises.length > 0 && (
             <Card className="mt-8">

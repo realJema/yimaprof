@@ -224,8 +224,9 @@ export default function LessonManagement() {
       order_number: lessons.length + 1,
       is_published: false,
       is_free: l.is_free,
+      questions: parseLessonQuestions(l.questions),
       created_by: user?.id,
-    });
+    } as never);
     if (error) {
       toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
       return;
@@ -432,6 +433,15 @@ export default function LessonManagement() {
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
                 placeholder={fr ? 'Utilisé si aucun document n’est fourni.' : 'Used when no document link is provided.'}
               />
+            </details>
+
+            <details className="rounded-lg border p-3" open={form.questions.length > 0}>
+              <summary className="text-sm font-medium cursor-pointer">
+                {fr ? 'Questions de compréhension' : 'Comprehension questions'} ({form.questions.length})
+              </summary>
+              <div className="mt-3">
+                <LessonQuestionsEditor value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
+              </div>
             </details>
 
             <div className="grid gap-3 sm:grid-cols-2">
