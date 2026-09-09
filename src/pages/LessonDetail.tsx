@@ -12,7 +12,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import SeoHead from '@/components/SeoHead';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
+import LessonQuestions from '@/components/lesson/LessonQuestions';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
+import { parseLessonQuestions } from '@/lib/lessonQuestions';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
