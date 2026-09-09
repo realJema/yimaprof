@@ -54,7 +54,7 @@ export default function LessonDocumentViewer({
           {expanded ? (fr ? 'Réduire' : 'Reduce') : fr ? 'Agrandir' : 'Expand'}
         </Button>
       </div>
-      <ProtectedContent className="rounded-lg border border-border overflow-hidden bg-card">
+      <ProtectedContent hideOnBlur={false} className="rounded-lg border border-border overflow-hidden bg-card">
         <iframe
           src={src}
           title={title || (fr ? 'Document de la leçon' : 'Lesson document')}
