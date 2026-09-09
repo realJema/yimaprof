@@ -17,10 +17,16 @@ export default function ProtectedContent({
   children,
   className,
   watermark = true,
+  hideOnBlur = true,
 }: {
   children: ReactNode;
   className?: string;
   watermark?: boolean;
+  /**
+   * Embedded documents (iframes) steal window focus when clicked, which would
+   * permanently hide the content. Disable the blur-on-blur behaviour there.
+   */
+  hideOnBlur?: boolean;
 }) {
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -28,7 +34,8 @@ export default function ProtectedContent({
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const onVisibility = () => setHidden(document.visibilityState === 'hidden');
+    const onVisibility = () => setHidden(hideOnBlur && document.visibilityState === 'hidden');
+
     const onBlur = () => setHidden(true);
     const onFocus = () => setHidden(false);
 
