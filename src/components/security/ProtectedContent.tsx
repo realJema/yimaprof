@@ -71,7 +71,7 @@ export default function ProtectedContent({
       document.removeEventListener('cut', block);
       document.removeEventListener('dragstart', block);
     };
-  }, []);
+  }, [hideOnBlur]);
 
   const label = user?.email?.split('@')[0] || (fr ? 'Invité' : 'Guest');
 
