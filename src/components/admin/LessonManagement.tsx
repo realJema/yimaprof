@@ -226,7 +226,7 @@ export default function LessonManagement() {
       is_free: l.is_free,
       questions: parseLessonQuestions(l.questions),
       created_by: user?.id,
-    });
+    } as never);
     if (error) {
       toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
       return;
