@@ -17,10 +17,16 @@ export default function ProtectedContent({
   children,
   className,
   watermark = true,
+  hideOnBlur = true,
 }: {
   children: ReactNode;
   className?: string;
   watermark?: boolean;
+  /**
+   * Embedded documents (iframes) steal window focus when clicked, which would
+   * permanently hide the content. Disable the blur-on-blur behaviour there.
+   */
+  hideOnBlur?: boolean;
 }) {
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -28,8 +34,11 @@ export default function ProtectedContent({
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const onVisibility = () => setHidden(document.visibilityState === 'hidden');
-    const onBlur = () => setHidden(true);
+    const onVisibility = () => setHidden(hideOnBlur && document.visibilityState === 'hidden');
+
+    const onBlur = () => {
+      if (hideOnBlur) setHidden(true);
+    };
     const onFocus = () => setHidden(false);
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -39,8 +48,9 @@ export default function ProtectedContent({
         e.preventDefault();
       }
       // PrintScreen: cannot be blocked, but we can hide the content right after.
-      if (key === 'printscreen') setHidden(true);
+      if (key === 'printscreen' && hideOnBlur) setHidden(true);
     };
+
 
     const block = (e: Event) => e.preventDefault();
 
@@ -61,7 +71,7 @@ export default function ProtectedContent({
       document.removeEventListener('cut', block);
       document.removeEventListener('dragstart', block);
     };
-  }, []);
+  }, [hideOnBlur]);
 
   const label = user?.email?.split('@')[0] || (fr ? 'Invité' : 'Guest');
 

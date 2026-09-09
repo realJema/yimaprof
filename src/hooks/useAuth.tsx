@@ -72,10 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Check for existing session first
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) apply(session);
-      else if (mounted) setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (session) apply(session);
+        else if (mounted) setLoading(false);
+      })
+      .catch(() => {
+        if (mounted) setLoading(false);
+      });
+
+    // Safety net: never leave the app stuck on the loading state.
+    const loadingGuard = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 8000);
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -99,20 +109,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      (async () => {
-        const { data } = await supabase.auth.getSession();
-        if (!mounted) return;
-        if (data.session) {
-          apply(data.session);
-          return;
-        }
-        const recovered = await safeRefresh(true);
-        if (!mounted) return;
-        // Keep whatever session we still hold rather than logging out on a
-        // transient failure (rate limit, offline, rotation race).
-        if (recovered) apply(recovered);
-      })();
+      // Never call Supabase auth APIs inside the callback: they contend with the
+      // auth lock held during this chain and can stall forever.
+      setTimeout(() => {
+        (async () => {
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!mounted) return;
+            if (data.session) {
+              apply(data.session);
+              return;
+            }
+            const recovered = await safeRefresh(true);
+            if (!mounted) return;
+            // Keep whatever session we still hold rather than logging out on a
+            // transient failure (rate limit, offline, rotation race).
+            if (recovered) apply(recovered);
+            else setLoading(false);
+          } catch {
+            if (mounted) setLoading(false);
+          }
+        })();
+      }, 0);
     });
+
 
     // Re-validate (throttled) when the tab wakes up or reconnects.
     const revalidate = async () => {
