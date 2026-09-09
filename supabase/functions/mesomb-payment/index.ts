@@ -242,8 +242,11 @@ serve(async (req) => {
 
         if (!freshTx || freshTx.status === 'completed' || freshTx.status === 'failed') return;
 
+        // Only an explicit final SUCCESS status may activate a subscription.
+        // isOperationSuccess() merely means the collect request was accepted,
+        // so the money can still be pending: the webhook stays authoritative.
         const normalized = normalizeStatus(response.status);
-        if (normalized === 'success' || response.isOperationSuccess()) {
+        if (normalized === 'success') {
           const result = await activateSubscriptionForTransaction(supabase, freshTx, {
             confirmed_by: 'sdk',
             mesomb_status: response.status,
