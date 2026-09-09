@@ -36,7 +36,9 @@ export default function ProtectedContent({
   useEffect(() => {
     const onVisibility = () => setHidden(hideOnBlur && document.visibilityState === 'hidden');
 
-    const onBlur = () => setHidden(true);
+    const onBlur = () => {
+      if (hideOnBlur) setHidden(true);
+    };
     const onFocus = () => setHidden(false);
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -46,8 +48,9 @@ export default function ProtectedContent({
         e.preventDefault();
       }
       // PrintScreen: cannot be blocked, but we can hide the content right after.
-      if (key === 'printscreen') setHidden(true);
+      if (key === 'printscreen' && hideOnBlur) setHidden(true);
     };
+
 
     const block = (e: Event) => e.preventDefault();
 
