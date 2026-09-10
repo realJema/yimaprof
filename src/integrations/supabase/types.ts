@@ -1264,6 +1264,7 @@ export type Database = {
           lesson_id: string
           level: string
           order_number: number
+          origin: string
           title: string | null
         }
         Insert: {
@@ -1273,6 +1274,7 @@ export type Database = {
           lesson_id: string
           level?: string
           order_number?: number
+          origin?: string
           title?: string | null
         }
         Update: {
@@ -1282,6 +1284,7 @@ export type Database = {
           lesson_id?: string
           level?: string
           order_number?: number
+          origin?: string
           title?: string | null
         }
         Relationships: [
