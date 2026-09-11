@@ -15,6 +15,7 @@ import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import LessonQuestions from '@/components/lesson/LessonQuestions';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { parseLessonQuestions } from '@/lib/lessonQuestions';
+import { LESSON_LEVELS, levelLabel, normalizeLevel } from '@/lib/lessonExercises';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
@@ -32,7 +33,11 @@ interface LessonDetailRow {
 }
 
 interface ExerciseRow {
+  id: string;
   exam_id: string;
+  level: string;
+  title: string | null;
+  origin: string;
   exams: { id: string; title: string } | null;
 }
 
