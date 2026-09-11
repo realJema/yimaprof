@@ -90,13 +90,10 @@ export default function Exams() {
 
   const fetchEstablishments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('establishments_directory')
-        .select('id, name')
-        .order('name');
-      
+      const { data, error } = await supabase.rpc('establishments_directory');
+
       if (error) throw error;
-      setEstablishments(data || []);
+      setEstablishments((data || []).map((e) => ({ id: e.id, name: e.name })));
     } catch (error) {
       console.error('Error fetching establishments:', error);
     }

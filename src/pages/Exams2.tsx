@@ -206,7 +206,7 @@ const Exams2 = () => {
       const {
         data,
         error
-      } = await supabase.from('establishments_directory').select('*').order('name');
+      } = await supabase.rpc('establishments_directory');
       if (error) throw error;
       return data;
     }
