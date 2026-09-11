@@ -15,6 +15,7 @@ import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import LessonQuestions from '@/components/lesson/LessonQuestions';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { parseLessonQuestions } from '@/lib/lessonQuestions';
+import { LESSON_LEVELS, levelLabel, normalizeLevel } from '@/lib/lessonExercises';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
@@ -32,7 +33,11 @@ interface LessonDetailRow {
 }
 
 interface ExerciseRow {
+  id: string;
   exam_id: string;
+  level: string;
+  title: string | null;
+  origin: string;
   exams: { id: string; title: string } | null;
 }
 
@@ -61,7 +66,11 @@ export default function LessonDetail() {
           .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, classes(display_name), subjects(name_fr, name_en)')
           .eq('id', lessonId)
           .maybeSingle(),
-        supabase.from('lesson_exercises').select('exam_id, exams(id, title)').eq('lesson_id', lessonId).order('order_number'),
+        supabase
+          .from('lesson_exercises')
+          .select('id, exam_id, level, title, origin, exams(id, title)')
+          .eq('lesson_id', lessonId)
+          .order('order_number'),
       ]);
       setLesson((l as unknown as LessonDetailRow) || null);
       const exRows = (ex as unknown as ExerciseRow[]) || [];
@@ -255,24 +264,37 @@ export default function LessonDetail() {
               <CardHeader>
                 <CardTitle className="text-lg">{fr ? 'Exercices d’application' : 'Practice exercises'}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {exercises.map((ex) => (
-                  <Link
-                    key={ex.exam_id}
-                    to={`/exam/${ex.exam_id}?mode=evaluation&lesson=${lesson.id}`}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
-                  >
-                    <span className="text-sm min-w-0 truncate">{ex.exams?.title}</span>
-                    <span className="flex items-center gap-2 shrink-0">
-                      {attempts[ex.exam_id] !== undefined && (
-                        <Badge variant={attempts[ex.exam_id] >= 50 ? 'secondary' : 'outline'}>
-                          {attempts[ex.exam_id]}%
-                        </Badge>
-                      )}
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    </span>
-                  </Link>
-                ))}
+              <CardContent className="space-y-6">
+                {LESSON_LEVELS.map((level) => {
+                  const items = exercises.filter((ex) => normalizeLevel(ex.level) === level);
+                  if (!items.length) return null;
+                  return (
+                    <div key={level}>
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                        {levelLabel(level, fr)}
+                      </h3>
+                      <div className="space-y-2">
+                        {items.map((ex) => (
+                          <Link
+                            key={ex.id}
+                            to={`/exam/${ex.exam_id}?mode=evaluation&lesson=${lesson.id}`}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors"
+                          >
+                            <span className="text-sm min-w-0 truncate">{ex.title || ex.exams?.title}</span>
+                            <span className="flex items-center gap-2 shrink-0">
+                              {attempts[ex.exam_id] !== undefined && (
+                                <Badge variant={attempts[ex.exam_id] >= 50 ? 'secondary' : 'outline'}>
+                                  {attempts[ex.exam_id]}%
+                                </Badge>
+                              )}
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           )}
