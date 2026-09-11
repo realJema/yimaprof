@@ -485,6 +485,8 @@ export default function LessonManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <LessonExerciseManager lesson={exerciseLesson} onClose={() => setExerciseLesson(null)} />
     </Card>
   );
 }
