@@ -66,7 +66,11 @@ export default function LessonDetail() {
           .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, classes(display_name), subjects(name_fr, name_en)')
           .eq('id', lessonId)
           .maybeSingle(),
-        supabase.from('lesson_exercises').select('exam_id, exams(id, title)').eq('lesson_id', lessonId).order('order_number'),
+        supabase
+          .from('lesson_exercises')
+          .select('id, exam_id, level, title, origin, exams(id, title)')
+          .eq('lesson_id', lessonId)
+          .order('order_number'),
       ]);
       setLesson((l as unknown as LessonDetailRow) || null);
       const exRows = (ex as unknown as ExerciseRow[]) || [];
