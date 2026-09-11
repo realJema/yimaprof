@@ -288,13 +288,6 @@ export type Database = {
             referencedRelation: "establishments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "challenge_attempts_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
-            referencedColumns: ["id"]
-          },
         ]
       }
       challenge_participants: {
@@ -441,13 +434,6 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "challenges_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
             referencedColumns: ["id"]
           },
           {
@@ -601,13 +587,6 @@ export type Database = {
             referencedRelation: "establishments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "establishment_classes_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
-            referencedColumns: ["id"]
-          },
         ]
       }
       establishment_commissions: {
@@ -659,13 +638,6 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "establishment_commissions_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
             referencedColumns: ["id"]
           },
           {
@@ -745,13 +717,6 @@ export type Database = {
             referencedRelation: "establishments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "establishment_payouts_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
-            referencedColumns: ["id"]
-          },
         ]
       }
       establishment_students: {
@@ -807,13 +772,6 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "establishment_students_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
             referencedColumns: ["id"]
           },
         ]
@@ -1046,13 +1004,6 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exams_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
             referencedColumns: ["id"]
           },
           {
@@ -1437,13 +1388,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lessons_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lessons_series_id_fkey"
             columns: ["series_id"]
             isOneToOne: false
@@ -1701,13 +1645,6 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_establishment_id_fkey"
-            columns: ["establishment_id"]
-            isOneToOne: false
-            referencedRelation: "establishments_directory"
             referencedColumns: ["id"]
           },
         ]
@@ -2106,42 +2043,7 @@ export type Database = {
       }
     }
     Views: {
-      establishments_directory: {
-        Row: {
-          approval_status: string | null
-          city: string | null
-          country: string | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          logo_url: string | null
-          name: string | null
-          type: string | null
-        }
-        Insert: {
-          approval_status?: string | null
-          city?: string | null
-          country?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          logo_url?: string | null
-          name?: string | null
-          type?: string | null
-        }
-        Update: {
-          approval_status?: string | null
-          city?: string | null
-          country?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          logo_url?: string | null
-          name?: string | null
-          type?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_create_parent_link: {
@@ -2333,6 +2235,20 @@ export type Database = {
           student_name: string
           subject_name: string
           time_spent_seconds: number
+        }[]
+      }
+      establishments_directory: {
+        Args: never
+        Returns: {
+          approval_status: string
+          city: string
+          country: string
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string
+          name: string
+          type: string
         }[]
       }
       find_affiliate_by_username: {
