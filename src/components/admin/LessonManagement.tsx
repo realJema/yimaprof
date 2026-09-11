@@ -18,7 +18,8 @@ import LessonQuestionsEditor from '@/components/admin/LessonQuestionsEditor';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { LessonQuestion, parseLessonQuestions } from '@/lib/lessonQuestions';
-import { BookOpen, Copy, Edit, Eye, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import LessonExerciseManager from '@/components/admin/LessonExerciseManager';
+import { BookOpen, Copy, Edit, Eye, FileText, ListChecks, Plus, Search, Trash2 } from 'lucide-react';
 
 interface LessonRow {
   id: string;
@@ -86,6 +87,7 @@ export default function LessonManagement() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [previewLesson, setPreviewLesson] = useState<LessonRow | null>(null);
+  const [exerciseLesson, setExerciseLesson] = useState<LessonRow | null>(null);
 
   const load = useCallback(async () => {
     const [{ data: ls }, { data: cl }, { data: su }, { data: se }] = await Promise.all([
@@ -330,6 +332,14 @@ export default function LessonManagement() {
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setExerciseLesson(l)}
+                    title={fr ? 'Exercices' : 'Exercises'}
+                  >
+                    <ListChecks className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(l)} title={fr ? 'Modifier' : 'Edit'}>
                     <Edit className="h-4 w-4" />
                   </Button>
