@@ -81,10 +81,8 @@ export const useExamFormData = () => {
   const { data: establishments, refetch: refetchEstablishments } = useQuery<Establishment[]>({
     queryKey: ['establishments'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('establishments_directory')
-        .select('*')
-        .order('name');
+      const { data, error } = await supabase.rpc('establishments_directory');
+      
       
       if (error) throw error;
       return data as unknown as Establishment[];

@@ -163,12 +163,9 @@ export default function ExamList() {
           
           // Fetch establishment
           if (examAny.establishment_id) {
-            const { data: estData } = await sbAny
-              .from('establishments_directory')
-              .select('name')
-              .eq('id', examAny.establishment_id)
-              .maybeSingle();
-            if (estData) enriched.establishments = estData;
+            const { data: estRows } = await sbAny.rpc('establishments_directory');
+            const estData = (estRows || []).find((e: any) => e.id === examAny.establishment_id);
+            if (estData) enriched.establishments = { name: estData.name };
           }
           
           return enriched;
