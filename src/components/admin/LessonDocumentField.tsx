@@ -22,7 +22,7 @@ export default function LessonDocumentField({
 }) {
   const { language } = useLanguage();
   const fr = language === 'fr';
-  const [preview, setPreview] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   const doc = useMemo(() => resolveLessonDoc(value), [value]);
   const invalid = value.trim().length > 0 && !isValidHttpUrl(value);
@@ -55,14 +55,14 @@ export default function LessonDocumentField({
       {doc && (
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{providerLabel(doc.provider, fr)}</Badge>
-          <Button type="button" variant="outline" size="sm" onClick={() => setPreview((v) => !v)}>
-            {preview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-            {preview ? (fr ? 'Masquer l’aperçu' : 'Hide preview') : fr ? 'Tester l’aperçu' : 'Test preview'}
+          <Button type="button" variant="outline" size="sm" onClick={() => setHidden((v) => !v)}>
+            {hidden ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+            {hidden ? (fr ? 'Afficher l’aperçu' : 'Show preview') : fr ? 'Masquer l’aperçu' : 'Hide preview'}
           </Button>
         </div>
       )}
 
-      {preview && doc?.embedUrl && (
+      {doc?.embedUrl && !hidden ? (
         <iframe
           src={doc.embedUrl}
           title={fr ? 'Aperçu du document' : 'Document preview'}
@@ -70,7 +70,12 @@ export default function LessonDocumentField({
           sandbox="allow-scripts allow-same-origin allow-popups"
           referrerPolicy="no-referrer"
         />
-      )}
+      ) : !doc ? (
+        <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border text-muted-foreground">
+          <FileText className="h-6 w-6" />
+          <p className="text-sm">{fr ? 'Aucun document lié pour l’instant' : 'No document linked yet'}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

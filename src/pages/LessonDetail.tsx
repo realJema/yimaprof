@@ -13,8 +13,10 @@ import { MarkdownText } from '@/components/ui/markdown-text';
 import SeoHead from '@/components/SeoHead';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import LessonQuestions from '@/components/lesson/LessonQuestions';
+import LessonPracticeSection from '@/components/lesson/LessonPracticeSection';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { parseLessonQuestions } from '@/lib/lessonQuestions';
+import { parseLessonExercises } from '@/lib/lessonJsonExercises';
 import { LESSON_LEVELS, levelLabel, normalizeLevel } from '@/lib/lessonExercises';
 import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
@@ -28,6 +30,7 @@ interface LessonDetailRow {
   estimated_minutes: number | null;
   is_free: boolean;
   questions?: unknown;
+  exercises?: unknown;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
 }
@@ -63,7 +66,7 @@ export default function LessonDetail() {
       const [{ data: l }, { data: ex }] = await Promise.all([
         supabase
           .from('lessons')
-          .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, classes(display_name), subjects(name_fr, name_en)')
+          .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, exercises, classes(display_name), subjects(name_fr, name_en)')
           .eq('id', lessonId)
           .maybeSingle(),
         supabase
@@ -259,10 +262,16 @@ export default function LessonDetail() {
 
           <LessonQuestions questions={parseLessonQuestions(lesson.questions)} />
 
+          <LessonPracticeSection
+            exercises={parseLessonExercises(lesson.exercises)}
+            minutes={lesson.estimated_minutes || 20}
+            onLevelFinished={() => setProgress((p) => Math.max(p, 60))}
+          />
+
           {exercises.length > 0 && (
             <Card className="mt-8">
               <CardHeader>
-                <CardTitle className="text-lg">{fr ? 'Exercices d’application' : 'Practice exercises'}</CardTitle>
+                <CardTitle className="text-lg">{fr ? 'Épreuves liées' : 'Linked papers'}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {LESSON_LEVELS.map((level) => {
