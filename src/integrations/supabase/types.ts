@@ -1308,6 +1308,7 @@ export type Database = {
           created_by: string | null
           establishment_id: string | null
           estimated_minutes: number | null
+          exercises: Json
           file_embed_url: string | null
           file_provider: string | null
           file_url: string | null
@@ -1332,6 +1333,7 @@ export type Database = {
           created_by?: string | null
           establishment_id?: string | null
           estimated_minutes?: number | null
+          exercises?: Json
           file_embed_url?: string | null
           file_provider?: string | null
           file_url?: string | null
@@ -1356,6 +1358,7 @@ export type Database = {
           created_by?: string | null
           establishment_id?: string | null
           estimated_minutes?: number | null
+          exercises?: Json
           file_embed_url?: string | null
           file_provider?: string | null
           file_url?: string | null

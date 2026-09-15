@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,10 +15,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LessonDocumentField from '@/components/admin/LessonDocumentField';
-import LessonQuestionsEditor from '@/components/admin/LessonQuestionsEditor';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
+import LessonJsonImport from '@/components/admin/LessonJsonImport';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { LessonQuestion, parseLessonQuestions } from '@/lib/lessonQuestions';
+import {
+  LessonExercises,
+  countExercises,
+  emptyLessonExercises,
+  parseLessonExercises,
+} from '@/lib/lessonJsonExercises';
 import LessonExerciseManager from '@/components/admin/LessonExerciseManager';
 import { BookOpen, Copy, Edit, Eye, FileText, ListChecks, Plus, Search, Trash2 } from 'lucide-react';
 
@@ -40,6 +47,7 @@ interface LessonRow {
   view_count: number;
   created_at: string;
   questions?: unknown;
+  exercises?: unknown;
 }
 
 interface Option {
@@ -62,6 +70,7 @@ const emptyForm = {
   is_published: true,
   is_free: false,
   questions: [] as LessonQuestion[],
+  exercises: emptyLessonExercises() as LessonExercises,
 };
 
 export default function LessonManagement() {
@@ -69,6 +78,7 @@ export default function LessonManagement() {
   const fr = language === 'fr';
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [classes, setClasses] = useState<Option[]>([]);
@@ -85,6 +95,7 @@ export default function LessonManagement() {
   const pageSize = 20;
 
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({ ...emptyForm });
   const [previewLesson, setPreviewLesson] = useState<LessonRow | null>(null);
   const [exerciseLesson, setExerciseLesson] = useState<LessonRow | null>(null);
@@ -145,11 +156,13 @@ export default function LessonManagement() {
   const labelOf = (list: Option[], id: string | null) => list.find((o) => o.id === id)?.label || '—';
 
   const openNew = () => {
-    setForm({ ...emptyForm, language: fr ? 'fr' : 'en' });
+    setForm({ ...emptyForm, exercises: emptyLessonExercises(), language: fr ? 'fr' : 'en' });
+    setStep(1);
     setOpen(true);
   };
 
   const openEdit = (l: LessonRow) => {
+    setStep(1);
     setForm({
       id: l.id,
       title: l.title,
@@ -165,13 +178,22 @@ export default function LessonManagement() {
       is_published: l.is_published,
       is_free: l.is_free,
       questions: parseLessonQuestions(l.questions),
+      exercises: parseLessonExercises(l.exercises),
     });
     setOpen(true);
   };
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent, viewAfter = false) => {
     e.preventDefault();
-    if (form.title.trim().length < 3) return;
+    if (form.title.trim().length < 3) {
+      setStep(1);
+      toast({
+        title: fr ? 'Titre requis' : 'Title required',
+        description: fr ? 'Le titre doit contenir au moins 3 caractères.' : 'The title needs at least 3 characters.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -188,13 +210,16 @@ export default function LessonManagement() {
       is_published: form.is_published,
       is_free: form.is_free,
       questions: form.questions.filter((q) => q.prompt.trim().length > 0),
+      exercises: form.exercises,
     };
 
-    const { error } = form.id
-      ? await supabase.from('lessons').update(payload as never).eq('id', form.id)
+    const { data, error } = form.id
+      ? await supabase.from('lessons').update(payload as never).eq('id', form.id).select('id').maybeSingle()
       : await supabase
           .from('lessons')
-          .insert({ ...payload, order_number: lessons.length + 1, created_by: user?.id } as never);
+          .insert({ ...payload, order_number: lessons.length + 1, created_by: user?.id } as never)
+          .select('id')
+          .maybeSingle();
 
     setSaving(false);
     if (error) {
@@ -204,6 +229,8 @@ export default function LessonManagement() {
     toast({ title: form.id ? (fr ? 'Leçon mise à jour' : 'Lesson updated') : fr ? 'Leçon créée' : 'Lesson created' });
     setOpen(false);
     load();
+    const savedId = form.id || (data as { id: string } | null)?.id;
+    if (viewAfter && savedId) navigate(`/lessons/${savedId}`);
   };
 
   const togglePublish = async (l: LessonRow) => {
@@ -317,6 +344,12 @@ export default function LessonManagement() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  {countExercises(parseLessonExercises(l.exercises)) > 0 && (
+                    <Badge variant="outline" className="gap-1">
+                      <ListChecks className="h-3 w-3" />
+                      {countExercises(parseLessonExercises(l.exercises))}
+                    </Badge>
+                  )}
                   <Badge variant={l.is_free ? 'secondary' : 'outline'}>
                     {l.is_free ? (fr ? 'Gratuit' : 'Free') : fr ? 'Abonnés' : 'Subscribers'}
                   </Badge>
@@ -373,101 +406,145 @@ export default function LessonManagement() {
           <DialogHeader>
             <DialogTitle>{form.id ? (fr ? 'Modifier la leçon' : 'Edit lesson') : fr ? 'Nouvelle leçon' : 'New lesson'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={save} className="space-y-4">
-            <div>
-              <Label htmlFor="al-title">{fr ? 'Titre' : 'Title'}</Label>
-              <Input id="al-title" required maxLength={200} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <form onSubmit={(e) => save(e)} className="space-y-4">
+            <div className="flex items-center gap-2">
+              {[
+                { n: 1, label: fr ? 'Informations générales' : 'General information' },
+                { n: 2, label: fr ? 'Contenu du cours' : 'Course content' },
+                { n: 3, label: fr ? 'Exercices d’application' : 'Practice exercises' },
+              ].map((s) => (
+                <button
+                  key={s.n}
+                  type="button"
+                  onClick={() => setStep(s.n)}
+                  className={`flex-1 rounded-lg border p-2 text-xs transition-colors ${
+                    step === s.n ? 'border-primary bg-primary/10 font-medium' : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <span className="block font-semibold">{s.n}</span>
+                  {s.label}
+                </button>
+              ))}
             </div>
 
-            <LessonDocumentField value={form.file_url} onChange={(v) => setForm({ ...form, file_url: v })} />
+            {step === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="al-title">{fr ? 'Titre' : 'Title'}</Label>
+                  <Input id="al-title" maxLength={200} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                </div>
 
-            <div>
-              <Label htmlFor="al-summary">{fr ? 'Résumé' : 'Summary'}</Label>
-              <Textarea id="al-summary" maxLength={500} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
-            </div>
+                <div>
+                  <Label htmlFor="al-summary">{fr ? 'Résumé' : 'Summary'}</Label>
+                  <Textarea id="al-summary" maxLength={500} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
+                </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label>{fr ? 'Matière' : 'Subject'}</Label>
-                <Select value={form.subject_id} onValueChange={(v) => setForm({ ...form, subject_id: v })}>
-                  <SelectTrigger><SelectValue placeholder={fr ? 'Choisir' : 'Select'} /></SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>{fr ? 'Classe' : 'Class'}</Label>
-                <Select value={form.class_id} onValueChange={(v) => setForm({ ...form, class_id: v })}>
-                  <SelectTrigger><SelectValue placeholder={fr ? 'Choisir' : 'Select'} /></SelectTrigger>
-                  <SelectContent>
-                    {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>{fr ? 'Série' : 'Series'}</Label>
-                <Select value={form.series_id} onValueChange={(v) => setForm({ ...form, series_id: v })}>
-                  <SelectTrigger><SelectValue placeholder={fr ? 'Optionnel' : 'Optional'} /></SelectTrigger>
-                  <SelectContent>
-                    {series.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="al-chapter">{fr ? 'Chapitre' : 'Chapter'}</Label>
-                <Input id="al-chapter" maxLength={120} value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })} />
-              </div>
-              <div>
-                <Label htmlFor="al-min">{fr ? 'Durée (min)' : 'Duration (min)'}</Label>
-                <Input id="al-min" type="number" min={1} value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
-              </div>
-              <div>
-                <Label>{fr ? 'Langue' : 'Language'}</Label>
-                <Select value={form.language} onValueChange={(v) => setForm({ ...form, language: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>{fr ? 'Matière' : 'Subject'}</Label>
+                    <Select value={form.subject_id} onValueChange={(v) => setForm({ ...form, subject_id: v })}>
+                      <SelectTrigger><SelectValue placeholder={fr ? 'Choisir' : 'Select'} /></SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>{fr ? 'Classe' : 'Class'}</Label>
+                    <Select value={form.class_id} onValueChange={(v) => setForm({ ...form, class_id: v })}>
+                      <SelectTrigger><SelectValue placeholder={fr ? 'Choisir' : 'Select'} /></SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>{fr ? 'Série' : 'Series'}</Label>
+                    <Select value={form.series_id} onValueChange={(v) => setForm({ ...form, series_id: v })}>
+                      <SelectTrigger><SelectValue placeholder={fr ? 'Optionnel' : 'Optional'} /></SelectTrigger>
+                      <SelectContent>
+                        {series.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="al-chapter">{fr ? 'Chapitre' : 'Chapter'}</Label>
+                    <Input id="al-chapter" maxLength={120} value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label htmlFor="al-min">{fr ? 'Durée (min)' : 'Duration (min)'}</Label>
+                    <Input id="al-min" type="number" min={1} value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {fr
+                        ? 'Sert aussi de base au minuteur de l’évaluation côté élève.'
+                        : 'Also used as the countdown base for the student evaluation.'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>{fr ? 'Langue' : 'Language'}</Label>
+                    <Select value={form.language} onValueChange={(v) => setForm({ ...form, language: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <details className="rounded-lg border p-3">
-              <summary className="text-sm font-medium cursor-pointer">{fr ? 'Contenu texte (optionnel)' : 'Text content (optional)'}</summary>
-              <Textarea
-                className="mt-3"
-                rows={6}
-                value={form.content}
-                onChange={(e) => setForm({ ...form, content: e.target.value })}
-                placeholder={fr ? 'Utilisé si aucun document n’est fourni.' : 'Used when no document link is provided.'}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <Label htmlFor="al-free">{fr ? 'Leçon gratuite' : 'Free lesson'}</Label>
+                    <Switch id="al-free" checked={form.is_free} onCheckedChange={(v) => setForm({ ...form, is_free: v })} />
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <Label htmlFor="al-pub">{fr ? 'Publier' : 'Publish'}</Label>
+                    <Switch id="al-pub" checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-4">
+                <LessonDocumentField value={form.file_url} onChange={(v) => setForm({ ...form, file_url: v })} />
+                <details className="rounded-lg border p-3">
+                  <summary className="text-sm font-medium cursor-pointer">{fr ? 'Contenu texte (optionnel)' : 'Text content (optional)'}</summary>
+                  <Textarea
+                    className="mt-3"
+                    rows={6}
+                    value={form.content}
+                    onChange={(e) => setForm({ ...form, content: e.target.value })}
+                    placeholder={fr ? 'Utilisé si aucun document n’est fourni.' : 'Used when no document link is provided.'}
+                  />
+                </details>
+              </div>
+            )}
+
+            {step === 3 && (
+              <LessonJsonImport
+                value={form.exercises}
+                onChange={(exercises) => setForm({ ...form, exercises })}
               />
-            </details>
+            )}
 
-            <details className="rounded-lg border p-3" open={form.questions.length > 0}>
-              <summary className="text-sm font-medium cursor-pointer">
-                {fr ? 'Questions de compréhension' : 'Comprehension questions'} ({form.questions.length})
-              </summary>
-              <div className="mt-3">
-                <LessonQuestionsEditor value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+              <Button type="button" variant="outline" disabled={step === 1} onClick={() => setStep((s) => s - 1)}>
+                {fr ? 'Précédent' : 'Previous'}
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                {step < 3 ? (
+                  <Button type="button" onClick={() => setStep((s) => s + 1)}>{fr ? 'Suivant' : 'Next'}</Button>
+                ) : (
+                  <>
+                    <Button type="submit" variant="outline" disabled={saving}>{fr ? 'Enregistrer' : 'Save'}</Button>
+                    <Button type="button" disabled={saving} onClick={(e) => save(e, true)}>
+                      {fr ? 'Publier — voir côté élève' : 'Publish — view as student'}
+                    </Button>
+                  </>
+                )}
               </div>
-            </details>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="al-free">{fr ? 'Leçon gratuite' : 'Free lesson'}</Label>
-                <Switch id="al-free" checked={form.is_free} onCheckedChange={(v) => setForm({ ...form, is_free: v })} />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="al-pub">{fr ? 'Publier' : 'Publish'}</Label>
-                <Switch id="al-pub" checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
-              <Button type="submit" disabled={saving}>{fr ? 'Enregistrer' : 'Save'}</Button>
             </div>
           </form>
         </DialogContent>
