@@ -1,0 +1,78 @@
+{
+  "facile": [
+    {
+      "question": "Combien font 7 + 5 ?",
+      "type": "qcm",
+      "options": ["10", "11", "12", "13"],
+      "answer": "12",
+      "points": 1,
+      "correction": "7 + 5 = 12."
+    },
+    {
+      "question": "Quel est le double de 6 ?",
+      "type": "qcm",
+      "options": ["3", "12", "18", "24"],
+      "answer": "12",
+      "points": 1,
+      "correction": "Le double de 6 est 6 × 2 = 12."
+    },
+    {
+      "question": "Complète : 9 × ___ = 27.",
+      "type": "qcm",
+      "options": ["2", "3", "4", "5"],
+      "answer": "3",
+      "points": 1,
+      "correction": "27 ÷ 9 = 3, donc 9 × 3 = 27."
+    }
+  ],
+  "intermediaire": [
+    {
+      "question": "Un rectangle a une longueur de 8 cm et une largeur de 5 cm. Quel est son périmètre ?",
+      "type": "qcm",
+      "options": ["13 cm", "26 cm", "40 cm", "20 cm"],
+      "answer": "26 cm",
+      "points": 2,
+      "correction": "Périmètre = 2 × (longueur + largeur) = 2 × (8 + 5) = 26 cm."
+    },
+    {
+      "question": "Calcule : 3 × (4 + 2) − 5.",
+      "type": "qcm",
+      "options": ["13", "15", "25", "11"],
+      "answer": "13",
+      "points": 2,
+      "correction": "On commence par la parenthèse : 4 + 2 = 6. Puis 3 × 6 = 18. Enfin 18 − 5 = 13."
+    },
+    {
+      "question": "Décompose 48 en produit de facteurs premiers.",
+      "type": "open",
+      "answer": "2⁴ × 3",
+      "points": 2,
+      "correction": "48 = 2 × 24 = 2 × 2 × 12 = 2 × 2 × 2 × 6 = 2 × 2 × 2 × 2 × 3 = 2⁴ × 3."
+    }
+  ],
+  "difficile": [
+    {
+      "question": "Trouve le plus grand commun diviseur (PGCD) de 36 et 60.",
+      "type": "qcm",
+      "options": ["6", "12", "18", "24"],
+      "answer": "12",
+      "points": 3,
+      "correction": "36 = 2² × 3² ; 60 = 2² × 3 × 5. Le PGCD est 2² × 3 = 12."
+    },
+    {
+      "question": "Résous l'équation : 2x + 7 = 15.",
+      "type": "open",
+      "answer": "x = 4",
+      "points": 3,
+      "correction": "2x + 7 = 15 ⇒ 2x = 15 − 7 ⇒ 2x = 8 ⇒ x = 4."
+    },
+    {
+      "question": "Un train parcourt 240 km en 2 h 30 min. Quelle est sa vitesse moyenne en km/h ?",
+      "type": "qcm",
+      "options": ["80 km/h", "96 km/h", "100 km/h", "120 km/h"],
+      "answer": "96 km/h",
+      "points": 3,
+      "correction": "2 h 30 min = 2,5 h. Vitesse = distance / temps = 240 / 2,5 = 96 km/h."
+    }
+  ]
+}
