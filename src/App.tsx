@@ -25,6 +25,7 @@ const PaymentProcessing = lazy(() => import("./pages/PaymentProcessing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminExams = lazy(() => import("./pages/AdminExams"));
 const AdminLessons = lazy(() => import("./pages/AdminLessons"));
+const LessonEditor = lazy(() => import("./pages/LessonEditor"));
 const ExamManager = lazy(() => import("./pages/ExamManager"));
 const Affiliate = lazy(() => import("./pages/Affiliate"));
 const CommercialDashboard = lazy(() => import("./pages/CommercialDashboard"));
