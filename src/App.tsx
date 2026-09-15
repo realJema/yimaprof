@@ -25,6 +25,7 @@ const PaymentProcessing = lazy(() => import("./pages/PaymentProcessing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminExams = lazy(() => import("./pages/AdminExams"));
 const AdminLessons = lazy(() => import("./pages/AdminLessons"));
+const LessonEditor = lazy(() => import("./pages/LessonEditor"));
 const ExamManager = lazy(() => import("./pages/ExamManager"));
 const Affiliate = lazy(() => import("./pages/Affiliate"));
 const CommercialDashboard = lazy(() => import("./pages/CommercialDashboard"));
@@ -115,6 +116,8 @@ const App = () => {
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/admin/exams" element={<AdminExams />} />
                     <Route path="/admin/lessons" element={<AdminLessons />} />
+                    <Route path="/admin/lesson/new" element={<LessonEditor />} />
+                    <Route path="/admin/lesson/edit/:lessonId" element={<LessonEditor />} />
                     <Route path="/admin/exam/new" element={<ExamManager />} />
                     <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
                     <Route path="/about" element={<About />} />
