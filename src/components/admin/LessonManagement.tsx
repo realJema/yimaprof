@@ -57,7 +57,6 @@ export default function LessonManagement() {
   const [subjects, setSubjects] = useState<Option[]>([]);
   const [series, setSeries] = useState<Option[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -66,9 +65,6 @@ export default function LessonManagement() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ ...emptyForm });
   const [previewLesson, setPreviewLesson] = useState<LessonRow | null>(null);
   const [exerciseLesson, setExerciseLesson] = useState<LessonRow | null>(null);
 
