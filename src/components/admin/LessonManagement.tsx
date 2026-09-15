@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
+import { parseLessonQuestions } from '@/lib/lessonQuestions';
 import { countExercises, parseLessonExercises } from '@/lib/lessonJsonExercises';
 import LessonExerciseManager from '@/components/admin/LessonExerciseManager';
 import { BookOpen, Copy, Edit, Eye, FileText, ListChecks, Plus, Search, Trash2 } from 'lucide-react';
