@@ -124,81 +124,11 @@ export default function LessonManagement() {
   const labelOf = (list: Option[], id: string | null) => list.find((o) => o.id === id)?.label || '—';
 
   const openNew = () => {
-    setForm({ ...emptyForm, exercises: emptyLessonExercises(), language: fr ? 'fr' : 'en' });
-    setStep(1);
-    setOpen(true);
+    navigate('/admin/lesson/new');
   };
 
   const openEdit = (l: LessonRow) => {
-    setStep(1);
-    setForm({
-      id: l.id,
-      title: l.title,
-      summary: l.summary || '',
-      content: l.content || '',
-      file_url: l.file_url || '',
-      chapter: l.chapter || '',
-      class_id: l.class_id || '',
-      subject_id: l.subject_id || '',
-      series_id: l.series_id || '',
-      language: l.language || 'fr',
-      minutes: String(l.estimated_minutes ?? 20),
-      is_published: l.is_published,
-      is_free: l.is_free,
-      questions: parseLessonQuestions(l.questions),
-      exercises: parseLessonExercises(l.exercises),
-    });
-    setOpen(true);
-  };
-
-  const save = async (e: React.FormEvent, viewAfter = false) => {
-    e.preventDefault();
-    if (form.title.trim().length < 3) {
-      setStep(1);
-      toast({
-        title: fr ? 'Titre requis' : 'Title required',
-        description: fr ? 'Le titre doit contenir au moins 3 caractères.' : 'The title needs at least 3 characters.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setSaving(true);
-
-    const payload = {
-      title: form.title.trim().slice(0, 200),
-      summary: form.summary.trim().slice(0, 500) || null,
-      content: form.content.trim() || null,
-      file_url: form.file_url.trim() || null,
-      chapter: form.chapter.trim().slice(0, 120) || null,
-      class_id: form.class_id || null,
-      subject_id: form.subject_id || null,
-      series_id: form.series_id || null,
-      language: form.language,
-      estimated_minutes: Number(form.minutes) || null,
-      is_published: form.is_published,
-      is_free: form.is_free,
-      questions: form.questions.filter((q) => q.prompt.trim().length > 0),
-      exercises: form.exercises,
-    };
-
-    const { data, error } = form.id
-      ? await supabase.from('lessons').update(payload as never).eq('id', form.id).select('id').maybeSingle()
-      : await supabase
-          .from('lessons')
-          .insert({ ...payload, order_number: lessons.length + 1, created_by: user?.id } as never)
-          .select('id')
-          .maybeSingle();
-
-    setSaving(false);
-    if (error) {
-      toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
-      return;
-    }
-    toast({ title: form.id ? (fr ? 'Leçon mise à jour' : 'Lesson updated') : fr ? 'Leçon créée' : 'Lesson created' });
-    setOpen(false);
-    load();
-    const savedId = form.id || (data as { id: string } | null)?.id;
-    if (viewAfter && savedId) navigate(`/lessons/${savedId}`);
+    navigate(`/admin/lesson/edit/${l.id}`);
   };
 
   const togglePublish = async (l: LessonRow) => {
