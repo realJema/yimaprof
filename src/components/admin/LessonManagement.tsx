@@ -44,23 +44,6 @@ interface Option {
   label: string;
 }
 
-const emptyForm = {
-  id: '',
-  title: '',
-  summary: '',
-  content: '',
-  file_url: '',
-  chapter: '',
-  class_id: '',
-  subject_id: '',
-  series_id: '',
-  language: 'fr',
-  minutes: '20',
-  is_published: true,
-  is_free: false,
-  questions: [] as LessonQuestion[],
-  exercises: emptyLessonExercises() as LessonExercises,
-};
 
 export default function LessonManagement() {
   const { language } = useLanguage();
