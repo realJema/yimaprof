@@ -13,7 +13,7 @@ import {
   jsonLevelLabel,
   totalPoints,
 } from '@/lib/lessonJsonExercises';
-import { ArrowLeft, BookOpenCheck, ClipboardCheck, ListChecks } from 'lucide-react';
+import { ArrowLeft, BookOpenCheck, ClipboardCheck, ListChecks, Lock } from 'lucide-react';
 
 type Mode = 'evaluation' | 'correction';
 
@@ -21,10 +21,12 @@ type Mode = 'evaluation' | 'correction';
 export default function LessonPracticeSection({
   exercises,
   minutes,
+  hasActiveSubscription,
   onLevelFinished,
 }: {
   exercises: LessonExercises;
   minutes: number;
+  hasActiveSubscription: boolean;
   onLevelFinished?: (level: JsonLevel, percent: number) => void;
 }) {
   const { language } = useLanguage();
@@ -58,19 +60,28 @@ export default function LessonPracticeSection({
           <div className="grid gap-3 sm:grid-cols-3">
             {JSON_LEVELS.map((lv) => {
               const list = exercises[lv];
+              const locked = !hasActiveSubscription && lv !== 'facile';
               return (
-                <button
+                <Button
                   key={lv}
                   type="button"
+                  variant="outline"
                   disabled={list.length === 0}
                   onClick={() => { setLevel(lv); setMode(null); }}
-                  className="rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 disabled:opacity-50 disabled:hover:bg-transparent"
+                  className="h-auto min-h-24 justify-start p-4 text-left"
                 >
-                  <p className="font-medium">{jsonLevelLabel(lv, fr)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {list.length} {fr ? 'exercice(s)' : 'exercise(s)'} · {totalPoints(list)} points
-                  </p>
-                </button>
+                  <span className="w-full">
+                    <span className="flex items-center justify-between gap-2 font-medium">
+                      {jsonLevelLabel(lv, fr)}
+                      {locked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                    </span>
+                    <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                      {!hasActiveSubscription && lv === 'facile'
+                        ? fr ? '1 exercice gratuit' : '1 free exercise'
+                        : `${list.length} ${fr ? 'exercice(s)' : 'exercise(s)'} · ${totalPoints(list)} points`}
+                    </span>
+                  </span>
+                </Button>
               );
             })}
           </div>
@@ -84,34 +95,50 @@ export default function LessonPracticeSection({
                 {exercises[level].length} {fr ? 'exercice(s)' : 'exercise(s)'}
               </span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button onClick={() => setMode('evaluation')}>
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                {fr ? 'Évaluation' : 'Evaluation'}
-              </Button>
-              <Button variant="outline" onClick={() => setMode('correction')}>
-                <BookOpenCheck className="h-4 w-4 mr-2" />
-                {fr ? 'Corrigé' : 'Correction'}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {fr
-                ? `Le mode Évaluation est chronométré (${Math.max(1, minutes)} min).`
-                : `Evaluation mode is timed (${Math.max(1, minutes)} min).`}
-            </p>
+            {!hasActiveSubscription && level !== 'facile' ? (
+              <div className="space-y-3 rounded-lg border border-secondary/40 p-5 text-center">
+                <Lock className="mx-auto h-6 w-6 text-muted-foreground" />
+                <p className="font-medium">
+                  {fr ? 'Ces exercices sont réservés aux abonnés' : 'These exercises are for subscribers'}
+                </p>
+                <Button asChild size="sm">
+                  <a href="/subscriptions">{fr ? 'Voir les abonnements' : 'See plans'}</a>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button onClick={() => setMode('evaluation')}>
+                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                    {fr ? 'Évaluation' : 'Evaluation'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setMode('correction')}>
+                    <BookOpenCheck className="h-4 w-4 mr-2" />
+                    {fr ? 'Corrigé' : 'Correction'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {fr
+                    ? `Le mode Évaluation est chronométré (${Math.max(1, minutes)} min).`
+                    : `Evaluation mode is timed (${Math.max(1, minutes)} min).`}
+                </p>
+              </>
+            )}
           </div>
         )}
 
         {level && mode === 'evaluation' && (
           <LessonLevelEvaluation
             key={level}
-            exercises={exercises[level]}
+            exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)}
             minutes={minutes}
             onFinished={(percent) => onLevelFinished?.(level, percent)}
           />
         )}
 
-        {level && mode === 'correction' && <LessonLevelCorrection exercises={exercises[level]} />}
+        {level && mode === 'correction' && (
+          <LessonLevelCorrection exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)} />
+        )}
       </CardContent>
     </Card>
   );

@@ -262,12 +262,6 @@ export default function LessonDetail() {
 
           <LessonQuestions questions={parseLessonQuestions(lesson.questions)} />
 
-          <LessonPracticeSection
-            exercises={parseLessonExercises(lesson.exercises)}
-            minutes={lesson.estimated_minutes || 20}
-            onLevelFinished={() => setProgress((p) => Math.max(p, 60))}
-          />
-
           {exercises.length > 0 && (
             <Card className="mt-8">
               <CardHeader>
@@ -310,6 +304,13 @@ export default function LessonDetail() {
 
         </>
       )}
+
+      <LessonPracticeSection
+        exercises={parseLessonExercises(lesson.exercises)}
+        minutes={lesson.estimated_minutes || 20}
+        hasActiveSubscription={hasActiveSubscription}
+        onLevelFinished={() => setProgress((p) => Math.max(p, 60))}
+      />
     </div>
   );
 }
