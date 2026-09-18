@@ -50,7 +50,7 @@ export default function LessonDetail() {
   const fr = language === 'fr';
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { hasActiveSubscription } = useSubscription();
+  const { hasActiveSubscription, loading: subscriptionLoading } = useSubscription();
 
   const [lesson, setLesson] = useState<LessonDetailRow | null>(null);
   const [exercises, setExercises] = useState<ExerciseRow[]>([]);
@@ -305,12 +305,16 @@ export default function LessonDetail() {
         </>
       )}
 
-      <LessonPracticeSection
-        exercises={parseLessonExercises(lesson.exercises)}
-        minutes={lesson.estimated_minutes || 20}
-        hasActiveSubscription={hasActiveSubscription}
-        onLevelFinished={() => setProgress((p) => Math.max(p, 60))}
-      />
+      {subscriptionLoading ? (
+        <Skeleton className="mt-8 h-40 w-full" />
+      ) : (
+        <LessonPracticeSection
+          exercises={parseLessonExercises(lesson.exercises)}
+          minutes={lesson.estimated_minutes || 20}
+          hasActiveSubscription={hasActiveSubscription}
+          onLevelFinished={() => setProgress((p) => Math.max(p, 60))}
+        />
+      )}
     </div>
   );
 }
