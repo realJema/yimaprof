@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
-import PasswordStrength from "@/components/auth/PasswordStrength";
-import { isPasswordValid } from "@/lib/passwordPolicy";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -19,10 +17,9 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [hasValidToken, setHasValidToken] = useState(false);
-  const [done, setDone] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   useEffect(() => {
     let cancelled = false;
@@ -84,62 +81,59 @@ const ResetPassword = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    const fr = language === "fr";
 
-    if (!isPasswordValid(newPassword)) {
+    // Validation
+    if (newPassword.length < 6) {
       toast({
         title: t('error'),
-        description: fr ? "Le mot de passe doit contenir au moins 8 caractères, une lettre et un chiffre." : "Password must have at least 8 characters, a letter and a number.",
+        description: t('password_too_weak'),
         variant: "destructive",
       });
       return;
     }
+
     if (newPassword !== confirmPassword) {
-      toast({ title: t('error'), description: t('passwords_dont_match'), variant: "destructive" });
+      toast({
+        title: t('error'),
+        description: t('passwords_dont_match'),
+        variant: "destructive",
+      });
       return;
     }
 
     setLoading(true);
+
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
       if (error) {
-        toast({ title: t('error'), description: t('password_reset_error'), variant: "destructive" });
+        toast({
+          title: t('error'),
+          description: error.message,
+          variant: "destructive",
+        });
       } else {
-        setDone(true);
-        // Revoke every session (all devices); the recovery link is single-use.
-        await supabase.auth.signOut({ scope: "global" }).catch(() => supabase.auth.signOut());
-        setTimeout(() => navigate("/auth", { replace: true }), 3000);
+        toast({
+          title: t('success'),
+          description: t('password_reset_success'),
+        });
+        
+        // Sign out and redirect to auth page
+        await supabase.auth.signOut();
+        setTimeout(() => navigate("/auth"), 1500);
       }
-    } catch {
-      toast({ title: t('error'), description: t('password_reset_error'), variant: "destructive" });
+    } catch (error: any) {
+      toast({
+        title: t('error'),
+        description: t('password_reset_error'),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  if (done) {
-    const fr = language === "fr";
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-8 text-center space-y-4">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold">{fr ? "Mot de passe modifié !" : "Password changed!"}</h2>
-            <p className="text-sm text-muted-foreground">
-              {fr
-                ? "Par sécurité, vous avez été déconnecté de tous vos appareils. Redirection vers la connexion…"
-                : "For your security, you've been signed out on all devices. Redirecting to sign in…"}
-            </p>
-            <Button className="w-full" onClick={() => navigate("/auth", { replace: true })}>
-              {fr ? "Se connecter" : "Sign in"}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (checkingAuth) {
     return (
@@ -176,7 +170,7 @@ const ResetPassword = () => {
                 {t('invalid_reset_link')}
               </p>
               <Button
-                onClick={() => navigate("/forgot-password")}
+                onClick={() => navigate("/auth")}
                 className="w-full"
               >
                 {t('request_new_reset_link')}
@@ -221,7 +215,6 @@ const ResetPassword = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <PasswordStrength password={newPassword} language={language} />
             </div>
 
             <div className="space-y-2">
