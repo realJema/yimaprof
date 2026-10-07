@@ -82,7 +82,9 @@ const ForgotPassword = () => {
                 <Mail className="h-6 w-6 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">
-                {t('check_email_for_reset_link')}
+                {fr
+                  ? "Si un compte existe avec cette adresse, vous recevrez un lien sécurisé (valable une seule fois, pendant une durée limitée). Pensez à vérifier vos spams."
+                  : "If an account exists for this address, you'll receive a secure link (single-use, time-limited). Check your spam folder too."}
               </p>
               <Button
                 onClick={() => navigate("/auth")}
