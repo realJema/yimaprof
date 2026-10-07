@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import ChangePasswordDialog from '@/components/auth/ChangePasswordDialog';
 import { 
   Bell, 
   Globe, 
@@ -560,10 +561,11 @@ export default function Settings() {
                     <p className="text-sm text-muted-foreground mt-1 mb-3">
                       Keep your account secure
                     </p>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setPwOpen(true)}>
                       <Shield className="h-4 w-4 mr-2" />
                       Change Password
                     </Button>
+                    <ChangePasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
                   </div>
 
                   <div className="p-4 bg-muted/30 rounded-lg">
