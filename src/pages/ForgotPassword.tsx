@@ -1,31 +1,53 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
+import { canRequestReset } from "@/lib/passwordPolicy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 
+const emailSchema = z.string().trim().email().max(255);
+
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
-  const { resetPassword } = useAuth();
-  const { t } = useLanguage();
+  const { toast } = useToast();
+  const { t, language } = useLanguage();
+  const fr = language === "fr";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    const { error } = await resetPassword(email);
-    
-    if (!error) {
-      setEmailSent(true);
+    const parsed = emailSchema.safeParse(email);
+    if (!parsed.success) {
+      toast({ title: t('error'), description: fr ? "Adresse email invalide." : "Invalid email address.", variant: "destructive" });
+      return;
     }
-    
+    const normalized = parsed.data.toLowerCase();
+    if (!canRequestReset(normalized)) {
+      toast({
+        title: fr ? "Trop de demandes" : "Too many requests",
+        description: fr ? "Veuillez patienter une heure avant de refaire une demande." : "Please wait an hour before trying again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Errors (unknown email, etc.) are intentionally hidden: same message for everyone.
+      await supabase.auth.resetPasswordForEmail(normalized, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    } catch {
+      /* generic response below */
+    }
+    setEmailSent(true);
     setLoading(false);
   };
 
@@ -60,7 +82,9 @@ const ForgotPassword = () => {
                 <Mail className="h-6 w-6 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">
-                {t('check_email_for_reset_link')}
+                {fr
+                  ? "Si un compte existe avec cette adresse, vous recevrez un lien sécurisé (valable une seule fois, pendant une durée limitée). Pensez à vérifier vos spams."
+                  : "If an account exists for this address, you'll receive a secure link (single-use, time-limited). Check your spam folder too."}
               </p>
               <Button
                 onClick={() => navigate("/auth")}
