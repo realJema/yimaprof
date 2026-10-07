@@ -176,7 +176,7 @@ const ResetPassword = () => {
                 {t('invalid_reset_link')}
               </p>
               <Button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/forgot-password")}
                 className="w-full"
               >
                 {t('request_new_reset_link')}
