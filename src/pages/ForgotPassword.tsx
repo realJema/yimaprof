@@ -20,12 +20,9 @@ const ForgotPassword = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await resetPassword(email);
-    
-    if (!error) {
-      setEmailSent(true);
-    }
-    
+    // Même message affiché que l'email existe ou non (ne pas révéler les comptes existants).
+    await resetPassword(email);
+    setEmailSent(true);
     setLoading(false);
   };
 

@@ -53,6 +53,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
+  const [pwOpen, setPwOpen] = useState(false);
   
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
