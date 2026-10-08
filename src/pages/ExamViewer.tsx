@@ -1,3 +1,4 @@
+import { isFreeExam as isFreeExamVisibility, isLessonOnlyExam } from '@/lib/examVisibility';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -187,7 +188,8 @@ export default function ExamViewer() {
   }, [user, examId]);
   const checkAccess = useCallback(async () => {
     if (!user) {
-      setHasAccess(true);
+      // Guests: only free exams are open (paywall handles the rest).
+      setHasAccess(false);
       setIsFreeUser(true);
       return;
     }
@@ -892,7 +894,19 @@ export default function ExamViewer() {
   }
 
   // Premium Paywall: Show for premium exams when user doesn't have access
-  const isPremiumExam = exam.visibility !== 'free';
+  // Lesson exams are reached from a lesson; free exams are fully open.
+  const isPremiumExam = !isFreeExamVisibility(exam.visibility) && !isLessonOnlyExam(exam.visibility);
+  // Lesson exercises: the correction unlocks only after a self-evaluation.
+  if (isLessonOnlyExam(exam.visibility) && mode === 'correction' && attemptCount === 0 && !submitted) {
+    return <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full"><CardContent className="py-8 text-center space-y-4">
+          <p className="font-medium">{language === 'fr' ? 'Faites d’abord l’auto-évaluation pour voir le corrigé.' : 'Take the self-evaluation first to see the correction.'}</p>
+          <Button onClick={() => navigate(`/exam/${examId}?mode=evaluation${searchParams.get('lesson') ? `&lesson=${searchParams.get('lesson')}` : ''}`)}>
+            {language === 'fr' ? 'Commencer l’évaluation' : 'Start evaluation'}
+          </Button>
+        </CardContent></Card>
+      </div>;
+  }
   // Allow free preview (10 fixed exams from /exams2 list) for non-subscribers
   const showPaywall = isPremiumExam && !hasAccess && isFreeUser && !isFreePreview;
 
