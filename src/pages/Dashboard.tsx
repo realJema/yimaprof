@@ -1,3 +1,4 @@
+import { LIBRARY_EXAM_VISIBILITIES } from '@/lib/examVisibility';
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -108,7 +109,7 @@ export default function Dashboard() {
       const { count: examsCount } = await supabase
         .from('exams')
         .select('*', { count: 'exact', head: true })
-        .eq('is_published', true);
+        .eq('is_published', true).in('visibility', [...LIBRARY_EXAM_VISIBILITIES]);
       
       setTotalExamsCount(examsCount || 0);
 

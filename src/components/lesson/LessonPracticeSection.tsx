@@ -33,6 +33,8 @@ export default function LessonPracticeSection({
   const fr = language === 'fr';
   const [level, setLevel] = useState<JsonLevel | null>(null);
   const [mode, setMode] = useState<Mode | null>(null);
+  // Corrections unlock only after the level was taken in Evaluation mode.
+  const [doneLevels, setDoneLevels] = useState<Set<JsonLevel>>(new Set());
 
   if (countExercises(exercises) === 0) return null;
 
@@ -112,15 +114,15 @@ export default function LessonPracticeSection({
                     <ClipboardCheck className="h-4 w-4 mr-2" />
                     {fr ? 'Évaluation' : 'Evaluation'}
                   </Button>
-                  <Button variant="outline" onClick={() => setMode('correction')}>
+                  <Button variant="outline" disabled={!doneLevels.has(level)} onClick={() => setMode('correction')}>
                     <BookOpenCheck className="h-4 w-4 mr-2" />
                     {fr ? 'Corrigé' : 'Correction'}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {fr
-                    ? `Le mode Évaluation est chronométré (${Math.max(1, minutes)} min).`
-                    : `Evaluation mode is timed (${Math.max(1, minutes)} min).`}
+                    ? `Le mode Évaluation est chronométré (${Math.max(1, minutes)} min).${doneLevels.has(level) ? '' : ' Le corrigé se débloque après l’évaluation.'}`
+                    : `Evaluation mode is timed (${Math.max(1, minutes)} min).${doneLevels.has(level) ? '' : ' The correction unlocks after the evaluation.'}`}
                 </p>
               </>
             )}
@@ -132,7 +134,7 @@ export default function LessonPracticeSection({
             key={level}
             exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)}
             minutes={minutes}
-            onFinished={(percent) => onLevelFinished?.(level, percent)}
+            onFinished={(percent) => { setDoneLevels((d) => new Set(d).add(level)); onLevelFinished?.(level, percent); }}
           />
         )}
 

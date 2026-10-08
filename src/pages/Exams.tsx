@@ -1,3 +1,4 @@
+import { LIBRARY_EXAM_VISIBILITIES } from '@/lib/examVisibility';
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,7 +116,7 @@ export default function Exams() {
             name_en,
             name_fr
           )
-        `).eq('is_published', true).eq('classes.section', selectedSystem).limit(5);
+        `).eq('is_published', true).in('visibility', [...LIBRARY_EXAM_VISIBILITIES]).eq('classes.section', selectedSystem).limit(5);
       if (error) throw error;
       const formattedExams = (examsData || []).map((exam: any) => ({
         id: exam.id,
@@ -154,7 +155,7 @@ export default function Exams() {
             .from('exams')
             .select('*', { count: 'exact', head: true })
             .eq('class_id', cls.id)
-            .eq('is_published', true);
+            .eq('is_published', true).in('visibility', [...LIBRARY_EXAM_VISIBILITIES]);
           
           if (selectedEstablishment !== 'all') {
             examQuery = examQuery.eq('establishment_id', selectedEstablishment);
