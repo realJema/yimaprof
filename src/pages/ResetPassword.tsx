@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { validatePassword } from "@/lib/passwordRules";
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -19,7 +20,7 @@ const ResetPassword = () => {
   const [hasValidToken, setHasValidToken] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     let cancelled = false;
@@ -121,8 +122,8 @@ const ResetPassword = () => {
           description: t('password_reset_success'),
         });
         
-        // Sign out and redirect to auth page
-        await supabase.auth.signOut();
+        // Déconnexion locale uniquement : les autres appareils restent connectés
+        await supabase.auth.signOut({ scope: "local" });
         setTimeout(() => navigate("/auth"), 1500);
       }
     } catch (error: any) {
