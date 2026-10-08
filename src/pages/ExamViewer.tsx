@@ -894,8 +894,8 @@ export default function ExamViewer() {
   }
 
   // Premium Paywall: Show for premium exams when user doesn't have access
-  // Lesson exams are reached from a lesson; free exams are fully open.
-  const isPremiumExam = !isFreeExamVisibility(exam.visibility) && !isLessonOnlyExam(exam.visibility);
+  // Free exams are fully open; everything else needs a qualifying subscription.
+  const isPremiumExam = !isFreeExamVisibility(exam.visibility);
   // Lesson exercises: the correction unlocks only after a self-evaluation.
   if (isLessonOnlyExam(exam.visibility) && mode === 'correction' && attemptCount === 0 && !submitted) {
     return <div className="min-h-screen flex items-center justify-center p-4">
@@ -983,7 +983,7 @@ export default function ExamViewer() {
   const showSubscriptionBanner = (exam.visibility === 'free' || isFreePreview) && isFreeUser && !hasAccess;
   const isFreeExam = exam.visibility === 'free';
   // Evaluation is locked for all non-subscribed / non-authenticated users
-  const evaluationLocked = !user || (isFreeUser && !hasAccess);
+  const evaluationLocked = !user || (isPremiumExam && isFreeUser && !hasAccess);
   // Free exams: solutions only shown in correction mode (not instantly)
   const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
