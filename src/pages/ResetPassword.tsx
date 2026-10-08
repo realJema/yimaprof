@@ -82,11 +82,12 @@ const ResetPassword = () => {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (newPassword.length < 6) {
+    // Validation : même règle que partout ailleurs (8 caractères min, un chiffre)
+    const ruleError = validatePassword(newPassword, language !== "en");
+    if (ruleError) {
       toast({
         title: t('error'),
-        description: t('password_too_weak'),
+        description: ruleError,
         variant: "destructive",
       });
       return;
