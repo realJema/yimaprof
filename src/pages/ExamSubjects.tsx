@@ -1,3 +1,4 @@
+import { LIBRARY_EXAM_VISIBILITIES } from '@/lib/examVisibility';
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ export default function ExamSubjects() {
           subjects!inner(name, name_en, name_fr)
         `)
         .eq('class_id', classId || '')
-        .eq('is_published', true);
+        .eq('is_published', true).in('visibility', [...LIBRARY_EXAM_VISIBILITIES]);
       
       if (schoolFilter && schoolFilter !== 'all') {
         examQuery = examQuery.eq('establishment_id', schoolFilter);
