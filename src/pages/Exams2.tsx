@@ -168,7 +168,10 @@ const Exams2 = () => {
         .select('class_id')
         .eq('subscription_plan_id', subscription.plan_id);
       if (error) throw error;
-      return data.map(item => item.class_id);
+      if (data.length > 0) return data.map(item => item.class_id);
+      // Plan without class restriction = access to every class.
+      const { data: all } = await supabase.from('classes').select('id');
+      return (all || []).map(c => c.id);
     },
     enabled: !!subscription?.plan_id
   });
