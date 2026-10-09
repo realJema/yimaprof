@@ -21,7 +21,6 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-const PURPOSE = 'establishment_payout';
 const OTP_TTL_MINUTES = 10;
 
 async function sha256(value: string): Promise<string> {
@@ -50,23 +49,33 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const action = body?.action;
+    const kind: 'establishment' | 'affiliate' = body?.kind === 'affiliate' ? 'affiliate' : 'establishment';
     const establishmentId = typeof body?.establishmentId === 'string' ? body.establishmentId : '';
-    if (!establishmentId) return json({ error: 'Invalid input' }, 400);
+    const PURPOSE = kind === 'affiliate' ? 'affiliate_payout' : 'establishment_payout';
 
-    const { data: allowed } = await admin.rpc('is_establishment_admin', {
-      _user_id: user.id,
-      _establishment_id: establishmentId,
-    });
-    if (!allowed) return json({ error: 'Not authorized for this school' }, 403);
+    const { data: settings } = await admin.from('referral_settings').select('*').eq('id', 1).maybeSingle();
+    const minPayout = Number(kind === 'affiliate' ? settings?.affiliate_min_payout ?? 500 : settings?.school_min_payout ?? 500);
 
-    // Available balance is always recomputed server-side, never trusted from the client.
-    const { data: commissions } = await admin
-      .from('establishment_commissions')
-      .select('amount, status')
-      .eq('establishment_id', establishmentId);
-    const available = (commissions || [])
-      .filter((c) => c.status === 'available')
-      .reduce((sum, c) => sum + Number(c.amount), 0);
+    let available = 0;
+    if (kind === 'establishment') {
+      if (!establishmentId) return json({ error: 'Invalid input' }, 400);
+      const { data: allowed } = await admin.rpc('is_establishment_admin', {
+        _user_id: user.id,
+        _establishment_id: establishmentId,
+      });
+      if (!allowed) return json({ error: 'Not authorized for this school' }, 403);
+      // Balance recomputed server-side: earned commissions minus pending/paid payouts.
+      const { data } = await admin.rpc('establishment_available_balance', { p_establishment_id: establishmentId });
+      available = Number(data ?? 0);
+    } else {
+      const { data: app } = await admin.from('affiliate_applications').select('status').eq('user_id', user.id).eq('status', 'approved').maybeSingle();
+      if (!app) return json({ error: 'Not an approved referrer' }, 403);
+      const { data } = await admin.rpc('affiliate_available_balance', { p_user_id: user.id });
+      available = Number(data ?? 0);
+    }
+    const payoutTable = kind === 'affiliate' ? 'affiliate_payouts' : 'establishment_payouts';
+    const ownerCol = kind === 'affiliate' ? 'affiliate_id' : 'establishment_id';
+    const ownerId = kind === 'affiliate' ? user.id : establishmentId;
 
     if (action === 'request') {
       const amount = Number.parseInt(String(body?.amount ?? ''), 10);
@@ -74,8 +83,8 @@ Deno.serve(async (req) => {
       const phone = typeof body?.phone === 'string' ? body.phone.trim() : '';
       const password = typeof body?.password === 'string' ? body.password : '';
 
-      if (!Number.isFinite(amount) || amount < 500 || amount > available) {
-        return json({ error: 'Invalid amount', available }, 400);
+      if (!Number.isFinite(amount) || amount < minPayout || amount > available) {
+        return json({ error: 'Invalid amount', available, minPayout }, 400);
       }
       if (!/^\+?[0-9]{8,15}$/.test(phone)) return json({ error: 'Invalid phone number' }, 400);
       if (password.length < 6) return json({ error: 'Password required' }, 400);
@@ -89,9 +98,9 @@ Deno.serve(async (req) => {
 
       // No duplicate pending payout for the same school.
       const { data: pendingPayout } = await admin
-        .from('establishment_payouts')
+        .from(payoutTable)
         .select('id')
-        .eq('establishment_id', establishmentId)
+        .eq(ownerCol, ownerId)
         .eq('status', 'pending')
         .maybeSingle();
       if (pendingPayout) return json({ error: 'A payout request is already pending' }, 409);
@@ -121,7 +130,7 @@ Deno.serve(async (req) => {
           user_id: user.id,
           purpose: PURPOSE,
           code_hash: await sha256(code),
-          context: { establishment_id: establishmentId, amount, method, phone },
+          context: { kind, owner_id: ownerId, amount, method, phone },
           expires_at: new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString(),
         })
         .select('id')
@@ -138,13 +147,13 @@ Deno.serve(async (req) => {
         p_type: 'account_activity',
         p_priority: 'high',
         p_metadata: {},
-        p_action_url: '/school',
+        p_action_url: kind === 'affiliate' ? '/affiliate' : '/school',
       });
 
       await admin.rpc('log_audit', {
         p_action: 'payout_otp_requested',
-        p_target_type: 'establishments',
-        p_target_id: establishmentId,
+        p_target_type: payoutTable,
+        p_target_id: ownerId,
         p_metadata: { amount, method },
       });
 
@@ -174,8 +183,8 @@ Deno.serve(async (req) => {
         return json({ error: 'Incorrect code', attemptsLeft: otp.max_attempts - otp.attempts - 1 }, 400);
       }
 
-      const ctx = otp.context as { establishment_id: string; amount: number; method: string; phone: string };
-      if (ctx.establishment_id !== establishmentId) return json({ error: 'Context mismatch' }, 400);
+      const ctx = otp.context as { owner_id?: string; establishment_id?: string; amount: number; method: string; phone: string };
+      if ((ctx.owner_id ?? ctx.establishment_id) !== ownerId) return json({ error: 'Context mismatch' }, 400);
       if (ctx.amount > available) return json({ error: 'Balance changed, restart the request' }, 409);
 
       // Consume first: a replayed request can no longer create a second payout.
@@ -188,14 +197,14 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!consumed) return json({ error: 'Code already used' }, 400);
 
-      const { error: payoutError } = await admin.from('establishment_payouts').insert({
-        establishment_id: establishmentId,
+      const { error: payoutError } = await admin.from(payoutTable).insert({
+        [ownerCol]: ownerId,
         amount: ctx.amount,
         currency: 'XAF',
         method: ctx.method,
         phone: ctx.phone,
         status: 'pending',
-        requested_by: user.id,
+        ...(kind === 'establishment' ? { requested_by: user.id } : {}),
       });
       if (payoutError) {
         console.error('payout insert failed', payoutError.message);
@@ -204,8 +213,8 @@ Deno.serve(async (req) => {
 
       await admin.rpc('log_audit', {
         p_action: 'payout_requested',
-        p_target_type: 'establishments',
-        p_target_id: establishmentId,
+        p_target_type: payoutTable,
+        p_target_id: ownerId,
         p_metadata: { amount: ctx.amount, method: ctx.method },
       });
 
