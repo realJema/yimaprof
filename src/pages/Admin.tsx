@@ -23,6 +23,8 @@ import { ExamTypeManagement } from '@/components/admin/ExamTypeManagement';
 import { DurationManagement } from '@/components/admin/DurationManagement';
 import { SubscriptionPlanManagement } from '@/components/admin/SubscriptionPlanManagement';
 import { TransactionViewer } from '@/components/admin/TransactionViewer';
+import { RevenueLedger } from '@/components/admin/RevenueLedger';
+import { PayoutManagement } from '@/components/admin/PayoutManagement';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 import { NotificationComposer } from '@/components/admin/NotificationComposer';
 import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
@@ -155,6 +157,8 @@ export default function Admin() {
     { id: 'plans', label: t('plans'), icon: CreditCard },
     { id: 'subscriptions', label: language === 'fr' ? 'Abonnements' : 'Subs', icon: Shield },
     { id: 'transactions', label: language === 'fr' ? 'Paiements' : 'Payments', icon: Receipt },
+    { id: 'revenue', label: language === 'fr' ? 'Revenus' : 'Revenue', icon: Receipt },
+    { id: 'payouts', label: language === 'fr' ? 'Retraits' : 'Payouts', icon: CreditCard },
     { id: 'notifications', label: language === 'fr' ? 'Notifs' : 'Notifs', icon: Bell },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'forum', label: 'Forum', icon: MessageCircle },
@@ -361,6 +365,8 @@ export default function Admin() {
             {activeTab === 'plans' && <SubscriptionPlanManagement />}
             {activeTab === 'subscriptions' && <ActiveSubscriptions />}
             {activeTab === 'transactions' && <TransactionViewer />}
+            {activeTab === 'revenue' && <RevenueLedger />}
+            {activeTab === 'payouts' && <PayoutManagement />}
             {activeTab === 'notifications' && <NotificationComposer />}
             {activeTab === 'feedback' && <FeedbackViewer />}
             {activeTab === 'forum' && <ForumModeration />}

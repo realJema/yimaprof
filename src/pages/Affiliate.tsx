@@ -1,3 +1,4 @@
+import AffiliatePayouts from '@/components/payouts/AffiliatePayouts';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -461,6 +462,7 @@ export default function Affiliate() {
             ? 'Gagnez 10% de commission sur chaque premier abonnement de vos filleuls' 
             : 'Earn 10% commission on each first subscription from your referrals'}
         </p>
+        <div className="mt-6"><AffiliatePayouts /></div>
         {referralCount > 0 && (
           <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
             <p className="text-sm text-primary">
