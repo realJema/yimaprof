@@ -145,6 +145,54 @@ export type Database = {
           },
         ]
       }
+      affiliate_payouts: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          method: string
+          note: string | null
+          phone: string
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          method: string
+          note?: string | null
+          phone: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          method?: string
+          note?: string | null
+          phone?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
           created_at: string | null
@@ -1652,6 +1700,42 @@ export type Database = {
           },
         ]
       }
+      referral_settings: {
+        Row: {
+          affiliate_min_payout: number
+          affiliate_rate: number
+          id: number
+          school_min_payout: number
+          school_rate: number
+          tax_applied: boolean
+          tax_rate: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          affiliate_min_payout?: number
+          affiliate_rate?: number
+          id?: number
+          school_min_payout?: number
+          school_rate?: number
+          tax_applied?: boolean
+          tax_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          affiliate_min_payout?: number
+          affiliate_rate?: number
+          id?: number
+          school_min_payout?: number
+          school_rate?: number
+          tax_applied?: boolean
+          tax_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       security_otps: {
         Row: {
           attempts: number
@@ -2114,6 +2198,36 @@ export type Database = {
           status: string
         }[]
       }
+      admin_list_payouts: {
+        Args: never
+        Returns: {
+          amount: number
+          beneficiary: string
+          currency: string
+          id: string
+          kind: string
+          method: string
+          note: string
+          phone: string
+          processed_at: string
+          requested_at: string
+          status: string
+        }[]
+      }
+      admin_revenue_ledger: {
+        Args: never
+        Returns: {
+          amount: number
+          currency: string
+          id: string
+          occurred_at: string
+          origin: string
+          origin_detail: string
+          reference: string
+          revenue_type: string
+          status: string
+        }[]
+      }
       admin_school_activity: {
         Args: never
         Returns: {
@@ -2171,6 +2285,10 @@ export type Database = {
         Args: { p_establishment_id: string; p_user_id: string }
         Returns: Json
       }
+      affiliate_available_balance: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       broadcast_notification: {
         Args: {
           p_action_url?: string
@@ -2208,6 +2326,10 @@ export type Database = {
         }[]
       }
       current_establishment_id: { Args: never; Returns: string }
+      establishment_available_balance: {
+        Args: { p_establishment_id: string }
+        Returns: number
+      }
       establishment_results: {
         Args: { p_establishment_id: string }
         Returns: {
