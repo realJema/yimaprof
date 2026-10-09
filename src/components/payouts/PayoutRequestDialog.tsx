@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ShieldCheck, Wallet } from 'lucide-react';
 
 interface Props {
@@ -23,19 +23,21 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
   const fr = language === 'fr';
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [step, setStep] = useState<'intro' | 'form' | 'otp'>('intro');
   const [otpId, setOtpId] = useState('');
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '', password: '' });
 
   const close = () => {
-    setOpen(false); setStep('form'); setCode(''); setOtpId('');
+    if (submitting) return;
+    setOpen(false); setStep('intro'); setCode(''); setOtpId('');
     setForm({ amount: '', method: 'mtn_momo', phone: '', password: '' });
   };
 
   const startRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || available < minPayout) return;
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke('payout-security', {
       body: { action: 'request', kind, establishmentId, amount: parseInt(form.amount, 10), method: form.method, phone: form.phone.trim(), password: form.password },
@@ -70,18 +72,38 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
     <div className="flex flex-col items-end gap-1">
       <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : close())}>
         <DialogTrigger asChild>
-          <Button size="sm" disabled={available < minPayout}>
+          <Button size="sm">
             <Wallet className="h-4 w-4 mr-2" />{fr ? 'Demander un retrait' : 'Request a payout'}
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-secondary" />
-              {step === 'form' ? (fr ? 'Demande de retrait' : 'Payout request') : (fr ? 'Confirmation par email' : 'Email confirmation')}
+              {step === 'intro' ? (fr ? 'Comment retirer mes gains ?' : 'How do I withdraw my earnings?') : step === 'form' ? (fr ? 'Demande de retrait' : 'Payout request') : (fr ? 'Confirmation par email' : 'Email confirmation')}
             </DialogTitle>
+            <DialogDescription>
+              {fr ? 'Retrait sécurisé de vos gains par Mobile Money.' : 'Secure withdrawal of your earnings via Mobile Money.'}
+            </DialogDescription>
           </DialogHeader>
-          {step === 'form' ? (
+          {step === 'intro' ? (
+            <div className="space-y-4">
+              <ol className="list-decimal space-y-3 pl-5 text-sm">
+                <li>{fr ? 'Indiquez le montant, choisissez MTN MoMo ou Orange Money, puis saisissez le numéro qui recevra votre retrait.' : 'Enter the amount, choose MTN MoMo or Orange Money, then enter the number that will receive your payout.'}</li>
+                <li>{fr ? 'Confirmez avec votre mot de passe. Un code à 6 chiffres sera envoyé à l’adresse email de votre compte connecté.' : 'Confirm with your password. A 6-digit code will be sent to the email address of your signed-in account.'}</li>
+                <li>{fr ? 'Saisissez ce code dans les 10 minutes pour valider la demande. Le versement est ensuite effectué manuellement par l’équipe, sous 48h.' : 'Enter this code within 10 minutes to confirm the request. The team then processes the payout manually within 48 hours.'}</li>
+              </ol>
+              <div className="border-t border-border pt-3 text-sm space-y-1">
+                <p>{fr ? 'Solde disponible' : 'Available balance'} : <span className="font-semibold">{available.toLocaleString()} FCFA</span></p>
+                <p className="text-muted-foreground">{fr ? 'Retrait minimum' : 'Minimum payout'} : {minPayout.toLocaleString()} FCFA</p>
+                {available < minPayout && <p className="text-muted-foreground">{fr ? 'Vous pouvez consulter le formulaire, mais la demande ne pourra être envoyée que lorsque le solde atteindra le minimum.' : 'You can view the form, but you can only submit a request once your balance reaches the minimum.'}</p>}
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={close}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                <Button type="button" onClick={() => setStep('form')}>{fr ? 'Continuer' : 'Continue'}</Button>
+              </div>
+            </div>
+          ) : step === 'form' ? (
             <form onSubmit={startRequest} className="space-y-4">
               <div>
                 <Label htmlFor="am">{fr ? 'Montant (FCFA)' : 'Amount (FCFA)'}</Label>
@@ -111,7 +133,7 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={close}>{fr ? 'Annuler' : 'Cancel'}</Button>
-                <Button type="submit" disabled={submitting}>{fr ? 'Continuer' : 'Continue'}</Button>
+                <Button type="submit" disabled={submitting || available < minPayout}>{submitting ? (fr ? 'Envoi…' : 'Sending…') : (fr ? 'Continuer' : 'Continue')}</Button>
               </div>
             </form>
           ) : (

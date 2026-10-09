@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEstablishment } from '@/hooks/useEstablishment';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,7 +22,16 @@ export default function SchoolSpace() {
   const { language } = useLanguage();
   const fr = language === 'fr';
   const { establishment, isSchoolAdmin, isApproved, isPending, isRejected, loading } = useEstablishment();
-  const [tab, setTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab') || 'overview';
+  const tab = ['overview', 'students', 'classes', 'content', 'challenges', 'journey', 'results', 'revenue'].includes(requestedTab) ? requestedTab : 'overview';
+  const setTab = (value: string) => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set('tab', value);
+      return next;
+    });
+  };
 
   if (loading) {
     return (
