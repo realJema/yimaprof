@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Coins, ShieldCheck, Wallet } from 'lucide-react';
+import { Coins } from 'lucide-react';
+import PayoutRequestDialog from '@/components/payouts/PayoutRequestDialog';
+import { useReferralSettings } from '@/hooks/useReferralSettings';
 
 interface Commission {
   id: string;
@@ -35,17 +37,10 @@ interface Payout {
 export default function SchoolRevenue({ establishmentId }: { establishmentId: string }) {
   const { language } = useLanguage();
   const fr = language === 'fr';
-  const { user } = useAuth();
-  const { toast } = useToast();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'form' | 'otp'>('form');
-  const [otpId, setOtpId] = useState('');
-  const [code, setCode] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '', password: '' });
+  const { settings } = useReferralSettings();
 
   const load = async () => {
     const [{ data: com }, { data: pay }] = await Promise.all([
@@ -70,76 +65,14 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
   }, [establishmentId]);
 
   const total = commissions.reduce((s, c) => s + c.amount, 0);
-  const available = commissions.filter((c) => c.status === 'available').reduce((s, c) => s + c.amount, 0);
+  const withdrawn = payouts.filter((p) => p.status === 'pending' || p.status === 'paid').reduce((s, p) => s + p.amount, 0);
+  const available = Math.max(0, commissions.filter((c) => c.status === 'available').reduce((s, c) => s + c.amount, 0) - withdrawn);
   const pending = commissions.filter((c) => c.status === 'pending').reduce((s, c) => s + c.amount, 0);
   const paid = commissions.filter((c) => c.status === 'paid').reduce((s, c) => s + c.amount, 0);
 
   const monthly = commissions
     .filter((c) => new Date(c.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1))
     .reduce((s, c) => s + c.amount, 0);
-
-  // Step 1: password check + OTP email. Step 2: OTP confirmation creates the payout server-side.
-  const startRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke('payout-security', {
-      body: {
-        action: 'request',
-        establishmentId,
-        amount: parseInt(form.amount, 10),
-        method: form.method,
-        phone: form.phone.trim(),
-        password: form.password,
-      },
-    });
-    setSubmitting(false);
-    if (error || data?.error) {
-      toast({
-        title: fr ? 'Demande refusée' : 'Request refused',
-        description: data?.error || (fr ? 'Vérifiez le montant et votre mot de passe.' : 'Check the amount and your password.'),
-        variant: 'destructive',
-      });
-      return;
-    }
-    setOtpId(data.otpId);
-    setStep('otp');
-    toast({
-      title: fr ? 'Code envoyé par email' : 'Code sent by email',
-      description: fr ? 'Saisissez le code à 6 chiffres reçu par email.' : 'Enter the 6-digit code you received by email.',
-    });
-  };
-
-  const confirmRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke('payout-security', {
-      body: { action: 'confirm', establishmentId, otpId, code },
-    });
-    setSubmitting(false);
-    if (error || data?.error) {
-      toast({
-        title: fr ? 'Code invalide' : 'Invalid code',
-        description: data?.error,
-        variant: 'destructive',
-      });
-      return;
-    }
-    toast({
-      title: fr ? 'Demande confirmée' : 'Request confirmed',
-      description: fr ? 'Elle sera traitée sous 48h.' : 'It will be processed within 48h.',
-    });
-    closeDialog();
-    load();
-  };
-
-  const closeDialog = () => {
-    setOpen(false);
-    setStep('form');
-    setCode('');
-    setOtpId('');
-    setForm({ amount: '', method: 'mtn_momo', phone: '', password: '' });
-  };
-
 
   if (loading) return <Skeleton className="h-64 w-full" />;
 
@@ -163,77 +96,8 @@ export default function SchoolRevenue({ establishmentId }: { establishmentId: st
       </div>
 
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : closeDialog())}>
-          <DialogTrigger asChild>
-            <Button size="sm" disabled={available < 500}>
-              <Wallet className="h-4 w-4 mr-2" />{fr ? 'Demander un retrait' : 'Request a payout'}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-secondary" />
-                {step === 'form'
-                  ? fr ? 'Demande de retrait' : 'Payout request'
-                  : fr ? 'Confirmation par email' : 'Email confirmation'}
-              </DialogTitle>
-            </DialogHeader>
-            {step === 'form' ? (
-              <form onSubmit={startRequest} className="space-y-4">
-                <div>
-                  <Label htmlFor="am">{fr ? 'Montant (FCFA)' : 'Amount (FCFA)'}</Label>
-                  <Input id="am" type="number" min={500} max={available} required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                  <p className="text-xs text-muted-foreground mt-1">{fr ? 'Disponible' : 'Available'}: {available.toLocaleString()} FCFA</p>
-                </div>
-                <div>
-                  <Label>{fr ? 'Moyen de paiement' : 'Payment method'}</Label>
-                  <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
-                      <SelectItem value="orange_money">Orange Money</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="pn">{fr ? 'Numéro' : 'Phone number'}</Label>
-                  <Input id="pn" required maxLength={20} placeholder="+2376XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                </div>
-                <div>
-                  <Label htmlFor="pw">{fr ? 'Votre mot de passe' : 'Your password'}</Label>
-                  <Input id="pw" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {fr
-                      ? 'Un code de confirmation à 6 chiffres vous sera envoyé par email.'
-                      : 'A 6-digit confirmation code will be emailed to you.'}
-                  </p>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={closeDialog}>{fr ? 'Annuler' : 'Cancel'}</Button>
-                  <Button type="submit" disabled={submitting}>{fr ? 'Continuer' : 'Continue'}</Button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={confirmRequest} className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {fr
-                    ? 'Saisissez le code à 6 chiffres envoyé par email. Il expire dans 10 minutes et ne peut être utilisé qu’une seule fois.'
-                    : 'Enter the 6-digit code sent by email. It expires in 10 minutes and can only be used once.'}
-                </p>
-                <div>
-                  <Label htmlFor="otp">{fr ? 'Code de confirmation' : 'Confirmation code'}</Label>
-                  <Input id="otp" inputMode="numeric" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={closeDialog}>{fr ? 'Annuler' : 'Cancel'}</Button>
-                  <Button type="submit" disabled={submitting || code.length !== 6}>{fr ? 'Confirmer le retrait' : 'Confirm payout'}</Button>
-                </div>
-              </form>
-            )}
-          </DialogContent>
-        </Dialog>
+        <PayoutRequestDialog kind="establishment" establishmentId={establishmentId} available={available} minPayout={settings.school_min_payout} onDone={load} />
       </div>
-
 
       <Card>
         <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Coins className="h-5 w-5" />{fr ? 'Commissions de parrainage' : 'Referral commissions'}</CardTitle></CardHeader>
