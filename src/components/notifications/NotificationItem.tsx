@@ -2,6 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Bell, CreditCard, AlertCircle, MessageSquare } from 'lucide-react';
 import { Notification } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
+import { cleanNotificationText } from '@/lib/notificationLabels';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -55,7 +56,7 @@ export const NotificationItem = ({ notification, onClick, compact = false }: Not
           "text-sm text-muted-foreground mt-1",
           compact && "line-clamp-2"
         )}>
-          {notification.message}
+          {cleanNotificationText(notification.message)}
         </p>
         <p className="text-xs text-muted-foreground mt-2">{timeAgo}</p>
       </div>

@@ -10,6 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { fr } from 'date-fns/locale';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { notificationTypeLabel, notificationPriorityLabel, cleanNotificationText } from '@/lib/notificationLabels';
 
 interface NotificationModalProps {
   notification: Notification | null;
@@ -19,10 +22,11 @@ interface NotificationModalProps {
 
 export const NotificationModal = ({ notification, open, onClose }: NotificationModalProps) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   if (!notification) return null;
 
-  const timeAgo = formatDistanceToNow(new Date(notification.created_at), { addSuffix: true });
+  const timeAgo = formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: language === 'en' ? undefined : fr });
 
   const handleAction = () => {
     if (notification.action_url) {
@@ -57,9 +61,9 @@ export const NotificationModal = ({ notification, open, onClose }: NotificationM
         <div className="space-y-4">
           <div className="flex gap-2">
             <Badge variant={getPriorityColor(notification.priority)}>
-              {notification.priority}
+              {notificationPriorityLabel(notification.priority, language)}
             </Badge>
-            <Badge variant="outline">{notification.type.replace('_', ' ')}</Badge>
+            <Badge variant="outline">{notificationTypeLabel(notification.type, language)}</Badge>
           </div>
           
           <div className="text-sm text-muted-foreground">
@@ -67,7 +71,7 @@ export const NotificationModal = ({ notification, open, onClose }: NotificationM
           </div>
 
           <div className="prose prose-sm max-w-none">
-            <p className="text-foreground whitespace-pre-wrap">{notification.message}</p>
+            <p className="text-foreground whitespace-pre-wrap">{cleanNotificationText(notification.message)}</p>
           </div>
 
 
