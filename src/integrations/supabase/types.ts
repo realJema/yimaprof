@@ -1620,6 +1620,7 @@ export type Database = {
           name_en: string | null
           name_fr: string | null
           order_number: number | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1629,6 +1630,7 @@ export type Database = {
           name_en?: string | null
           name_fr?: string | null
           order_number?: number | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1638,6 +1640,7 @@ export type Database = {
           name_en?: string | null
           name_fr?: string | null
           order_number?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
