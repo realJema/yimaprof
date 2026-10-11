@@ -27,7 +27,7 @@ export async function activateSubscriptionForTransaction(
     return { ok: true, subscriptionId: tx.subscription_id ?? undefined, alreadyDone: true };
   }
 
-  const metadata = (tx.metadata || {}) as { plan_id?: string; referred_by?: string };
+  const metadata = (tx.metadata || {}) as { plan_id?: string; referred_by?: string; billing_cycle?: string };
   if (!metadata.plan_id) {
     return { ok: false, error: 'Missing plan_id in transaction metadata' };
   }
@@ -38,7 +38,10 @@ export async function activateSubscriptionForTransaction(
     .eq('id', metadata.plan_id)
     .single();
 
-  const durationDays = plan?.duration_days || 30;
+  const baseDays = plan?.duration_days || 30;
+  const durationDays = metadata.billing_cycle === 'trimester' ? baseDays * 3
+    : metadata.billing_cycle === 'annual' ? baseDays * 9
+    : baseDays;
   const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
   // Cancel any existing active subscription for this user
