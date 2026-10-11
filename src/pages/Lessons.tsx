@@ -24,6 +24,8 @@ interface LessonRow {
   file_url: string | null;
   class_id: string | null;
   subject_id: string | null;
+  series_id: string | null;
+  series: { code: string } | null;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
 }
@@ -40,13 +42,14 @@ export default function Lessons() {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [seriesFilter, setSeriesFilter] = useState('all');
   const [lockOpen, setLockOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('lessons')
-        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, classes(display_name), subjects(name_fr, name_en)')
+        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, series_id, series(code), classes(display_name), subjects(name_fr, name_en)')
         .eq('is_published', true)
         .order('order_number');
       setLessons((data as unknown as LessonRow[]) || []);
@@ -63,7 +66,13 @@ export default function Lessons() {
     [lessons],
   );
 
+  const seriesCodes = useMemo(
+    () => Array.from(new Set(lessons.map((l) => l.series?.code).filter(Boolean))) as string[],
+    [lessons],
+  );
+
   const filtered = lessons.filter((l) => {
+    if (seriesFilter !== 'all' && l.series?.code !== seriesFilter) return false;
     const subjectName = l.subjects?.name_fr || l.subjects?.name_en || '';
     if (classFilter !== 'all' && l.classes?.display_name !== classFilter) return false;
     if (subjectFilter !== 'all' && subjectName !== subjectFilter) return false;
@@ -125,7 +134,7 @@ export default function Lessons() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 mb-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -147,6 +156,13 @@ export default function Lessons() {
           <SelectContent>
             <SelectItem value="all">{fr ? 'Toutes les matières' : 'All subjects'}</SelectItem>
             {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={seriesFilter} onValueChange={setSeriesFilter}>
+          <SelectTrigger><SelectValue placeholder={fr ? 'Série / Filière' : 'Series / Track'} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{fr ? 'Toutes les séries' : 'All series'}</SelectItem>
+            {seriesCodes.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

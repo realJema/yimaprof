@@ -81,6 +81,7 @@ interface ExamData {
   duration_id: string;
   establishment_id?: string;
   series_id?: string;
+  series_ids?: string[];
 }
 const generateId = () => Math.random().toString(36).substr(2, 9);
 export default function ExamManager() {
@@ -119,6 +120,7 @@ export default function ExamManager() {
     academic_year_id: "",
     duration_id: "",
     series_id: "",
+    series_ids: [],
   });
 
   // Questions for form-based creation
@@ -209,6 +211,7 @@ export default function ExamManager() {
         duration_id: (data as any).duration_id || null,
         establishment_id: (data as any).establishment_id || null,
         series_id: (data as any).series_id || null,
+        series_ids: ((data as any).series_ids?.length ? (data as any).series_ids : (data as any).series_id ? [(data as any).series_id] : []),
       };
 
       setFormData(examFormData);
@@ -558,7 +561,8 @@ export default function ExamManager() {
         academic_year_id: formData.academic_year_id,
         duration_id: formData.duration_id,
         establishment_id: formData.establishment_id || null,
-        series_id: formData.series_id || null,
+        series_id: formData.series_ids?.[0] || formData.series_id || null,
+        series_ids: formData.series_ids?.length ? formData.series_ids : formData.series_id ? [formData.series_id] : [],
       };
       
       console.log('Exam data to send:', JSON.stringify(examData, null, 2));
@@ -660,7 +664,8 @@ export default function ExamManager() {
         academic_year_id: formData.academic_year_id || null,
         duration_id: formData.duration_id || null,
         establishment_id: formData.establishment_id || null,
-        series_id: formData.series_id || null,
+        series_id: formData.series_ids?.[0] || formData.series_id || null,
+        series_ids: formData.series_ids?.length ? formData.series_ids : formData.series_id ? [formData.series_id] : [],
       };
       if (isEditing) {
         const { error } = await supabase.from("exams").update(examData as any).eq("id", examId);
@@ -1644,42 +1649,37 @@ export default function ExamManager() {
                     <Label className="text-sm font-semibold mb-3 block">
                       {language === 'fr' ? 'Série / Filière' : 'Series / Track'}
                     </Label>
-                    <Select
-                      value={formData.series_id || ''}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, series_id: value === 'none' ? '' : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={language === 'fr' ? 'Sélectionner une série' : 'Select a series'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">
-                          {language === 'fr' ? 'Aucune série' : 'No series'}
-                        </SelectItem>
-                        {(() => {
-                          // Get selected class's section
-                          const selectedClass = classes.find(c => c.id === formData.class_id);
-                          const classSection = selectedClass?.section;
-                          
-                          // Filter series based on class section
-                          // Show general + system-specific series
-                          const availableSeries = formOptions.series?.filter(s => {
-                            if (s.system === 'general') return true;
-                            if (!classSection) return true; // Show all if no class selected
-                            return s.system === classSection;
-                          });
-                          
-                          return availableSeries?.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {language === 'fr' ? s.name_fr || s.name : s.name_en || s.name}
-                            </SelectItem>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
+                    {(() => {
+                      const selectedClass = classes.find(c => c.id === formData.class_id);
+                      const classSection = selectedClass?.section;
+                      const availableSeries = formOptions.series?.filter(s => {
+                        if (s.system === 'general') return true;
+                        if (!classSection) return true;
+                        return s.system === classSection;
+                      }) || [];
+                      const selected: string[] = formData.series_ids?.length ? formData.series_ids : formData.series_id ? [formData.series_id] : [];
+                      const toggle = (id: string) => {
+                        const next = selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id];
+                        setFormData((prev) => ({ ...prev, series_ids: next, series_id: next[0] || '' }));
+                      };
+                      return (
+                        <div className="flex flex-wrap gap-2">
+                          {availableSeries.map((s) => {
+                            const on = selected.includes(s.id);
+                            return (
+                              <button type="button" key={s.id} onClick={() => toggle(s.id)}
+                                className={`rounded-full border px-3 py-1 text-xs transition-colors ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                                {language === 'fr' ? s.name_fr || s.name : s.name_en || s.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                     <p className="text-xs text-muted-foreground mt-1">
                       {language === 'fr' 
-                        ? 'Optionnel - Pour les examens spécifiques à une filière'
-                        : 'Optional - For exams specific to a track'}
+                        ? 'Optionnel - Sélection multiple possible'
+                        : 'Optional - multiple selection allowed'}
                     </p>
                   </div>
 

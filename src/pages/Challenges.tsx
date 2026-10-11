@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +20,8 @@ interface ChallengeRow {
   region: string | null;
   status: string;
   reward: string | null;
-  starts_at: string;
+  starts_at: string | null;
+  eligible_series_ids: string[] | null;
   ends_at: string;
   exam_id: string | null;
   duration_minutes: number;
@@ -37,16 +40,22 @@ export default function Challenges() {
   const { language } = useLanguage();
   const fr = language === 'fr';
   const { user } = useAuth();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
+  const [seriesList, setSeriesList] = useState<{ id: string; code: string }[]>([]);
+  const [seriesFilter, setSeriesFilter] = useState('all');
   const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
   const [attempted, setAttempted] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
+      const { data: se } = await supabase.from('series').select('id, code').eq('is_active', true).order('order_number');
+      setSeriesList(se || []);
       const { data } = await supabase
         .from('challenges')
-        .select('id, title, description, scope, region, status, reward, starts_at, ends_at, exam_id, duration_minutes, graded_out_of, establishment_id, eligible_class_ids')
-        .order('starts_at', { ascending: false });
+        .select('id, title, description, scope, region, status, reward, starts_at, ends_at, exam_id, duration_minutes, graded_out_of, establishment_id, eligible_class_ids, eligible_series_ids')
+        .eq('review_status', 'approved')
+        .order('ends_at', { ascending: true });
       setChallenges((data as unknown as ChallengeRow[]) || []);
 
       if (user) {
@@ -62,7 +71,9 @@ export default function Challenges() {
     })();
   }, [user]);
 
-  if (loading) {
+  const visible = challenges.filter((c) => seriesFilter === 'all' || !(c.eligible_series_ids || []).length || (c.eligible_series_ids || []).includes(seriesFilter));
+
+  if (loading || subLoading) {
     return (
       <div className="mx-auto max-w-5xl space-y-4 px-4 py-10">
         <Skeleton className="h-10 w-64" />
@@ -87,21 +98,44 @@ export default function Challenges() {
         </div>
         <p className="mt-2 max-w-2xl text-sm text-white/85 sm:text-base">
           {fr
-            ? 'Des épreuves de compétition à portée établissement, régionale ou nationale. Une seule tentative, en écran occupé, note sur 20.'
-            : 'Competition papers with school, regional or national scope. One single attempt, locked screen, graded out of 20.'}
+            ? 'Des épreuves de compétition à portée établissement, régionale ou nationale. Une seule tentative, écran verrouillé sans pause, note affichée après la soumission.'
+            : 'Competition papers with school, regional or national scope. One single attempt, locked screen with no pause, score shown after submission.'}
         </p>
       </div>
 
-      {challenges.length === 0 && (
+      {(!user || !hasActiveSubscription) ? (
+        <Card>
+          <CardContent className="space-y-4 py-12 text-center">
+            <p className="text-muted-foreground">
+              {fr ? 'Les challenges sont réservés aux membres inscrits avec un abonnement actif.' : 'Challenges are reserved for registered members with an active subscription.'}
+            </p>
+            <Button asChild>
+              <Link to={user ? '/subscriptions' : '/auth'}>{user ? (fr ? 'Voir les offres' : 'See plans') : (fr ? 'Se connecter' : 'Sign in')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (<>
+      {seriesList.length > 0 && challenges.length > 0 && (
+        <div className="mb-4 flex justify-end">
+          <Select value={seriesFilter} onValueChange={setSeriesFilter}>
+            <SelectTrigger className="w-56"><SelectValue placeholder={fr ? 'Série / Filière' : 'Series / Track'} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{fr ? 'Toutes les séries' : 'All series'}</SelectItem>
+              {seriesList.map((s) => <SelectItem key={s.id} value={s.id}>{s.code}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {visible.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            {fr ? 'Aucun challenge disponible pour le moment.' : 'No challenge available yet.'}
+            {fr ? 'Aucun challenge disponible pour le moment' : 'No challenge available at the moment'}
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {challenges.map((ch) => {
+        {visible.map((ch) => {
           const meta = scopeMeta[ch.scope] ?? scopeMeta.establishment;
           const ScopeIcon = meta.icon;
           const done = attempted[ch.id] === 'submitted';
@@ -132,7 +166,7 @@ export default function Challenges() {
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <CalendarDays className="h-3.5 w-3.5" />
-                    {new Date(ch.starts_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')} → {new Date(ch.ends_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}
+                    {fr ? 'Fin : ' : 'Ends: '}{new Date(ch.ends_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}
                   </span>
                   <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{ch.duration_minutes} min</span>
                   <span className="flex items-center gap-1"><Award className="h-3.5 w-3.5" />/{ch.graded_out_of}</span>
@@ -146,6 +180,7 @@ export default function Challenges() {
           );
         })}
       </div>
+      </>)}
     </div>
   );
 }

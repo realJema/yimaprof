@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +46,9 @@ interface ChallengeRow {
   region: string | null;
   status: string;
   reward: string | null;
-  starts_at: string;
+  starts_at: string | null;
+  questions?: unknown;
+  review_status?: string;
   ends_at: string;
   exam_id: string | null;
   duration_minutes: number;
@@ -68,6 +72,8 @@ export default function ChallengeDetail() {
   const { language } = useLanguage();
   const fr = language === 'fr';
   const { user } = useAuth();
+  const { hasActiveSubscription, loading: subLoading } = useSubscription();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const navigate = useNavigate();
 
   const [challenge, setChallenge] = useState<ChallengeRow | null>(null);
@@ -91,7 +97,7 @@ export default function ChallengeDetail() {
       const { data: ch } = await supabase
         .from('challenges')
         .select(
-          'id, title, description, scope, region, status, reward, starts_at, ends_at, exam_id, duration_minutes, graded_out_of, establishment_id, eligible_class_ids, eligible_series_ids',
+          'id, title, description, scope, region, status, reward, starts_at, ends_at, exam_id, duration_minutes, graded_out_of, establishment_id, eligible_class_ids, eligible_series_ids, questions, review_status',
         )
         .eq('id', challengeId)
         .maybeSingle();
@@ -164,7 +170,14 @@ export default function ChallengeDetail() {
   }, [challenge, exam]);
 
   const ended = challenge ? new Date(challenge.ends_at).getTime() < Date.now() : false;
-  const notStarted = challenge ? new Date(challenge.starts_at).getTime() > Date.now() : false;
+  const notStarted = false;
+  const paper = useMemo(() => {
+    if (exam?.content) return exam.content;
+    const q = challenge?.questions;
+    if (Array.isArray(q) && q.length) return q;
+    if (q && typeof q === 'object' && Object.keys(q as object).length) return q;
+    return null;
+  }, [exam, challenge]);
   const alreadyDone = !!attempt;
 
   const handleAnswerChange = (questionIndex: number, answer: string) => {
@@ -211,11 +224,18 @@ export default function ChallengeDetail() {
       e.preventDefault();
       e.returnValue = '';
     };
+    const onPop = () => {
+      window.history.pushState(null, '', window.location.href);
+      toast.warning(fr ? 'Terminez le challenge avant de quitter la page.' : 'Finish the challenge before leaving.');
+    };
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', onPop);
     document.addEventListener('fullscreenchange', onFsChange);
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => {
       document.removeEventListener('fullscreenchange', onFsChange);
       window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('popstate', onPop);
     };
   }, [running, fr]);
 
@@ -223,7 +243,7 @@ export default function ChallengeDetail() {
     async (auto = false) => {
       if (!user || !challenge || submitting) return;
       setSubmitting(true);
-      const result = scoreMcqContent(exam?.content, answers);
+      const result = scoreMcqContent(paper, answers);
       const payload = {
         challenge_id: challenge.id,
         user_id: user.id,
@@ -285,7 +305,7 @@ export default function ChallengeDetail() {
       setSubmitting(false);
       if (document.fullscreenElement) document.exitFullscreen?.();
     },
-    [user, challenge, submitting, exam, answers, timeSpent, outOf, fr],
+    [user, challenge, submitting, paper, answers, timeSpent, outOf, fr],
   );
 
   if (loading) {
@@ -308,7 +328,7 @@ export default function ChallengeDetail() {
     );
   }
 
-  const canTake = !!user && eligible && !alreadyDone && !ended && !notStarted && !!exam?.content;
+  const canTake = !!user && eligible && !alreadyDone && !ended && !notStarted && !!paper && hasActiveSubscription;
 
   return (
     <div ref={containerRef} className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -335,7 +355,7 @@ export default function ChallengeDetail() {
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-white/85">
           <span className="flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" />
-            {new Date(challenge.starts_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')} →{' '}
+            {fr ? 'Fin : ' : 'Ends: '}
             {new Date(challenge.ends_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}
           </span>
           <span className="flex items-center gap-1">
@@ -423,7 +443,8 @@ export default function ChallengeDetail() {
           </CardHeader>
           <CardContent className="space-y-3">
             <ul className="space-y-1 text-sm text-muted-foreground">
-              <li>• {fr ? 'Une seule tentative, pas de correction affichée.' : 'One single attempt, no correction shown.'}</li>
+              <li>• {fr ? 'Une seule tentative, pas de corrigé ; la note s’affiche seulement après la soumission.' : 'One single attempt, no correction; the score is shown only after submission.'}</li>
+              <li>• {fr ? 'Pas de pause possible : une fois lancé, le challenge doit être terminé.' : 'No pause: once started, the challenge must be finished.'}</li>
               <li>• {fr ? 'Écran occupé : plein écran forcé, sorties enregistrées.' : 'Locked screen: fullscreen enforced, exits recorded.'}</li>
               <li>
                 • {fr
@@ -435,6 +456,11 @@ export default function ChallengeDetail() {
               <Button asChild>
                 <Link to="/auth">{fr ? 'Se connecter pour participer' : 'Sign in to take part'}</Link>
               </Button>
+            ) : !subLoading && !hasActiveSubscription ? (
+              <div className="space-y-2">
+                <p className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="h-4 w-4" />{fr ? 'Les challenges sont réservés aux abonnés.' : 'Challenges are for subscribers only.'}</p>
+                <Button asChild size="sm"><Link to="/subscriptions">{fr ? 'Voir les offres' : 'See plans'}</Link></Button>
+              </div>
             ) : !eligible ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Lock className="h-4 w-4" />
@@ -442,7 +468,7 @@ export default function ChallengeDetail() {
                   ? 'Vous ne remplissez pas les critères (classe / série) de ce challenge.'
                   : 'You do not match this challenge criteria (class / series).'}
               </div>
-            ) : notStarted || ended || !exam?.content ? (
+            ) : notStarted || ended || !paper ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <AlertTriangle className="h-4 w-4" />
                 {notStarted
@@ -458,7 +484,7 @@ export default function ChallengeDetail() {
                       : 'No paper attached to this challenge.'}
               </div>
             ) : (
-              <Button onClick={start} disabled={!canTake}>
+              <Button onClick={() => setConfirmOpen(true)} disabled={!canTake}>
                 <Play className="mr-2 h-4 w-4" />
                 {fr ? 'Passer le challenge' : 'Start the challenge'}
               </Button>
@@ -475,10 +501,10 @@ export default function ChallengeDetail() {
       )}
 
       {/* The paper is shown exactly like a Yima exam, without any correction. */}
-      {exam?.content ? (
+      {paper && running ? (
         <ProtectedContent>
           <ExamContentRenderer
-            content={exam.content}
+            content={paper}
             showAnswers={false}
             mode={running ? 'evaluation' : 'preview'}
             questionIdPrefix="question-"
@@ -486,13 +512,32 @@ export default function ChallengeDetail() {
             onAnswerChange={running ? handleAnswerChange : undefined}
           />
         </ProtectedContent>
-      ) : (
+      ) : !paper ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
             {fr ? 'Épreuve non disponible.' : 'Paper not available.'}
           </CardContent>
         </Card>
-      )}
+      ) : null}
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-secondary" />{fr ? 'Avant de commencer' : 'Before you start'}</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>{fr ? `Vous disposez de ${challenge.duration_minutes} minutes. Le chronomètre démarre dès que vous confirmez.` : `You have ${challenge.duration_minutes} minutes. The timer starts as soon as you confirm.`}</p>
+                <p>{fr ? 'Aucune pause n’est possible et l’écran passe en plein écran. Vous devez aller jusqu’au bout : à la fin du temps, votre copie est soumise automatiquement.' : 'No pause is possible and the screen goes fullscreen. You must finish: when time runs out your paper is submitted automatically.'}</p>
+                <p>{fr ? 'Une seule tentative. Ni corrigé ni note avant la soumission.' : 'One attempt only. No correction or score before submission.'}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{fr ? 'Annuler' : 'Cancel'}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmOpen(false); start(); }}>{fr ? 'Je commence' : 'Start now'}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

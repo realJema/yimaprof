@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart, Building2, Briefcase, Activity } from 'lucide-react';
+import { Shield, BarChart3, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronUp, MessageCircle, BookOpen, Users, Bot, Settings, CreditCard, Bell, Receipt, Heart, Building2, Briefcase, Activity, Trophy } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -25,6 +25,7 @@ import { SubscriptionPlanManagement } from '@/components/admin/SubscriptionPlanM
 import { TransactionViewer } from '@/components/admin/TransactionViewer';
 import { RevenueLedger } from '@/components/admin/RevenueLedger';
 import { PayoutManagement } from '@/components/admin/PayoutManagement';
+import { ChallengeManagement } from '@/components/admin/ChallengeManagement';
 import { ActiveSubscriptions } from '@/components/admin/ActiveSubscriptions';
 import { NotificationComposer } from '@/components/admin/NotificationComposer';
 import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
@@ -159,6 +160,7 @@ export default function Admin() {
     { id: 'transactions', label: language === 'fr' ? 'Paiements' : 'Payments', icon: Receipt },
     { id: 'revenue', label: language === 'fr' ? 'Revenus' : 'Revenue', icon: Receipt },
     { id: 'payouts', label: language === 'fr' ? 'Retraits' : 'Payouts', icon: CreditCard },
+    { id: 'challenges', label: 'Challenges', icon: Trophy },
     { id: 'notifications', label: language === 'fr' ? 'Notifs' : 'Notifs', icon: Bell },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare },
     { id: 'forum', label: 'Forum', icon: MessageCircle },
@@ -367,6 +369,7 @@ export default function Admin() {
             {activeTab === 'transactions' && <TransactionViewer />}
             {activeTab === 'revenue' && <RevenueLedger />}
             {activeTab === 'payouts' && <PayoutManagement />}
+            {activeTab === 'challenges' && <ChallengeManagement />}
             {activeTab === 'notifications' && <NotificationComposer />}
             {activeTab === 'feedback' && <FeedbackViewer />}
             {activeTab === 'forum' && <ForumModeration />}

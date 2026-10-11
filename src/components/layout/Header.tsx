@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School, TrendingUp, Briefcase, Users } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School, TrendingUp, Briefcase, Users, Trophy } from 'lucide-react';
 import { useEstablishment } from '@/hooks/useEstablishment';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -199,6 +199,10 @@ export default function Header() {
     icon: BookOpen,
     label: language === 'fr' ? 'Leçons' : 'Lessons'
   }, {
+    to: '/challenges',
+    icon: Trophy,
+    label: 'Challenges'
+  }, {
     to: '/schools',
     icon: Info,
     label: language === 'fr' ? 'Établissements' : 'Schools'
@@ -354,6 +358,13 @@ export default function Header() {
               <Link to="/lessons" className="flex items-center space-x-2">
                 <BookOpen className="h-4 w-4" />
                 <span>{language === 'fr' ? 'Leçons' : 'Lessons'}</span>
+              </Link>
+            </Button>
+
+            <Button variant={isActive('/challenges') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
+              <Link to="/challenges" className="flex items-center space-x-2">
+                <Trophy className="h-4 w-4" />
+                <span>Challenges</span>
               </Link>
             </Button>
 

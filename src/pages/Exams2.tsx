@@ -181,7 +181,7 @@ const Exams2 = () => {
     queryKey: ['all-exams'],
     queryFn: async () => {
       const { data, error } = await supabase.from('exams').select(`
-          id, title, description, is_published, visibility, created_at,
+          id, title, description, is_published, visibility, created_at, series_ids,
           subject:subjects(id, name, name_en, name_fr),
           academic_year:academic_years(id, year_label),
           exam_type:exam_types(id, name, name_en, name_fr),
@@ -416,11 +416,8 @@ const Exams2 = () => {
       }
       // Series filter
       if (selectedSeries.length > 0) {
-        if (exam.series) {
-          if (!selectedSeries.includes(exam.series.id)) return false;
-        } else {
-          return false;
-        }
+        const ids: string[] = (exam as any).series_ids?.length ? (exam as any).series_ids : exam.series ? [exam.series.id] : [];
+        if (!ids.some((id) => selectedSeries.includes(id))) return false;
       }
       if (selectedYear !== 'all' && exam.academic_year?.id !== selectedYear) return false;
       if (selectedExamType !== 'all' && exam.exam_type?.id !== selectedExamType) return false;
@@ -471,7 +468,8 @@ const Exams2 = () => {
       if (exam.establishment) counts.schools[exam.establishment.id] = (counts.schools[exam.establishment.id] || 0) + 1;
       if (exam.class) counts.classes[exam.class.id] = (counts.classes[exam.class.id] || 0) + 1;
       if (exam.subject) counts.subjects[exam.subject.id] = (counts.subjects[exam.subject.id] || 0) + 1;
-      if (exam.series) counts.series[exam.series.id] = (counts.series[exam.series.id] || 0) + 1;
+      const sids: string[] = (exam as any).series_ids?.length ? (exam as any).series_ids : exam.series ? [exam.series.id] : [];
+      sids.forEach((id) => { counts.series[id] = (counts.series[id] || 0) + 1; });
     });
     return counts;
   }, [accessibleExams, selectedSystem]);

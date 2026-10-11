@@ -101,6 +101,7 @@ export function ExamManagement() {
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedEstablishment, setSelectedEstablishment] = useState<string>('all');
+  const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   const [previewExam, setPreviewExam] = useState<Exam | null>(null);
@@ -201,7 +202,9 @@ export function ExamManagement() {
       const matchesEstablishment = selectedEstablishment === 'all' || 
                                    (selectedEstablishment === 'none' && !exam.establishment_id) ||
                                    exam.establishment_id === selectedEstablishment;
-      return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus && matchesEstablishment;
+      const examSeries: string[] = ((exam as any).series_ids as string[] | undefined)?.length ? (exam as any).series_ids : exam.series_id ? [exam.series_id] : [];
+      const matchesSeries = selectedSeries === 'all' || (selectedSeries === 'none' ? examSeries.length === 0 : examSeries.includes(selectedSeries));
+      return matchesSearch && matchesYear && matchesSubject && matchesClass && matchesStatus && matchesEstablishment && matchesSeries;
     });
   };
 
@@ -489,7 +492,7 @@ export function ExamManagement() {
       {/* Collapsible Filters */}
       {showFilters && <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search exams..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
@@ -533,6 +536,17 @@ export function ExamManagement() {
                   <SelectItem value="all">All Schools</SelectItem>
                   <SelectItem value="none">No School Set</SelectItem>
                   {formOptions.establishments?.map(est => <SelectItem key={est.id} value={est.id}>{est.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedSeries} onValueChange={setSelectedSeries}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder={language === 'fr' ? 'Toutes les séries' : 'All series'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'fr' ? 'Toutes les séries' : 'All series'}</SelectItem>
+                  <SelectItem value="none">{language === 'fr' ? 'Sans série' : 'No series'}</SelectItem>
+                  {formOptions.series?.map(se => <SelectItem key={se.id} value={se.id}>{se.code}</SelectItem>)}
                 </SelectContent>
               </Select>
 
