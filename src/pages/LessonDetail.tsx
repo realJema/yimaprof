@@ -61,6 +61,7 @@ export default function LessonDetail() {
   const [timeSpent, setTimeSpent] = useState<number>(0);
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     if (!lessonId) return;
@@ -215,10 +216,10 @@ export default function LessonDetail() {
             </span>
           )}
         </div>
-        {lesson.summary && <p className="text-muted-foreground mt-3">{lesson.summary}</p>}
+        {!focused && lesson.summary && <p className="text-muted-foreground mt-3">{lesson.summary}</p>}
       </div>
 
-      {locked && !user ? <AuthInvitation /> : locked ? (
+      {focused ? null : locked && !user ? <AuthInvitation /> : locked ? (
         <Card className="border-secondary/40">
           <CardContent className="py-10 text-center space-y-4">
             <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -314,6 +315,7 @@ export default function LessonDetail() {
           exercises={parseLessonExercises(lesson.exercises)}
           minutes={lesson.estimated_minutes || 20}
           hasActiveSubscription={hasActiveSubscription}
+          onFocusChange={setFocused}
           onLevelFinished={(level, percent) => {
             setProgress((p) => Math.max(p, 60));
             if (user) {
