@@ -192,3 +192,7 @@ All colors MUST be HSL. Mobile-first responsive design.
     display: none;
   }
 }
+
+@media print {
+  .protected-content { visibility: hidden !important; }
+}

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
+import AuthInvitation from '@/components/auth/AuthInvitation';
 import { Award, CalendarDays, Clock, Flag, Globe2, School, Trophy, CheckCircle2 } from 'lucide-react';
 
 interface ChallengeRow {
@@ -91,19 +92,19 @@ export default function Challenges() {
         path="/challenges"
       />
 
-      <div className="mb-8 overflow-hidden rounded-2xl gradient-hero p-6 text-white sm:p-8">
+      <div className="mb-8 border-b border-primary/20 bg-primary/5 p-6 text-foreground sm:p-8">
         <div className="flex items-center gap-3">
           <Trophy className="h-7 w-7" />
           <h1 className="text-2xl font-bold sm:text-3xl">{fr ? 'Challenges' : 'Challenges'}</h1>
         </div>
-        <p className="mt-2 max-w-2xl text-sm text-white/85 sm:text-base">
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
           {fr
-            ? 'Des épreuves de compétition à portée établissement, régionale ou nationale. Une seule tentative, écran verrouillé sans pause, note affichée après la soumission.'
-            : 'Competition papers with school, regional or national scope. One single attempt, locked screen with no pause, score shown after submission.'}
+            ? 'Osez le défi, révélez votre talent et faites briller votre potentiel !'
+            : 'Rise to the challenge, reveal your talent and let your potential shine!'}
         </p>
       </div>
 
-      {(!user || !hasActiveSubscription) ? (
+      {!user ? <AuthInvitation /> : !hasActiveSubscription ? (
         <Card>
           <CardContent className="space-y-4 py-12 text-center">
             <p className="text-muted-foreground">
@@ -140,6 +141,7 @@ export default function Challenges() {
           const ScopeIcon = meta.icon;
           const done = attempted[ch.id] === 'submitted';
           const ended = new Date(ch.ends_at).getTime() < Date.now();
+          const scheduled = !!ch.starts_at && new Date(ch.starts_at).getTime() > Date.now();
 
           return (
             <Card key={ch.id} className="group flex flex-col overflow-hidden transition-shadow hover:shadow-medium">
@@ -151,7 +153,7 @@ export default function Challenges() {
                     {ch.region ? ` · ${ch.region}` : ''}
                   </Badge>
                   <Badge variant={ch.status === 'active' && !ended ? 'secondary' : 'outline'}>
-                    {ended ? (fr ? 'Terminé' : 'Ended') : ch.status === 'active' ? (fr ? 'En cours' : 'Live') : ch.status}
+                    {ended ? (fr ? 'Terminé' : 'Ended') : scheduled ? (fr ? 'À venir' : 'Upcoming') : ch.status === 'active' ? (fr ? 'En cours' : 'Live') : (fr ? 'Inactif' : 'Inactive')}
                   </Badge>
                   {done && (
                     <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">

@@ -18,6 +18,7 @@ export default function ProtectedContent({
   className,
   watermark = true,
   hideOnBlur = true,
+  hideOnTabChange = hideOnBlur,
 }: {
   children: ReactNode;
   className?: string;
@@ -27,6 +28,7 @@ export default function ProtectedContent({
    * permanently hide the content. Disable the blur-on-blur behaviour there.
    */
   hideOnBlur?: boolean;
+  hideOnTabChange?: boolean;
 }) {
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -34,7 +36,7 @@ export default function ProtectedContent({
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const onVisibility = () => setHidden(hideOnBlur && document.visibilityState === 'hidden');
+    const onVisibility = () => setHidden(hideOnTabChange && document.visibilityState === 'hidden');
 
     const onBlur = () => {
       if (hideOnBlur) setHidden(true);
@@ -48,7 +50,7 @@ export default function ProtectedContent({
         e.preventDefault();
       }
       // PrintScreen: cannot be blocked, but we can hide the content right after.
-      if (key === 'printscreen' && hideOnBlur) setHidden(true);
+      if (key === 'printscreen' && hideOnTabChange) setHidden(true);
     };
 
 
@@ -71,12 +73,12 @@ export default function ProtectedContent({
       document.removeEventListener('cut', block);
       document.removeEventListener('dragstart', block);
     };
-  }, [hideOnBlur]);
+  }, [hideOnBlur, hideOnTabChange]);
 
   const label = user?.email?.split('@')[0] || (fr ? 'Invité' : 'Guest');
 
   return (
-    <div className={cn('relative select-none', className)} onDragStart={(e) => e.preventDefault()}>
+    <div className={cn('protected-content relative select-none', className)} onContextMenu={(e) => e.preventDefault()} onCopy={(e) => e.preventDefault()} onCut={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}>
       {watermark && (
         <div
           aria-hidden

@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
+import AuthInvitation from '@/components/auth/AuthInvitation';
+import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, Clock, FileText, Lock, Search, Sparkles } from 'lucide-react';
 
 interface LessonRow {
@@ -25,6 +27,7 @@ interface LessonRow {
   class_id: string | null;
   subject_id: string | null;
   series_id: string | null;
+  series_ids?: string[];
   series: { code: string } | null;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
@@ -35,7 +38,9 @@ export default function Lessons() {
   const { language } = useLanguage();
   const fr = language === 'fr';
   const navigate = useNavigate();
-  const { hasActiveSubscription } = useSubscription();
+  const { user } = useAuth();
+  const { hasActiveSubscription, loading: subscriptionLoading } = useSubscription();
+  const [allSeries, setAllSeries] = useState<{ id: string; code: string }[]>([]);
 
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,9 +52,11 @@ export default function Lessons() {
 
   useEffect(() => {
     (async () => {
+      const { data: seriesData } = await supabase.from('series').select('id, code').order('order_number');
+      setAllSeries(seriesData || []);
       const { data } = await supabase
         .from('lessons')
-        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, series_id, series(code), classes(display_name), subjects(name_fr, name_en)')
+        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, series_id, series_ids, series(code), classes(display_name), subjects(name_fr, name_en)')
         .eq('is_published', true)
         .order('order_number');
       setLessons((data as unknown as LessonRow[]) || []);
@@ -62,18 +69,18 @@ export default function Lessons() {
     [lessons],
   );
   const subjects = useMemo(
-    () => Array.from(new Set(lessons.map((l) => l.subjects?.name_fr || l.subjects?.name_en).filter(Boolean))) as string[],
-    [lessons],
+    () => Array.from(new Set(lessons.map((l) => (fr ? l.subjects?.name_fr : l.subjects?.name_en) || l.subjects?.name_fr || l.subjects?.name_en).filter(Boolean))) as string[],
+    [lessons, fr],
   );
 
   const seriesCodes = useMemo(
-    () => Array.from(new Set(lessons.map((l) => l.series?.code).filter(Boolean))) as string[],
-    [lessons],
+    () => allSeries.filter((s) => lessons.some((l) => (l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).includes(s.id))).map((s) => s.code),
+    [lessons, allSeries],
   );
 
   const filtered = lessons.filter((l) => {
-    if (seriesFilter !== 'all' && l.series?.code !== seriesFilter) return false;
-    const subjectName = l.subjects?.name_fr || l.subjects?.name_en || '';
+    if (seriesFilter !== 'all' && !(l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).some((id) => allSeries.find((s) => s.id === id)?.code === seriesFilter)) return false;
+    const subjectName = (fr ? l.subjects?.name_fr : l.subjects?.name_en) || l.subjects?.name_fr || l.subjects?.name_en || '';
     if (classFilter !== 'all' && l.classes?.display_name !== classFilter) return false;
     if (subjectFilter !== 'all' && subjectName !== subjectFilter) return false;
     if (search.trim()) {
@@ -91,12 +98,13 @@ export default function Lessons() {
   const grouped = useMemo(() => {
     const bySubject = new Map<string, Map<string, LessonRow[]>>();
     filtered.forEach((l) => {
-      const subject = l.subjects?.name_fr || l.subjects?.name_en || (fr ? 'Autres' : 'Others');
+      const subject = (fr ? l.subjects?.name_fr : l.subjects?.name_en) || l.subjects?.name_fr || l.subjects?.name_en || (fr ? 'Autres' : 'Others');
       const chapter = l.chapter || (fr ? 'Général' : 'General');
       if (!bySubject.has(subject)) bySubject.set(subject, new Map());
-      const chapters = bySubject.get(subject)!;
+      const chapters = bySubject.get(subject);
+      if (!chapters) return;
       if (!chapters.has(chapter)) chapters.set(chapter, []);
-      chapters.get(chapter)!.push(l);
+      chapters.get(chapter)?.push(l);
     });
     return Array.from(bySubject.entries()).map(([subject, chapters]) => [
       subject,
@@ -167,7 +175,7 @@ export default function Lessons() {
         </Select>
       </div>
 
-      {loading ? (
+      {loading || subscriptionLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
         </div>
@@ -193,7 +201,7 @@ export default function Lessons() {
                           <Card
                             key={lesson.id}
                             onClick={() => open(lesson)}
-                            className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+                            className="flex h-full flex-col border-t-4 border-t-primary transition-shadow hover:shadow-soft"
                           >
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between gap-2">

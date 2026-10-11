@@ -14,6 +14,8 @@ import SeoHead from '@/components/SeoHead';
 import LessonDocumentViewer from '@/components/lesson/LessonDocumentViewer';
 import LessonQuestions from '@/components/lesson/LessonQuestions';
 import LessonPracticeSection from '@/components/lesson/LessonPracticeSection';
+import ProtectedContent from '@/components/security/ProtectedContent';
+import AuthInvitation from '@/components/auth/AuthInvitation';
 import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { parseLessonQuestions } from '@/lib/lessonQuestions';
 import { parseLessonExercises } from '@/lib/lessonJsonExercises';
@@ -163,7 +165,7 @@ export default function LessonDetail() {
   };
 
 
-  if (loading) {
+  if (loading || subscriptionLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-4">
         <Skeleton className="h-10 w-2/3" />
@@ -216,7 +218,7 @@ export default function LessonDetail() {
         {lesson.summary && <p className="text-muted-foreground mt-3">{lesson.summary}</p>}
       </div>
 
-      {locked ? (
+      {locked && !user ? <AuthInvitation /> : locked ? (
         <Card className="border-secondary/40">
           <CardContent className="py-10 text-center space-y-4">
             <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -245,17 +247,17 @@ export default function LessonDetail() {
             <LessonDocumentViewer fileUrl={lesson.file_url} title={lesson.title} />
           ) : (
             <Card>
-              <CardContent className="py-6 prose-sm max-w-none">
+              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false}>
                 <MarkdownText text={lesson.content} />
-              </CardContent>
+              </ProtectedContent></CardContent>
             </Card>
           )}
 
           {doc?.embedUrl && lesson.content && (
             <Card className="mt-4">
-              <CardContent className="py-6 prose-sm max-w-none">
+              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false}>
                 <MarkdownText text={lesson.content} />
-              </CardContent>
+              </ProtectedContent></CardContent>
             </Card>
           )}
 

@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MessageCircle, Plus, Search, Clock, User, MessageSquare, Lock } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import NewTopicDialog from '@/components/forum/NewTopicDialog';
+import AuthInvitation from '@/components/auth/AuthInvitation';
 
 interface ForumTopic {
   id: string;
@@ -98,9 +99,9 @@ export default function Forum() {
       />
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 border-b border-primary/20 bg-primary/5 px-5 py-6">
           <div className="flex items-center gap-3">
-            <MessageCircle className="h-8 w-8 text-primary" />
+            <MessageCircle className="h-10 w-10 text-secondary" />
             <div>
               <h1 className="text-3xl font-bold text-foreground">
                 {language === 'fr' ? 'Forum' : 'Forum'}
@@ -111,7 +112,7 @@ export default function Forum() {
             </div>
           </div>
           {user && (
-            <Button onClick={() => setIsNewTopicOpen(true)} className="gap-2">
+            <Button onClick={() => setIsNewTopicOpen(true)} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
               <Plus className="h-4 w-4" />
               {language === 'fr' ? 'Nouveau sujet' : 'New Topic'}
             </Button>
@@ -155,13 +156,13 @@ export default function Forum() {
             ))
           ) : topics && topics.length > 0 ? (
             topics.map((topic) => (
-              <Link key={topic.id} to={`/forum/${topic.id}`}>
-                <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <Link className="block" key={topic.id} to={`/forum/${topic.id}`}>
+                <Card className="rounded-lg border-l-4 border-l-primary bg-card transition-shadow hover:shadow-soft hover:border-l-secondary">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground truncate">
+                          <h3 className="font-semibold text-foreground break-words">
                             {topic.title}
                           </h3>
                           {topic.is_closed && (
@@ -174,7 +175,7 @@ export default function Forum() {
                         <p className="text-sm text-muted-foreground line-clamp-1">
                           {topic.content}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
                             {getAuthorName(topic)}
@@ -185,7 +186,7 @@ export default function Forum() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-muted-foreground shrink-0">
+                      <div className="flex items-center gap-2 rounded-md bg-secondary/10 p-3 text-secondary shrink-0">
                         <MessageSquare className="h-4 w-4" />
                         <span className="text-sm font-medium">{topic.reply_count}</span>
                       </div>
@@ -219,20 +220,7 @@ export default function Forum() {
 
         {/* Login prompt for non-authenticated users */}
         {!user && (
-          <Card className="mt-6 border-primary/20 bg-primary/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                {language === 'fr' 
-                  ? 'Connectez-vous pour participer aux discussions' 
-                  : 'Sign in to participate in discussions'}
-              </p>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/auth">
-                  {language === 'fr' ? 'Se connecter' : 'Sign In'}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="mt-6"><AuthInvitation /></div>
         )}
       </div>
 
