@@ -28,6 +28,7 @@ interface LessonRow {
   class_id: string | null;
   subject_id: string | null;
   series_id: string | null;
+  series_ids?: string[];
   establishment_id: string | null;
   language: string;
   estimated_minutes: number | null;
@@ -104,7 +105,7 @@ export default function LessonManagement() {
       lessons.filter((l) => {
         if (classFilter !== 'all' && l.class_id !== classFilter) return false;
         if (subjectFilter !== 'all' && l.subject_id !== subjectFilter) return false;
-        if (seriesFilter !== 'all' && l.series_id !== seriesFilter) return false;
+        if (seriesFilter !== 'all' && !(l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).includes(seriesFilter)) return false;
         if (statusFilter === 'published' && !l.is_published) return false;
         if (statusFilter === 'draft' && l.is_published) return false;
         if (statusFilter === 'document' && !l.file_url) return false;
@@ -149,12 +150,14 @@ export default function LessonManagement() {
       class_id: l.class_id,
       subject_id: l.subject_id,
       series_id: l.series_id,
+      series_ids: l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : [],
       language: l.language,
       estimated_minutes: l.estimated_minutes,
       order_number: lessons.length + 1,
       is_published: false,
       is_free: l.is_free,
       questions: parseLessonQuestions(l.questions),
+      exercises: parseLessonExercises(l.exercises),
       created_by: user?.id,
     } as never);
     if (error) {

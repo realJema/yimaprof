@@ -13,6 +13,7 @@ import { ArrowLeft, Clock, User, Lock, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ReplyThread from '@/components/forum/ReplyThread';
 import ReplyForm from '@/components/forum/ReplyForm';
+import AuthInvitation from '@/components/auth/AuthInvitation';
 
 interface ForumTopicData {
   id: string;
@@ -241,12 +242,12 @@ export default function ForumTopic() {
         </Button>
 
         {/* Topic Card */}
-        <Card className="mb-6">
+        <Card className="mb-6 border-t-4 border-t-secondary shadow-soft">
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <CardTitle className="text-2xl">{topic.title}</CardTitle>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <CardTitle className="break-words text-2xl">{topic.title}</CardTitle>
                   {topic.is_closed && (
                     <Badge variant="secondary" className="gap-1">
                       <Lock className="h-3 w-3" />
@@ -254,7 +255,7 @@ export default function ForumTopic() {
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <User className="h-4 w-4" />
                     {getAuthorName(topic.author)}
@@ -299,7 +300,7 @@ export default function ForumTopic() {
                   key={reply.id}
                   reply={reply}
                   getChildren={getChildren}
-                  topicId={topicId!}
+                   topicId={topic.id}
                   isClosed={topic.is_closed}
                   isAdmin={isAdmin}
                   onReply={(content, parentId) => createReply.mutate({ content, parentReplyId: parentId })}
@@ -340,20 +341,7 @@ export default function ForumTopic() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                {language === 'fr' 
-                  ? 'Connectez-vous pour répondre' 
-                  : 'Sign in to reply'}
-              </p>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/auth">
-                  {language === 'fr' ? 'Se connecter' : 'Sign In'}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <AuthInvitation mode="signin" />
         )}
       </div>
     </div>

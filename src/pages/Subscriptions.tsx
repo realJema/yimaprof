@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SeoHead from '@/components/SeoHead';
+import AuthInvitation from '@/components/auth/AuthInvitation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,10 +63,8 @@ export default function Subscriptions() {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'trimester' | 'annual'>('monthly');
+  const [authOpen, setAuthOpen] = useState(false);
   const isEn = language === 'en';
-  const cyclePrice = (p: SubscriptionPlan) =>
-    billingCycle === 'trimester' ? p.price_trimester || null : billingCycle === 'annual' ? p.price_annual || null : p.price;
   const planName = (p: SubscriptionPlan) => (isEn ? p.name_en : p.name_fr) || p.name;
   const planDescription = (p: SubscriptionPlan) => (isEn ? p.description_en : p.description_fr) || p.description;
   const planFeatures = (p: SubscriptionPlan): string[] => {
@@ -199,16 +199,11 @@ export default function Subscriptions() {
   };
 
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (planId: string, cycle: 'monthly' | 'trimester' | 'annual') => {
     console.log('Subscribe button clicked for plan:', planId);
     
     if (!user) {
-      console.log('User not authenticated, showing toast');
-      toast({
-        title: t('error'),
-        description: t('auth_required_subscribe'),
-        variant: 'destructive',
-      });
+      setAuthOpen(true);
       return;
     }
 
@@ -219,7 +214,7 @@ export default function Subscriptions() {
 
     console.log('Navigating to payment page with planId:', planId);
     // Navigate to payment page with plan ID using React Router
-    navigate(`/payment?planId=${planId}&cycle=${billingCycle}`);
+    navigate(`/payment?planId=${planId}&cycle=${cycle}`);
   };
 
   const handleReferralChange = (value: string) => {
@@ -288,39 +283,6 @@ export default function Subscriptions() {
             </p>
           </div>
 
-          {/* Billing Cycle Toggle */}
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                billingCycle === 'monthly'
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {t('monthly')}
-            </button>
-            <button
-              onClick={() => setBillingCycle('trimester')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                billingCycle === 'trimester'
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {t('trimester')}
-            </button>
-            <button
-              onClick={() => setBillingCycle('annual')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                billingCycle === 'annual'
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {t('annual')}
-            </button>
-          </div>
         </div>
 
         {!userSubscription && (
@@ -414,7 +376,7 @@ export default function Subscriptions() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {plans.map((plan) => {
             const Icon = getPlanIcon(plan.name);
             const isCurrentPlan = userSubscription?.plan_id === plan.id;
@@ -425,7 +387,7 @@ export default function Subscriptions() {
               <Card 
                 key={plan.id} 
                 className={`relative border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card/90 transition-all ${
-                  isPrepa ? 'border-secondary border-2 shadow-2xl shadow-secondary/30 scale-105 ring-2 ring-secondary/40' :
+                  isPrepa ? 'border-secondary border-2 shadow-2xl shadow-secondary/30 ring-2 ring-secondary/40' :
                   isEverything ? 'border-primary shadow-lg' : ''
                 } ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
               >
@@ -453,23 +415,6 @@ export default function Subscriptions() {
                   <CardDescription className="text-sm">
                     {planDescription(plan)}
                   </CardDescription>
-                  <div className="pt-4">
-                    <span className="text-3xl font-bold text-foreground">
-                      {cyclePrice(plan) ? formatPrice(cyclePrice(plan)!, plan.currency) : '—'}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {billingCycle === 'trimester'
-                        ? ` / 3 ${t('months')}`
-                        : billingCycle === 'annual'
-                          ? (language === 'fr' ? ' / an' : ' / year')
-                          : `/${t('month')}`}
-                    </span>
-                    {!cyclePrice(plan) && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {language === 'fr' ? 'Non proposé pour cette durée' : 'Not available for this period'}
-                      </p>
-                    )}
-                  </div>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
@@ -482,28 +427,24 @@ export default function Subscriptions() {
                     ))}
                   </div>
 
-                  <Button
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={subscribing === plan.id || isCurrentPlan || !cyclePrice(plan)}
-                    className={`w-full ${isPrepa ? 'bg-secondary text-secondary-foreground hover:bg-secondary/90' : isEverything ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    variant={isPrepa || isEverything ? 'default' : 'outline'}
-                  >
-                    {subscribing === plan.id ? (
-                      t('processing')
-                    ) : isCurrentPlan ? (
-                      t('current_plan')
-                    ) : userSubscription ? (
-                      userSubscription.subscription_plans.price < plan.price ? t('upgrade') : 
-                      userSubscription.subscription_plans.price > plan.price ? t('downgrade') : t('switch_plan')
-                    ) : (
-                      t('subscribe_to_plan')
-                    )}
-                  </Button>
+                  <div className="divide-y divide-border border-y border-border">
+                    {(['monthly', 'trimester', 'annual'] as const).map((cycle) => {
+                      const price = cycle === 'monthly' ? plan.price : cycle === 'trimester' ? plan.price_trimester : plan.price_annual;
+                      const offered = typeof price === 'number' && price > 0;
+                      return <div key={cycle} className="space-y-2 py-4">
+                        <p className="text-sm font-semibold text-primary">{cycle === 'monthly' ? (isEn ? 'Monthly' : 'Mensuel') : cycle === 'trimester' ? (isEn ? 'Trimester' : 'Trimestriel') : (isEn ? 'Annual' : 'Annuel')}</p>
+                        <p className="text-xl font-bold break-words">{offered ? formatPrice(price, plan.currency) : '—'}</p>
+                        {offered ? <Button onClick={() => handleSubscribe(plan.id, cycle)} disabled={subscribing === plan.id || isCurrentPlan} className="w-full" variant={cycle === 'monthly' ? 'outline' : 'default'}>{isCurrentPlan ? t('current_plan') : t('subscribe_to_plan')}</Button> : <p className="text-xs text-muted-foreground">{isEn ? 'Not available for this period' : 'Non proposé pour cette durée'}</p>}
+                      </div>;
+                    })}
+                  </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
+        <Dialog open={authOpen} onOpenChange={setAuthOpen}><DialogContent><DialogHeader><DialogTitle>{isEn ? "Join Yimaprof" : "Rejoignez Yimaprof"}</DialogTitle></DialogHeader><AuthInvitation /></DialogContent></Dialog>
 
         <div className="text-center pt-8">
           <p className="text-sm text-muted-foreground">

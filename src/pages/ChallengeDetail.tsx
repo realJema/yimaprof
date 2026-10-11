@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import SeoHead from '@/components/SeoHead';
 import ProtectedContent from '@/components/security/ProtectedContent';
+import AuthInvitation from '@/components/auth/AuthInvitation';
 import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
 import { EvaluationTimer } from '@/components/exam/EvaluationTimer';
 import {
@@ -170,7 +171,7 @@ export default function ChallengeDetail() {
   }, [challenge, exam]);
 
   const ended = challenge ? new Date(challenge.ends_at).getTime() < Date.now() : false;
-  const notStarted = false;
+  const notStarted = !!challenge?.starts_at && new Date(challenge.starts_at).getTime() > Date.now();
   const paper = useMemo(() => {
     if (exam?.content) return exam.content;
     const q = challenge?.questions;
@@ -201,6 +202,7 @@ export default function ChallengeDetail() {
       navigate('/auth');
       return;
     }
+    if (subLoading || !hasActiveSubscription || !challenge || challenge.review_status !== 'approved' || challenge.status !== 'active' || notStarted || ended || alreadyDone || !paper) return;
     setRunning(true);
     setRemaining((challenge?.duration_minutes ?? 30) * 60);
     persist({ remainingSeconds: (challenge?.duration_minutes ?? 30) * 60, timeSpentSeconds: 0 });
@@ -452,11 +454,7 @@ export default function ChallengeDetail() {
                   : 'Connection loss: your answers are saved and sent on reconnection.'}
               </li>
             </ul>
-            {!user ? (
-              <Button asChild>
-                <Link to="/auth">{fr ? 'Se connecter pour participer' : 'Sign in to take part'}</Link>
-              </Button>
-            ) : !subLoading && !hasActiveSubscription ? (
+            {!user ? <AuthInvitation mode="signin" /> : !subLoading && !hasActiveSubscription ? (
               <div className="space-y-2">
                 <p className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="h-4 w-4" />{fr ? 'Les challenges sont réservés aux abonnés.' : 'Challenges are for subscribers only.'}</p>
                 <Button asChild size="sm"><Link to="/subscriptions">{fr ? 'Voir les offres' : 'See plans'}</Link></Button>
@@ -468,7 +466,7 @@ export default function ChallengeDetail() {
                   ? 'Vous ne remplissez pas les critères (classe / série) de ce challenge.'
                   : 'You do not match this challenge criteria (class / series).'}
               </div>
-            ) : notStarted || ended || !paper ? (
+            ) : notStarted || ended || !paper || challenge.status !== 'active' || challenge.review_status !== 'approved' ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <AlertTriangle className="h-4 w-4" />
                 {notStarted

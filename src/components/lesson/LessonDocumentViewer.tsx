@@ -59,7 +59,7 @@ export default function LessonDocumentViewer({
           {expanded ? (fr ? 'Réduire' : 'Reduce') : fr ? 'Agrandir' : 'Expand'}
         </Button>
       </div>
-      <ProtectedContent watermark={false} hideOnBlur={false} className="rounded-lg border border-border overflow-hidden bg-card">
+      <ProtectedContent watermark={false} hideOnBlur={false} hideOnTabChange className="rounded-lg border border-border overflow-hidden bg-card">
         <div className={expanded ? 'relative w-full h-[85vh]' : 'relative w-full h-[70vh]'}>
           <iframe
             src={src}

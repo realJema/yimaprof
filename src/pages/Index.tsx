@@ -105,7 +105,7 @@ const Index = () => {
             ) : (
               <>
                 <Button size="lg" className="gradient-primary text-lg px-8 py-6" asChild>
-                  <Link to="/auth?mode=signup">
+                  <Link to="/exams2">
                     {t('get_started_free')}
                   </Link>
                 </Button>
