@@ -1679,7 +1679,7 @@ export default function ExamManager() {
                     <p className="text-xs text-muted-foreground mt-1">
                       {language === 'fr' 
                         ? 'Optionnel - Sélection multiple possible'
-                        : 'Optional - For exams specific to a track'}
+                        : 'Optional - multiple selection allowed'}
                     </p>
                   </div>
 
