@@ -30,8 +30,8 @@ interface SubscriptionPlan {
   name_en?: string | null;
   description_fr?: string | null;
   description_en?: string | null;
-  features_fr?: string[] | null;
-  features_en?: string[] | null;
+  features_fr?: unknown;
+  features_en?: unknown;
 }
 
 interface UserSubscription {
