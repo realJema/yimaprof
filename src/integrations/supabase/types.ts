@@ -412,10 +412,14 @@ export type Database = {
           graded_out_of: number
           id: string
           max_attempts: number
+          pdf_url: string | null
+          questions: Json
           region: string | null
+          review_note: string | null
+          review_status: string
           reward: string | null
           scope: string
-          starts_at: string
+          starts_at: string | null
           status: string
           subject_id: string | null
           title: string
@@ -436,10 +440,14 @@ export type Database = {
           graded_out_of?: number
           id?: string
           max_attempts?: number
+          pdf_url?: string | null
+          questions?: Json
           region?: string | null
+          review_note?: string | null
+          review_status?: string
           reward?: string | null
           scope?: string
-          starts_at?: string
+          starts_at?: string | null
           status?: string
           subject_id?: string | null
           title: string
@@ -460,10 +468,14 @@ export type Database = {
           graded_out_of?: number
           id?: string
           max_attempts?: number
+          pdf_url?: string | null
+          questions?: Json
           region?: string | null
+          review_note?: string | null
+          review_status?: string
           reward?: string | null
           scope?: string
-          starts_at?: string
+          starts_at?: string | null
           status?: string
           subject_id?: string | null
           title?: string
@@ -970,6 +982,7 @@ export type Database = {
           language: string | null
           period_id: string
           series_id: string | null
+          series_ids: string[]
           subject_id: string
           tags: string[] | null
           thumbnail_url: string | null
@@ -994,6 +1007,7 @@ export type Database = {
           language?: string | null
           period_id: string
           series_id?: string | null
+          series_ids?: string[]
           subject_id: string
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -1018,6 +1032,7 @@ export type Database = {
           language?: string | null
           period_id?: string
           series_id?: string | null
+          series_ids?: string[]
           subject_id?: string
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -1888,12 +1903,18 @@ export type Database = {
           created_at: string
           currency: string | null
           description: string | null
+          description_en: string | null
+          description_fr: string | null
           duration_days: number
           features: Json | null
+          features_en: Json | null
+          features_fr: Json | null
           id: string
           is_active: boolean | null
           max_downloads: number | null
           name: string
+          name_en: string | null
+          name_fr: string | null
           price: number
           price_annual: number | null
           price_trimester: number | null
@@ -1903,12 +1924,18 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string | null
+          description_en?: string | null
+          description_fr?: string | null
           duration_days: number
           features?: Json | null
+          features_en?: Json | null
+          features_fr?: Json | null
           id?: string
           is_active?: boolean | null
           max_downloads?: number | null
           name: string
+          name_en?: string | null
+          name_fr?: string | null
           price: number
           price_annual?: number | null
           price_trimester?: number | null
@@ -1918,12 +1945,18 @@ export type Database = {
           created_at?: string
           currency?: string | null
           description?: string | null
+          description_en?: string | null
+          description_fr?: string | null
           duration_days?: number
           features?: Json | null
+          features_en?: Json | null
+          features_fr?: Json | null
           id?: string
           is_active?: boolean | null
           max_downloads?: number | null
           name?: string
+          name_en?: string | null
+          name_fr?: string | null
           price?: number
           price_annual?: number | null
           price_trimester?: number | null
