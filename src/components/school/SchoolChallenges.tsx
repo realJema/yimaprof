@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import ChallengeDocumentField from '@/components/challenge/ChallengeDocumentField';
+import { SeriesMultiSelect } from '@/components/ui/series-multi-select';
 import { Award, Plus, Trophy } from 'lucide-react';
 
 interface Challenge {
@@ -44,7 +46,9 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', reward: '', ends_at: '', pdf_url: '', duration: '60' });
+  const [form, setForm] = useState({ title: '', description: '', reward: '', starts_at: '', ends_at: '', pdf_url: '', duration: '60' });
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [seriesList, setSeriesList] = useState<{ id: string; code: string; name: string }[]>([]);
   const [seriesIds, setSeriesIds] = useState<string[]>([]);
   useEffect(() => {
@@ -75,14 +79,16 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
     e.preventDefault();
     if (form.title.trim().length < 3) return;
     const pdf = form.pdf_url.trim();
-    if (pdf && !/^https:\/\/(drive|docs)\.google\.com\//.test(pdf)) {
+    if (pdf && !pdf.startsWith('storage:') && !/^https:\/\/(drive|docs)\.google\.com\//.test(pdf)) {
       toast({ title: fr ? 'Lien invalide' : 'Invalid link', description: fr ? 'Utilisez un lien Google Drive (https://drive.google.com/...).' : 'Use a Google Drive link (https://drive.google.com/...).', variant: 'destructive' });
       return;
     }
-    if (!form.ends_at) {
-      toast({ title: fr ? 'Date de fin requise' : 'End date required', variant: 'destructive' });
+    if (!form.starts_at || !form.ends_at || new Date(form.ends_at) <= new Date(form.starts_at)) {
+      toast({ title: fr ? 'Choisissez une date de fin postérieure au début.' : 'Choose an end date after the start.', variant: 'destructive' });
       return;
     }
+    if (saving || uploading) return;
+    setSaving(true);
     const { error } = await supabase.from('challenges').insert({
       pdf_url: pdf || null,
       eligible_series_ids: seriesIds,
@@ -91,16 +97,21 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
       title: form.title.trim().slice(0, 150),
       description: form.description.trim().slice(0, 500) || null,
       reward: form.reward.trim().slice(0, 150) || null,
-      ends_at: new Date(form.ends_at + 'T23:59:59').toISOString(),
+      starts_at: new Date(form.starts_at).toISOString(),
+      ends_at: new Date(form.ends_at).toISOString(),
+      scope: 'establishment',
+      status: 'draft',
+      review_status: 'pending',
       created_by: user?.id,
     } as never);
+    setSaving(false);
     if (error) {
       toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
       return;
     }
     toast({ title: fr ? 'Challenge envoyé pour validation' : 'Challenge sent for review', description: fr ? 'L’équipe Yimaprof vérifie le PDF et prépare les questions.' : 'The Yimaprof team reviews the PDF and prepares the questions.' });
     setOpen(false);
-    setForm({ title: '', description: '', reward: '', ends_at: '', pdf_url: '', duration: '60' });
+    setForm({ title: '', description: '', reward: '', starts_at: '', ends_at: '', pdf_url: '', duration: '60' });
     setSeriesIds([]);
     load();
   };
@@ -114,7 +125,7 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="h-4 w-4 mr-2" />{fr ? 'Nouveau challenge' : 'New challenge'}</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{fr ? 'Créer un challenge' : 'Create a challenge'}</DialogTitle></DialogHeader>
             <form onSubmit={create} className="space-y-4">
               <div>
@@ -130,36 +141,26 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
                 <Input id="cr" maxLength={150} value={form.reward} onChange={(e) => setForm({ ...form, reward: e.target.value })} />
               </div>
               <div>
+                <Label htmlFor="cs">{fr ? 'Date de début' : 'Start date'}</Label>
+                <Input id="cs" type="datetime-local" required value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} />
+              </div>
+              <div>
                 <Label htmlFor="ce">{fr ? 'Date de fin' : 'End date'}</Label>
-                <Input id="ce" type="date" required value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
+                <Input id="ce" type="datetime-local" required value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="cdu">{fr ? 'Durée (min)' : 'Duration (min)'}</Label>
                 <Input id="cdu" type="number" min={5} max={600} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
               </div>
-              <div>
-                <Label htmlFor="cp">{fr ? 'Lien Google Drive du PDF de l’épreuve' : 'Google Drive link to the paper PDF'}</Label>
-                <Input id="cp" type="url" maxLength={500} placeholder="https://drive.google.com/file/d/..." value={form.pdf_url} onChange={(e) => setForm({ ...form, pdf_url: e.target.value })} />
-                <p className="mt-1 text-xs text-muted-foreground">{fr ? 'Partagez le fichier en lecture seule avec « Toute personne disposant du lien ».' : 'Share the file read-only with "Anyone with the link".'}</p>
-              </div>
+              <ChallengeDocumentField value={form.pdf_url} onChange={(pdf_url) => setForm({ ...form, pdf_url })} onBusyChange={setUploading} />
               <div>
                 <Label>{fr ? 'Séries / Filières concernées' : 'Series / Tracks'}</Label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {seriesList.map((s) => {
-                    const on = seriesIds.includes(s.id);
-                    return (
-                      <button type="button" key={s.id} onClick={() => setSeriesIds(on ? seriesIds.filter((x) => x !== s.id) : [...seriesIds, s.id])}
-                        className={`rounded-full border px-3 py-1 text-xs transition-colors ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground'}`}>
-                        {s.code}
-                      </button>
-                    );
-                  })}
-                </div>
+                <SeriesMultiSelect options={seriesList.map((s) => ({ id: s.id, label: s.code }))} value={seriesIds} onChange={setSeriesIds} />
                 <p className="mt-1 text-xs text-muted-foreground">{fr ? 'Aucune sélection = toutes les séries.' : 'None selected = all series.'}</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
-                <Button type="submit">{fr ? 'Créer' : 'Create'}</Button>
+                <Button type="submit" disabled={saving || uploading}>{saving ? (fr ? 'Envoi…' : 'Sending…') : (fr ? 'Créer' : 'Create')}</Button>
               </div>
             </form>
           </DialogContent>
@@ -199,6 +200,7 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{ch.description}</p>
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                {ch.starts_at && <span>{fr ? 'Début : ' : 'Starts: '}{new Date(ch.starts_at).toLocaleString(fr ? 'fr-FR' : 'en-GB')}</span>}
                 <span>{fr ? 'Fin : ' : 'Ends: '}{new Date(ch.ends_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}</span>
                 {ch.review_status === 'rejected' && ch.review_note && <span className="text-destructive">{ch.review_note}</span>}
                 {ch.reward && <span>🏅 {ch.reward}</span>}
