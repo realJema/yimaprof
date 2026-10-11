@@ -1270,6 +1270,41 @@ export type Database = {
           },
         ]
       }
+      lesson_exercise_results: {
+        Row: {
+          created_at: string
+          id: string
+          lesson_id: string
+          level: string
+          percent: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lesson_id: string
+          level: string
+          percent?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          level?: string
+          percent?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_exercise_results_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_exercises: {
         Row: {
           created_at: string
