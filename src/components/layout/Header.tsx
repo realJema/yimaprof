@@ -199,6 +199,10 @@ export default function Header() {
     icon: BookOpen,
     label: language === 'fr' ? 'Leçons' : 'Lessons'
   }, {
+    to: '/challenges',
+    icon: Trophy,
+    label: 'Challenges'
+  }, {
     to: '/schools',
     icon: Info,
     label: language === 'fr' ? 'Établissements' : 'Schools'
@@ -354,6 +358,13 @@ export default function Header() {
               <Link to="/lessons" className="flex items-center space-x-2">
                 <BookOpen className="h-4 w-4" />
                 <span>{language === 'fr' ? 'Leçons' : 'Lessons'}</span>
+              </Link>
+            </Button>
+
+            <Button variant={isActive('/challenges') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
+              <Link to="/challenges" className="flex items-center space-x-2">
+                <Trophy className="h-4 w-4" />
+                <span>Challenges</span>
               </Link>
             </Button>
 
