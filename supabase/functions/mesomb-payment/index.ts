@@ -80,14 +80,35 @@ serve(async (req) => {
     const requestBody = await req.json();
     console.log('Request body:', requestBody);
     
-    const { planId, phoneNumber, amount, referredBy } = requestBody;
+    const { planId, phoneNumber, referredBy } = requestBody;
+    const cycle: 'monthly' | 'trimester' | 'annual' =
+      requestBody.cycle === 'trimester' || requestBody.cycle === 'annual' ? requestBody.cycle : 'monthly';
     
-    if (!planId || !phoneNumber || !amount) {
+    if (!planId || !phoneNumber) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Price is always resolved server-side from the plan (never trusted from the client)
+    const planClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: planRow } = await planClient
+      .from('subscription_plans')
+      .select('price, price_trimester, price_annual, is_active')
+      .eq('id', planId)
+      .maybeSingle();
+    const planPrice = !planRow || !planRow.is_active ? null
+      : cycle === 'trimester' ? planRow.price_trimester
+      : cycle === 'annual' ? planRow.price_annual
+      : planRow.price;
+    if (!planPrice || planPrice <= 0) {
+      return new Response(JSON.stringify({ error: 'Plan or billing period unavailable' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const amount = String(planPrice);
     
     const phoneValidation = validatePhoneNumber(phoneNumber);
     if (!phoneValidation.valid) {
@@ -145,6 +166,7 @@ serve(async (req) => {
     const transactionMetadata = { 
       phone_number: cleanedPhone, 
       plan_id: planId, 
+      billing_cycle: cycle,
       referred_by: referredBy, 
       service,
       initiated_at: new Date().toISOString()
