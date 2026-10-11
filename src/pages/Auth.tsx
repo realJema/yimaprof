@@ -23,6 +23,8 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const referralCode = searchParams.get("ref");
+  const requestedNext = searchParams.get('next');
+  const nextPage = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') && !requestedNext.includes('\\') && !requestedNext.startsWith('/auth') ? requestedNext : '/';
 
   const modeParam = searchParams.get("mode");
   const defaultTab = modeParam === "signup" ? "signup" : modeParam === "school" ? "school" : "signin";
@@ -31,9 +33,9 @@ export default function Auth() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !loading) {
-      navigate("/");
+      navigate(nextPage);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, nextPage]);
 
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
@@ -63,7 +65,7 @@ export default function Auth() {
     const { error } = await signIn(formData.email, formData.password);
     
     if (!error) {
-      navigate("/");
+      navigate(nextPage);
     }
     
     setIsLoading(false);

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SeriesMultiSelect } from '@/components/ui/series-multi-select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +39,7 @@ interface LessonRow {
   class_id: string | null;
   subject_id: string | null;
   series_id: string | null;
+  series_ids?: string[];
   language: string;
   estimated_minutes: number | null;
   order_number: number;
@@ -57,6 +59,7 @@ const emptyForm = {
   class_id: '',
   subject_id: '',
   series_id: '',
+  series_ids: [] as string[],
   language: 'fr',
   minutes: '20',
   is_published: true,
@@ -152,6 +155,7 @@ export default function LessonEditor() {
       class_id: l.class_id || '',
       subject_id: l.subject_id || '',
       series_id: l.series_id || '',
+      series_ids: l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : [],
       language: l.language || 'fr',
       minutes: String(l.estimated_minutes ?? 20),
       is_published: l.is_published,
@@ -198,7 +202,8 @@ export default function LessonEditor() {
       chapter: form.chapter.trim().slice(0, 120) || null,
       class_id: form.class_id || null,
       subject_id: form.subject_id || null,
-      series_id: form.series_id || null,
+      series_id: form.series_ids[0] || null,
+      series_ids: form.series_ids,
       language: form.language,
       estimated_minutes: Number(form.minutes) || null,
       is_published: form.is_published,
@@ -365,19 +370,8 @@ export default function LessonEditor() {
                       </Select>
                     </div>
                     <div>
-                      <Label>{fr ? 'Série' : 'Series'}</Label>
-                      <Select value={form.series_id} onValueChange={(v) => setForm({ ...form, series_id: v })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={fr ? 'Optionnel' : 'Optional'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {series.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>{fr ? 'Séries / Filières' : 'Series / Tracks'}</Label>
+                      <SeriesMultiSelect options={series} value={form.series_ids} onChange={(ids) => setForm({ ...form, series_ids: ids })} />
                     </div>
                     <div>
                       <Label htmlFor="le-chapter">{fr ? 'Chapitre' : 'Chapter'}</Label>
