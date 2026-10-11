@@ -15,7 +15,7 @@ export function parseChallengeQuestions(input: unknown): unknown[] | { questions
     let answers = item.answers;
     if (!Array.isArray(answers)) {
       if (mcq) {
-        if (!Array.isArray(item.options) || item.options.length < 2 || !item.options.every((o) => typeof o === 'string') || !item.options.includes(item.answer)) throw new Error(`Question ${index + 1} : options et réponse QCM invalides / invalid MCQ options and answer.`);
+        if (!Array.isArray(item.options) || item.options.length < 2 || typeof item.answer !== 'string' || !item.options.every((o) => typeof o === 'string') || !item.options.includes(item.answer)) throw new Error(`Question ${index + 1} : options et réponse QCM invalides / invalid MCQ options and answer.`);
         answers = item.options.map((text, i) => ({ id: `a-${index}-${i}`, text, is_correct: text === item.answer }));
       } else {
         if (typeof item.answer !== 'string' || !item.answer.trim()) throw new Error(`Question ${index + 1} : réponse requise / answer required.`);
