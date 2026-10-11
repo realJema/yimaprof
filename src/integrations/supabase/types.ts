@@ -1417,6 +1417,7 @@ export type Database = {
           order_number: number
           questions: Json
           series_id: string | null
+          series_ids: string[]
           subject_id: string | null
           summary: string | null
           title: string
@@ -1442,6 +1443,7 @@ export type Database = {
           order_number?: number
           questions?: Json
           series_id?: string | null
+          series_ids?: string[]
           subject_id?: string | null
           summary?: string | null
           title: string
@@ -1467,6 +1469,7 @@ export type Database = {
           order_number?: number
           questions?: Json
           series_id?: string | null
+          series_ids?: string[]
           subject_id?: string | null
           summary?: string | null
           title?: string
