@@ -14,3 +14,9 @@
 - [x] Navigation gratuite et invitations inscription/connexion
 - [x] Vérification des couleurs d’origine et des parcours publics et imports JSON
 - [ ] Vérification complète des parcours Admin/Établissement avec connexion : sessions de test indisponibles sur le Supabase externe
+
+## Améliorations du 11 octobre (2)
+- [x] Épreuves : séries multiples (déjà en place)
+- [x] Challenges : brouillon persistant (école + admin), aperçu et modification admin, cible classes/séries
+- [x] Challenges validés visibles par les élèves inscrits par leur école
+- [x] Leçons : exercices en mode focus + appréciations par niveau
