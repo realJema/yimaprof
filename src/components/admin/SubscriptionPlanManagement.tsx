@@ -237,7 +237,7 @@ export function SubscriptionPlanManagement() {
       label: 'Trimester',
       render: (value: number, plan: SubscriptionPlan) => {
         const planAny = plan as any;
-        const price = planAny.price_trimester || Math.floor(plan.price * 3 * 0.9);
+        const price = planAny.price_trimester || 0;
         return `${price.toLocaleString()} ${plan.currency}`;
       },
     },
