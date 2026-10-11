@@ -181,7 +181,7 @@ const Exams2 = () => {
     queryKey: ['all-exams'],
     queryFn: async () => {
       const { data, error } = await supabase.from('exams').select(`
-          id, title, description, is_published, visibility, created_at,
+          id, title, description, is_published, visibility, created_at, series_ids,
           subject:subjects(id, name, name_en, name_fr),
           academic_year:academic_years(id, year_label),
           exam_type:exam_types(id, name, name_en, name_fr),
