@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import SeoHead from '@/components/SeoHead';
+import AuthInvitation from '@/components/auth/AuthInvitation';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -104,6 +106,7 @@ const getSubjectColor = (subjectName: string | undefined) => {
 const ITEMS_PER_PAGE = 12;
 
 const Exams2 = () => {
+  const { user } = useAuth();
   const { language } = useLanguage();
   const { hasActiveSubscription, subscription } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1069,6 +1072,7 @@ const Exams2 = () => {
       {/* Locked exam dialog for non-subscribers */}
       <Dialog open={lockedDialogOpen} onOpenChange={setLockedDialogOpen}>
         <DialogContent className="sm:max-w-md">
+          {!user ? <AuthInvitation /> : <>
           <DialogHeader>
             <div className="mx-auto mb-2 p-3 rounded-full bg-primary/10">
               <Crown className="h-8 w-8 text-primary" />
@@ -1093,6 +1097,7 @@ const Exams2 = () => {
               </Button>
             </Link>
           </DialogFooter>
+          </>}
         </DialogContent>
       </Dialog>
     </div>;
