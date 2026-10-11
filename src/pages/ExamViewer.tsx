@@ -1,3 +1,5 @@
+import type { JsonLevel } from '@/lib/lessonJsonExercises';
+import { normalizeLevel } from '@/lib/lessonExercises';
 import { isFreeExam as isFreeExamVisibility, isLessonOnlyExam } from '@/lib/examVisibility';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
@@ -100,6 +102,16 @@ export default function ExamViewer() {
   } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [lessonLevel, setLessonLevel] = useState<JsonLevel | null>(null);
+  useEffect(() => {
+    const lid = searchParams.get('lesson');
+    if (!lid || !examId) return;
+    supabase.from('lesson_exercises').select('level').eq('lesson_id', lid).eq('exam_id', examId).maybeSingle()
+      .then(({ data }) => {
+        const map: Record<string, JsonLevel> = { easy: 'facile', intermediate: 'intermediaire', difficult: 'difficile' };
+        if (data) setLessonLevel(map[normalizeLevel(data.level)]);
+      });
+  }, [searchParams, examId]);
   const {
     language,
     t
@@ -1367,7 +1379,7 @@ export default function ExamViewer() {
       <EvaluationRulesDialog open={showRulesDialog} onOpenChange={setShowRulesDialog} onStart={handleStartEvaluation} durationMinutes={durationMinutes} attemptCount={attemptCount} />
 
       {/* Evaluation Results Dialog */}
-      <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} aiGrading={aiGrading} aiFeedback={aiFeedback} />
+      <EvaluationResultsDialog open={showResultsDialog} onOpenChange={setShowResultsDialog} score={score} hasMcq={hasMcqQuestions()} timeSpentSeconds={timeSpentSeconds} attemptNumber={currentAttemptNumber} onRetry={handleRetry} onClose={handleCloseResults} onViewAnswers={handleViewAnswers} aiGrading={aiGrading} aiFeedback={aiFeedback} appreciationLevel={lessonLevel} />
 
       {/* Subscriber-only evaluation dialog */}
       <Dialog open={showSubscriberOnlyDialog} onOpenChange={setShowSubscriberOnlyDialog}>

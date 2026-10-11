@@ -75,7 +75,13 @@ export default function Challenges() {
     })();
   }, [user]);
 
-  const visible = challenges.filter((c) => (!(c.eligible_class_ids || []).length || !myClassId || (c.eligible_class_ids || []).includes(myClassId)) && seriesFilter === 'all' || !(c.eligible_series_ids || []).length || (c.eligible_series_ids || []).includes(seriesFilter));
+  const visible = challenges.filter((c) => {
+    const cls = c.eligible_class_ids || [];
+    const ser = c.eligible_series_ids || [];
+    const classOk = !cls.length || !myClassId || cls.includes(myClassId);
+    const seriesOk = seriesFilter === 'all' || !ser.length || ser.includes(seriesFilter);
+    return classOk && seriesOk;
+  });
 
   if (loading || subLoading) {
     return (
@@ -133,7 +139,7 @@ export default function Challenges() {
       {visible.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            {fr ? 'Aucun challenge disponible pour le moment' : 'No challenge available at the moment'}
+            {fr ? 'Aucun challenge disponible pour le moment. Les challenges d’établissement sont visibles uniquement par les élèves inscrits dans cet établissement.' : 'No challenge available at the moment. School challenges are only visible to students enrolled in that school.'}
           </CardContent>
         </Card>
       )}
