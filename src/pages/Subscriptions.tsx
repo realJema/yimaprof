@@ -376,7 +376,7 @@ export default function Subscriptions() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {plans.map((plan) => {
             const Icon = getPlanIcon(plan.name);
             const isCurrentPlan = userSubscription?.plan_id === plan.id;
@@ -432,7 +432,7 @@ export default function Subscriptions() {
                       const price = cycle === 'monthly' ? plan.price : cycle === 'trimester' ? plan.price_trimester : plan.price_annual;
                       const offered = typeof price === 'number' && price > 0;
                       return <div key={cycle} className="space-y-2 py-4">
-                        <p className="text-sm font-semibold text-primary">{t(cycle)}</p>
+                        <p className="text-sm font-semibold text-primary">{cycle === 'monthly' ? (isEn ? 'Monthly' : 'Mensuel') : cycle === 'trimester' ? (isEn ? 'Trimester' : 'Trimestriel') : (isEn ? 'Annual' : 'Annuel')}</p>
                         <p className="text-xl font-bold break-words">{offered ? formatPrice(price, plan.currency) : '—'}</p>
                         {offered ? <Button onClick={() => handleSubscribe(plan.id, cycle)} disabled={subscribing === plan.id || isCurrentPlan} className="w-full" variant={cycle === 'monthly' ? 'outline' : 'default'}>{isCurrentPlan ? t('current_plan') : t('subscribe_to_plan')}</Button> : <p className="text-xs text-muted-foreground">{isEn ? 'Not available for this period' : 'Non proposé pour cette durée'}</p>}
                       </div>;

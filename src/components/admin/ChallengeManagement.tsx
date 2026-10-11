@@ -88,7 +88,7 @@ export function ChallengeManagement() {
   }), [rows]);
 
   const open = (r: Row) => {
-    setEditing(r);
+    setEditing({ ...r, starts_at: r.starts_at || new Date(Math.min(Date.now(), new Date(r.ends_at).getTime() - 86400000)).toISOString() });
     setJson(hasQuestions(r.questions) ? JSON.stringify(r.questions, null, 2) : '');
     setExamId(r.exam_id || '');
     setNote(r.review_note || '');

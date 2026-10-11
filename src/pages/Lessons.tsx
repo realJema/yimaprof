@@ -200,7 +200,6 @@ export default function Lessons() {
                         return (
                           <Card
                             key={lesson.id}
-                            onClick={() => open(lesson)}
                             className="flex h-full flex-col border-t-4 border-t-primary transition-shadow hover:shadow-soft"
                           >
                             <CardHeader className="pb-2">
@@ -215,10 +214,11 @@ export default function Lessons() {
                                 ) : null}
                               </div>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="flex flex-1 flex-col gap-3">
                               <p className="text-sm text-muted-foreground line-clamp-2">{lesson.summary}</p>
                               <div className="flex flex-wrap items-center gap-2 text-xs">
                                 {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
+                                {(lesson.series_ids?.length ? lesson.series_ids : lesson.series_id ? [lesson.series_id] : []).map((id) => <Badge key={id} variant="outline">{allSeries.find((s) => s.id === id)?.code}</Badge>)}
                                 {lesson.file_url && (
                                   <Badge variant="outline" className="gap-1">
                                     <FileText className="h-3 w-3" />{fr ? 'Document' : 'Document'}
@@ -230,6 +230,7 @@ export default function Lessons() {
                                   </span>
                                 )}
                               </div>
+                              <Button variant={locked ? 'outline' : 'default'} className="mt-auto w-full" onClick={() => open(lesson)}>{locked ? (fr ? 'Découvrir la leçon' : 'Discover lesson') : (fr ? 'Ouvrir la leçon' : 'Open lesson')}</Button>
                             </CardContent>
                           </Card>
                         );
@@ -246,6 +247,7 @@ export default function Lessons() {
 
       <Dialog open={lockOpen} onOpenChange={setLockOpen}>
         <DialogContent>
+          {!user ? <AuthInvitation /> : <>
           <DialogHeader>
             <DialogTitle>{fr ? 'Leçon réservée aux abonnés' : 'Lesson reserved for subscribers'}</DialogTitle>
             <DialogDescription>
@@ -258,6 +260,7 @@ export default function Lessons() {
             <Button variant="outline" onClick={() => setLockOpen(false)}>{fr ? 'Fermer' : 'Close'}</Button>
             <Button asChild><Link to="/subscriptions">{fr ? 'Voir les abonnements' : 'See plans'}</Link></Button>
           </DialogFooter>
+          </>}
         </DialogContent>
       </Dialog>
     </div>
