@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle2, ExternalLink, FileJson, Trophy, XCircle, Plus, Trash2, Power } from 'lucide-react';
+import { ExamContentRenderer } from '@/components/exam/ExamContentRenderer';
+import { Eye, CheckCircle2, ExternalLink, FileJson, Trophy, XCircle, Plus, Trash2, Power } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
 import ChallengeDetailsForm, { type ChallengeFields } from '@/components/challenge/ChallengeDetailsForm';
@@ -58,6 +59,13 @@ export function ChallengeManagement() {
   const [examId, setExamId] = useState('');
   const [note, setNote] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<Row | null>(null);
+  const DRAFT_KEY = 'yima-admin-challenge-draft';
+  // Keep a new challenge draft while it is being written, until saved or cancelled.
+  useEffect(() => {
+    if (editing && !editing.id) localStorage.setItem(DRAFT_KEY, JSON.stringify({ editing, json, examId, note }));
+  }, [editing, json, examId, note]);
+  const closeEditor = () => { if (editing && !editing.id) localStorage.removeItem(DRAFT_KEY); setEditing(null); };
 
   const load = async () => {
     setLoading(true);
@@ -154,12 +162,14 @@ export function ChallengeManagement() {
     const { error } = editing.id ? await supabase.from('challenges').update(patch as never).eq('id', editing.id) : await supabase.from('challenges').insert({ ...patch, created_by: user?.id, status: review === 'approved' ? 'active' : 'draft', review_status: review || 'pending' } as never);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    if (!editing.id) localStorage.removeItem(DRAFT_KEY);
     toast.success(review === 'approved' ? (fr ? 'Challenge validé' : 'Challenge approved') : review === 'rejected' ? (fr ? 'Challenge refusé' : 'Challenge rejected') : (fr ? 'Enregistré' : 'Saved'));
     setEditing(null);
     load();
   };
 
   const createNew = () => {
+    try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d?.editing) { setEditing(d.editing); setJson(d.json || ''); setExamId(d.examId || ''); setNote(d.note || ''); setJsonError(null); toast.info(fr ? 'Brouillon restauré' : 'Draft restored'); return; } } catch { /* ignore */ }
     open({ id: '', title: '', description: '', starts_at: new Date().toISOString(), ends_at: new Date(Date.now()+14*86400000).toISOString(), duration_minutes: 60, graded_out_of: 20, status: 'draft', review_status: 'pending', review_note: null, pdf_url: null, exam_id: null, questions: [], eligible_series_ids: [], eligible_class_ids: [], establishment_id: null, establishments: null, created_at: new Date().toISOString(), scope: 'national', region: null, country: 'Cameroun', reward: null, subject_id: null, class_id: null });
   };
   const toggle = async (row: Row) => {
@@ -224,7 +234,8 @@ export function ChallengeManagement() {
                   <Badge variant="outline">{r.status === "active" ? (fr ? "Actif" : "Active") : (fr ? "Inactif" : "Inactive")}</Badge>
                   <Button size="icon" variant="ghost" disabled={saving || r.review_status !== "approved"} title={r.status === "active" ? (fr ? "Désactiver" : "Deactivate") : (fr ? "Activer" : "Activate")} onClick={() => toggle(r)}><Power className={r.status === "active" ? "h-4 w-4 text-accent" : "h-4 w-4 text-muted-foreground"} /></Button>
                   <Button size="icon" variant="ghost" title={fr ? "Supprimer" : "Delete"} onClick={() => setDeleting(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                  <Button size="sm" variant="outline" onClick={() => open(r)}>{fr ? 'Traiter' : 'Review'}</Button>
+                  <Button size="icon" variant="ghost" title={fr ? 'Aperçu' : 'Preview'} onClick={() => setPreview(r)}><Eye className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="outline" onClick={() => open(r)}>{fr ? 'Modifier / traiter' : 'Edit / review'}</Button>
                 </div>
               </div>
             ))}
@@ -232,8 +243,8 @@ export function ChallengeManagement() {
         )}
       </CardContent>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <Dialog open={!!editing} onOpenChange={(o) => !o && closeEditor()}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing?.id ? (fr ? "Modifier / traiter le challenge" : "Edit / review challenge") : (fr ? "Créer challenge" : "Create challenge")}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-4">
@@ -256,10 +267,35 @@ export function ChallengeManagement() {
               </div>
               {jsonError && <p className="text-sm text-destructive">{jsonError}</p>}
               <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="ghost" onClick={closeEditor}>{fr ? 'Annuler' : 'Cancel'}</Button>
                 <Button disabled={saving || uploading} variant="outline" onClick={() => save(null)}>{fr ? 'Enregistrer' : 'Save'}</Button>
                 <Button disabled={saving || uploading || !editing.id} variant="destructive" onClick={() => save('rejected')}><XCircle className="mr-2 h-4 w-4" />{fr ? 'Refuser' : 'Reject'}</Button>
                 <Button disabled={saving || uploading} onClick={() => save('approved')}><CheckCircle2 className="mr-2 h-4 w-4" />{fr ? 'Valider' : 'Approve'}</Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader><DialogTitle>{preview?.title}</DialogTitle></DialogHeader>
+          {preview && (
+            <div className="space-y-4">
+              {preview.description && <p className="text-sm text-muted-foreground">{preview.description}</p>}
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="outline">{label(preview.review_status)}</Badge>
+                {preview.starts_at && <Badge variant="outline">{fr ? 'Début' : 'Start'} {new Date(preview.starts_at).toLocaleString(fr ? 'fr-FR' : 'en-GB')}</Badge>}
+                <Badge variant="outline">{fr ? 'Fin' : 'End'} {new Date(preview.ends_at).toLocaleString(fr ? 'fr-FR' : 'en-GB')}</Badge>
+                <Badge variant="outline">{preview.duration_minutes} min · /{preview.graded_out_of}</Badge>
+                {(preview.eligible_class_ids || []).map((id) => <Badge key={id} variant="secondary">{classes.find((c) => c.id === id)?.display_name}</Badge>)}
+                {(preview.eligible_series_ids || []).map((id) => <Badge key={id} variant="secondary">{series.find((s) => s.id === id)?.code}</Badge>)}
+              </div>
+              {hasQuestions(preview.questions) ? (
+                <ExamContentRenderer content={preview.questions as never} showAnswers mode="preview" />
+              ) : (
+                <p className="py-6 text-center text-sm text-muted-foreground">{preview.exam_id ? (fr ? 'Questions issues de l’épreuve liée.' : 'Questions come from the linked paper.') : (fr ? 'Aucune question pour le moment.' : 'No questions yet.')}</p>
+              )}
+              <div className="flex justify-end"><Button variant="outline" onClick={() => { const r = preview; setPreview(null); open(r); }}>{fr ? 'Modifier' : 'Edit'}</Button></div>
             </div>
           )}
         </DialogContent>

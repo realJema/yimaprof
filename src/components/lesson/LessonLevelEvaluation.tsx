@@ -4,8 +4,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { JsonExercise, isMcqExercise, totalPoints } from '@/lib/lessonJsonExercises';
-import { AlertTriangle, CheckCircle2, Clock, RotateCcw } from 'lucide-react';
+import { JsonExercise, JsonLevel, isMcqExercise, totalPoints } from '@/lib/lessonJsonExercises';
+import { getAppreciation } from '@/lib/lessonAppreciations';
+import { AlertTriangle, CheckCircle2, Clock, MessageSquareHeart, RotateCcw } from 'lucide-react';
 
 const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
@@ -16,10 +17,12 @@ const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${Str
 export default function LessonLevelEvaluation({
   exercises,
   minutes,
+  level,
   onFinished,
 }: {
   exercises: JsonExercise[];
   minutes: number;
+  level?: JsonLevel;
   onFinished?: (percent: number) => void;
 }) {
   const { language } = useLanguage();
@@ -111,6 +114,18 @@ export default function LessonLevelEvaluation({
             </Button>
           </CardContent>
         </Card>
+        {level && total > 0 && (() => {
+          const a = getAppreciation(level, Math.round((score / total) * 100));
+          return (
+            <div className={`flex gap-3 rounded-lg border-2 p-4 ${a.className}`}>
+              <MessageSquareHeart className="h-5 w-5 shrink-0 text-primary" />
+              <div>
+                <p className="mb-1 text-sm font-semibold">{fr ? 'Appréciation' : 'Feedback'}</p>
+                <p className="text-sm leading-relaxed">{a.text}</p>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="space-y-3">
           {exercises.map((ex, index) => {

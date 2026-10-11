@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,11 +23,13 @@ export default function LessonPracticeSection({
   minutes,
   hasActiveSubscription,
   onLevelFinished,
+  onFocusChange,
 }: {
   exercises: LessonExercises;
   minutes: number;
   hasActiveSubscription: boolean;
   onLevelFinished?: (level: JsonLevel, percent: number) => void;
+  onFocusChange?: (focused: boolean) => void;
 }) {
   const { language } = useLanguage();
   const fr = language === 'fr';
@@ -35,6 +37,8 @@ export default function LessonPracticeSection({
   const [mode, setMode] = useState<Mode | null>(null);
   // Corrections unlock only after the level was taken in Evaluation mode.
   const [doneLevels, setDoneLevels] = useState<Set<JsonLevel>>(new Set());
+
+  useEffect(() => { onFocusChange?.(mode !== null); if (mode) window.scrollTo(0, 0); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (countExercises(exercises) === 0) return null;
 
@@ -134,6 +138,7 @@ export default function LessonPracticeSection({
             key={level}
             exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)}
             minutes={minutes}
+            level={level}
             onFinished={(percent) => { setDoneLevels((d) => new Set(d).add(level)); onLevelFinished?.(level, percent); }}
           />
         )}
