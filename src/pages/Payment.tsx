@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, Phone, CreditCard, UserCheck, Smartphone } from 'lucide-react';
 interface SubscriptionPlan {
   id: string;
