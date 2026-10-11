@@ -9,6 +9,7 @@ export function parseChallengeQuestions(input: unknown): unknown[] | { questions
     const text = item.text ?? item.question;
     if (typeof text !== 'string' || !text.trim()) throw new Error(`Question ${index + 1} : énoncé requis / text required.`);
     const type = item.question_type ?? item.type;
+    if (!['qcm', 'mcq', 'multiple_choice', 'open', 'long_form', 'ouverte', 'open_ended', 'short_answer'].includes(String(type))) throw new Error(`Question ${index + 1} : type invalide / invalid type.`);
     const mcq = ['qcm', 'mcq', 'multiple_choice'].includes(String(type));
     const marks = Number(item.marks ?? item.points ?? 1);
     if (!Number.isFinite(marks) || marks <= 0) throw new Error(`Question ${index + 1} : points invalides / invalid points.`);
@@ -23,6 +24,7 @@ export function parseChallengeQuestions(input: unknown): unknown[] | { questions
       }
     }
     const answerList = answers as Record<string, unknown>[];
+    if (!answerList.length || answerList.some((a) => !a || typeof a !== 'object' || typeof a.text !== 'string' || !a.text.trim())) throw new Error(`Question ${index + 1} : réponses invalides / invalid answers.`);
     if (mcq && (answerList.length < 2 || answerList.filter((a) => a.is_correct === true).length !== 1)) throw new Error(`Question ${index + 1} : une seule bonne réponse requise / exactly one correct answer required.`);
     return { ...item, id: item.id || `q-${index}`, item_type: 'question', text, question_type: mcq ? 'multiple_choice' : 'long_form', marks, order: item.order ?? index, answers };
   });

@@ -7,9 +7,10 @@
 - [x] Lot 6 Page Progression + recommandations
 
 ## Améliorations du 11 octobre
-- [ ] Leçons : disposition, séries multiples, protection sans bloquer le défilement
-- [ ] Challenges : message public discret, création admin/école, dates, PDF, CRUD et validation
-- [ ] Forum : couleurs et disposition
-- [ ] Offres : trois durées visibles simultanément
-- [ ] Navigation gratuite et invitations inscription/connexion
-- [ ] Vérification des couleurs d’origine et des parcours
+- [x] Leçons : disposition, séries multiples, protection sans bloquer le défilement
+- [x] Challenges : message public discret, création admin/école, dates, PDF, CRUD et validation
+- [x] Forum : couleurs et disposition
+- [x] Offres : trois durées visibles simultanément
+- [x] Navigation gratuite et invitations inscription/connexion
+- [x] Vérification des couleurs d’origine et des parcours publics et imports JSON
+- [ ] Vérification complète des parcours Admin/Établissement avec connexion : sessions de test indisponibles sur le Supabase externe
