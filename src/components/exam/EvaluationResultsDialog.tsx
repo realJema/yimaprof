@@ -1,3 +1,5 @@
+import { getAppreciation } from '@/lib/lessonAppreciations';
+import type { JsonLevel } from '@/lib/lessonJsonExercises';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -26,6 +28,7 @@ interface EvaluationResultsDialogProps {
   onViewAnswers: () => void;
   aiGrading?: boolean;
   aiFeedback?: AiFeedbackItem[] | null;
+  appreciationLevel?: JsonLevel | null;
 }
 
 export function EvaluationResultsDialog({
@@ -40,6 +43,7 @@ export function EvaluationResultsDialog({
   onViewAnswers,
   aiGrading = false,
   aiFeedback = null,
+  appreciationLevel = null,
 }: EvaluationResultsDialogProps) {
   const { language } = useLanguage();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -230,6 +234,11 @@ export function EvaluationResultsDialog({
           )}
         </div>
 
+        {appreciationLevel && score && (() => { const a = getAppreciation(appreciationLevel, percentage); return (
+          <div className={`rounded-lg border-2 p-4 ${a.className}`}>
+            <p className="mb-1 text-sm font-semibold">{language === 'fr' ? 'Appréciation' : 'Feedback'}</p>
+            <p className="text-sm leading-relaxed">{a.text}</p>
+          </div>); })()}
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onViewAnswers} className="gap-2 w-full sm:w-auto">
             <Eye className="h-4 w-4" />
