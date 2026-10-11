@@ -14,6 +14,10 @@ interface SubscriptionPlan {
   name: string;
   price: number;
   currency: string;
+  price_trimester?: number | null;
+  price_annual?: number | null;
+  name_fr?: string | null;
+  name_en?: string | null;
 }
 
 // Detect carrier from phone number
@@ -59,6 +63,13 @@ export default function Payment() {
   const [detectedCarrier, setDetectedCarrier] = useState<'MTN' | 'ORANGE' | null>(null);
   const planId = searchParams.get('planId');
   const prefillPhone = searchParams.get('phone');
+  const cycleParam = searchParams.get('cycle');
+  const cycle: 'monthly' | 'trimester' | 'annual' = cycleParam === 'trimester' || cycleParam === 'annual' ? cycleParam : 'monthly';
+  const { language } = useLanguage();
+  const fr = language !== 'en';
+  const cyclePrice = (p: SubscriptionPlan) => (cycle === 'trimester' ? p.price_trimester : cycle === 'annual' ? p.price_annual : p.price) || p.price;
+  const planName = (p: SubscriptionPlan) => (fr ? p.name_fr : p.name_en) || p.name;
+  const cycleLabel = cycle === 'trimester' ? (fr ? 'Abonnement trimestriel' : 'Quarterly subscription') : cycle === 'annual' ? (fr ? 'Abonnement annuel' : 'Annual subscription') : (fr ? 'Abonnement mensuel' : 'Monthly subscription');
   
   useEffect(() => {
     console.log('Payment component mounted, user:', user, 'planId:', planId);
@@ -190,7 +201,8 @@ export default function Payment() {
       planId: plan.id,
       phone: cleanedPhone,
       carrier: detectedCarrier || '',
-      amount: plan.price.toString()
+      amount: cyclePrice(plan).toString(),
+      cycle
     });
 
     // Clear referral from localStorage before navigating
@@ -242,16 +254,16 @@ export default function Payment() {
 
             <div className="bg-muted/50 p-4 rounded-lg">
               <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">{plan.name}</span>
+                <span className="font-medium">{planName(plan)}</span>
                 <span className="text-lg font-bold">
-                  {formatPrice(plan.price, plan.currency)}
+                  {formatPrice(cyclePrice(plan), plan.currency)}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">Monthly subscription</p>
+              <p className="text-sm text-muted-foreground">{cycleLabel}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">{fr ? "Numéro de téléphone" : "Phone Number"}</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input id="phone" type="tel" placeholder="6XX XXX XXX" value={phoneNumber} onChange={e => handlePhoneChange(e.target.value)} className="pl-10" maxLength={9} />
@@ -262,7 +274,7 @@ export default function Payment() {
                   </div>}
               </div>
               <p className="text-xs text-muted-foreground">
-                🇨🇲 Only Cameroon numbers accepted
+                🇨🇲 {fr ? 'Numéros camerounais uniquement' : 'Only Cameroon numbers accepted'}
               </p>
               <div className="flex gap-2 text-xs">
                 <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
@@ -280,7 +292,7 @@ export default function Payment() {
             </div>
 
             <Button onClick={handlePayment} disabled={loading || !phoneNumber.trim()} className="w-full" size="lg">
-              {loading ? 'Processing...' : `Pay ${formatPrice(plan.price, plan.currency)}`}
+              {loading ? (fr ? 'Traitement...' : 'Processing...') : `${fr ? 'Payer' : 'Pay'} ${formatPrice(cyclePrice(plan), plan.currency)}`}
             </Button>
 
             <div className="text-center text-xs text-muted-foreground">

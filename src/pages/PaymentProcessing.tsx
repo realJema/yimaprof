@@ -34,6 +34,7 @@ export default function PaymentProcessing() {
   const carrier = searchParams.get('carrier') as 'MTN' | 'ORANGE' | null;
   const amount = searchParams.get('amount');
   const referredBy = searchParams.get('referredBy');
+  const cycle = searchParams.get('cycle') || 'monthly';
 
   // Handle transaction status update
   const handleTransactionUpdate = useCallback(async (transaction: { status: string; metadata?: { failure_reason?: string } | null }): Promise<boolean> => {
@@ -168,6 +169,7 @@ export default function PaymentProcessing() {
           planId,
           phoneNumber,
           amount: parseInt(amount),
+          cycle,
           referredBy: referredBy || null
         }
       });
