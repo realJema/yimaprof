@@ -44,6 +44,9 @@ export function SubscriptionPlanManagement() {
     features: '',
     max_downloads: 0,
     is_active: true,
+    name_en: '',
+    description_en: '',
+    features_en: '',
   });
 
   useEffect(() => {
@@ -81,10 +84,17 @@ export function SubscriptionPlanManagement() {
     try {
       const featuresArray = formData.features.split('\n').filter(f => f.trim());
       
+      const featuresEn = formData.features_en.split('\n').filter(f => f.trim());
       const planData = {
         ...formData,
         features: featuresArray,
-      };
+        name_fr: formData.name,
+        description_fr: formData.description,
+        features_fr: featuresArray,
+        name_en: formData.name_en.trim() || null,
+        description_en: formData.description_en.trim() || null,
+        features_en: featuresEn.length ? featuresEn : null,
+      } as never;
 
       if (editingPlan) {
         const { error } = await supabase
@@ -122,6 +132,9 @@ export function SubscriptionPlanManagement() {
         features: '',
         max_downloads: 0,
         is_active: true,
+        name_en: '',
+        description_en: '',
+        features_en: '',
       });
       fetchPlans();
     } catch (error) {
@@ -141,13 +154,16 @@ export function SubscriptionPlanManagement() {
       name: plan.name,
       description: plan.description,
       price: plan.price,
-      price_trimester: planAny.price_trimester || Math.floor(plan.price * 3 * 0.9),
-      price_annual: planAny.price_annual || Math.floor(plan.price * 9 * 0.8),
+      price_trimester: planAny.price_trimester || 0,
+      price_annual: planAny.price_annual || 0,
       currency: plan.currency,
       duration_days: plan.duration_days,
       features: Array.isArray(plan.features) ? plan.features.join('\n') : '',
       max_downloads: plan.max_downloads,
       is_active: plan.is_active,
+      name_en: planAny.name_en || '',
+      description_en: planAny.description_en || '',
+      features_en: Array.isArray(planAny.features_en) ? planAny.features_en.join('\n') : '',
     });
     setIsDialogOpen(true);
   };
@@ -221,7 +237,7 @@ export function SubscriptionPlanManagement() {
       label: 'Trimester',
       render: (value: number, plan: SubscriptionPlan) => {
         const planAny = plan as any;
-        const price = planAny.price_trimester || Math.floor(plan.price * 3 * 0.9);
+        const price = planAny.price_trimester || 0;
         return `${price.toLocaleString()} ${plan.currency}`;
       },
     },
@@ -230,7 +246,7 @@ export function SubscriptionPlanManagement() {
       label: 'Annual',
       render: (value: number, plan: SubscriptionPlan) => {
         const planAny = plan as any;
-        const price = planAny.price_annual || Math.floor(plan.price * 9 * 0.8);
+        const price = planAny.price_annual || 0;
         return `${price.toLocaleString()} ${plan.currency}`;
       },
     },
@@ -322,7 +338,7 @@ export function SubscriptionPlanManagement() {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Plan Name</Label>
+                  <Label htmlFor="name">Nom de l'offre (FR)</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -332,7 +348,7 @@ export function SubscriptionPlanManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Description (FR)</Label>
                   <Input
                     id="description"
                     value={formData.description}
@@ -400,7 +416,7 @@ export function SubscriptionPlanManagement() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Leave trimester/annual empty to auto-calculate: Trimester = monthly × 3 × 0.9, Annual = monthly × 9 × 0.8
+                    Les prix trimestriel et annuel affichés aux élèves sont exactement ceux saisis ici. Laissez 0 pour ne pas proposer cette durée.
                   </p>
                 </div>
                 <div>
@@ -414,7 +430,7 @@ export function SubscriptionPlanManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="features">Features (one per line)</Label>
+                  <Label htmlFor="features">Avantages FR (un par ligne)</Label>
                   <Textarea
                     id="features"
                     value={formData.features}
@@ -422,6 +438,12 @@ export function SubscriptionPlanManagement() {
                     placeholder="Access to French curriculum exams&#10;View corrections and solutions&#10;Download exam papers"
                     rows={4}
                   />
+                </div>
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <p className="text-sm font-medium">English version</p>
+                  <Input value={formData.name_en} onChange={(e) => setFormData(prev => ({ ...prev, name_en: e.target.value }))} placeholder="Plan name (EN)" />
+                  <Input value={formData.description_en} onChange={(e) => setFormData(prev => ({ ...prev, description_en: e.target.value }))} placeholder="Description (EN)" />
+                  <Textarea value={formData.features_en} onChange={(e) => setFormData(prev => ({ ...prev, features_en: e.target.value }))} placeholder="Features (EN), one per line" rows={3} />
                 </div>
                 <div className="flex items-center space-x-2">
                   <input

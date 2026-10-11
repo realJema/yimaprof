@@ -24,6 +24,14 @@ interface SubscriptionPlan {
   features: string[] | any; // Handle JSON features
   max_downloads: number;
   is_active: boolean;
+  price_trimester?: number | null;
+  price_annual?: number | null;
+  name_fr?: string | null;
+  name_en?: string | null;
+  description_fr?: string | null;
+  description_en?: string | null;
+  features_fr?: unknown;
+  features_en?: unknown;
 }
 
 interface UserSubscription {
@@ -54,6 +62,15 @@ export default function Subscriptions() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'trimester' | 'annual'>('monthly');
+  const isEn = language === 'en';
+  const cyclePrice = (p: SubscriptionPlan) =>
+    billingCycle === 'trimester' ? p.price_trimester || null : billingCycle === 'annual' ? p.price_annual || null : p.price;
+  const planName = (p: SubscriptionPlan) => (isEn ? p.name_en : p.name_fr) || p.name;
+  const planDescription = (p: SubscriptionPlan) => (isEn ? p.description_en : p.description_fr) || p.description;
+  const planFeatures = (p: SubscriptionPlan): string[] => {
+    const f = (isEn ? p.features_en : p.features_fr) ?? p.features;
+    return Array.isArray(f) ? f : [];
+  };
 
   useEffect(() => {
     fetchPlans();
@@ -202,7 +219,7 @@ export default function Subscriptions() {
 
     console.log('Navigating to payment page with planId:', planId);
     // Navigate to payment page with plan ID using React Router
-    navigate(`/payment?planId=${planId}`);
+    navigate(`/payment?planId=${planId}&cycle=${billingCycle}`);
   };
 
   const handleReferralChange = (value: string) => {
@@ -257,7 +274,7 @@ export default function Subscriptions() {
     <div className="min-h-screen bg-gradient-subtle p-6">
       <SeoHead
         title="Abonnements — Yimaprof"
-        description="Plans mensuels, trimestriels (-10%) et annuels (-20%) pour accéder à toutes les épreuves corrigées et aux évaluations Yimaprof."
+        description="Plans mensuels, trimestriels et annuels pour accéder à toutes les épreuves corrigées et aux évaluations Yimaprof."
         path="/subscriptions"
       />
       <div className="max-w-7xl mx-auto space-y-8">
@@ -292,9 +309,6 @@ export default function Subscriptions() {
               }`}
             >
               {t('trimester')}
-              <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600 text-xs">
-                -10%
-              </Badge>
             </button>
             <button
               onClick={() => setBillingCycle('annual')}
@@ -305,9 +319,6 @@ export default function Subscriptions() {
               }`}
             >
               {t('annual')}
-              <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600 text-xs">
-                -20%
-              </Badge>
             </button>
           </div>
         </div>
@@ -389,7 +400,7 @@ export default function Subscriptions() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">{userSubscription.subscription_plans.name}</h3>
+                  <h3 className="font-semibold">{planName(userSubscription.subscription_plans as SubscriptionPlan)}</h3>
                   <p className="text-sm text-muted-foreground">
                     {t('expires')}: {new Date(userSubscription.expires_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')}
                   </p>
@@ -438,46 +449,32 @@ export default function Subscriptions() {
                   <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isPrepa ? 'bg-secondary/15' : 'bg-primary/10'}`}>
                     <Icon className={`h-8 w-8 ${isPrepa ? 'text-secondary' : 'text-primary'}`} />
                   </div>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  <CardTitle className="text-xl">{planName(plan)}</CardTitle>
                   <CardDescription className="text-sm">
-                    {plan.description}
+                    {planDescription(plan)}
                   </CardDescription>
                   <div className="pt-4">
                     <span className="text-3xl font-bold text-foreground">
-                      {formatPrice(
-                        billingCycle === 'trimester' 
-                          ? Math.floor(plan.price * 3 * 0.9) 
-                          : billingCycle === 'annual' 
-                            ? Math.floor(plan.price * 9 * 0.8) 
-                            : plan.price,
-                        plan.currency
-                      )}
+                      {cyclePrice(plan) ? formatPrice(cyclePrice(plan)!, plan.currency) : '—'}
                     </span>
                     <span className="text-muted-foreground">
-                      {billingCycle === 'trimester' 
-                        ? ` / 3 ${t('months')}` 
-                        : billingCycle === 'annual' 
-                          ? ` / 9 ${t('months')}` 
+                      {billingCycle === 'trimester'
+                        ? ` / 3 ${t('months')}`
+                        : billingCycle === 'annual'
+                          ? (language === 'fr' ? ' / an' : ' / year')
                           : `/${t('month')}`}
                     </span>
-                    {billingCycle !== 'monthly' && (
-                      <div className="mt-2">
-                        <span className="text-sm text-muted-foreground line-through">
-                          {formatPrice(
-                            billingCycle === 'trimester' 
-                              ? plan.price * 3 
-                              : plan.price * 9, 
-                            plan.currency
-                          )}
-                        </span>
-                      </div>
+                    {!cyclePrice(plan) && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {language === 'fr' ? 'Non proposé pour cette durée' : 'Not available for this period'}
+                      </p>
                     )}
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
                   <div className="space-y-3">
-                    {plan.features.map((feature, index) => (
+                    {planFeatures(plan).map((feature: string, index: number) => (
                       <div key={index} className="flex items-center gap-3">
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                         <span className="text-sm">{feature}</span>
@@ -487,7 +484,7 @@ export default function Subscriptions() {
 
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
-                    disabled={subscribing === plan.id || isCurrentPlan}
+                    disabled={subscribing === plan.id || isCurrentPlan || !cyclePrice(plan)}
                     className={`w-full ${isPrepa ? 'bg-secondary text-secondary-foreground hover:bg-secondary/90' : isEverything ? 'bg-primary hover:bg-primary/90' : ''}`}
                     variant={isPrepa || isEverything ? 'default' : 'outline'}
                   >
