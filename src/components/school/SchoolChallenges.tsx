@@ -19,8 +19,11 @@ interface Challenge {
   description: string | null;
   status: string;
   reward: string | null;
-  starts_at: string;
+  starts_at: string | null;
   ends_at: string;
+  review_status?: string;
+  review_note?: string | null;
+  pdf_url?: string | null;
 }
 
 interface Participant {
@@ -41,15 +44,20 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', reward: '', ends_at: '' });
+  const [form, setForm] = useState({ title: '', description: '', reward: '', ends_at: '', pdf_url: '', duration: '60' });
+  const [seriesList, setSeriesList] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [seriesIds, setSeriesIds] = useState<string[]>([]);
+  useEffect(() => {
+    supabase.from('series').select('id, code, name').eq('is_active', true).order('order_number').then(({ data }) => setSeriesList(data || []));
+  }, []);
 
   const load = async () => {
     const { data: ch } = await supabase
       .from('challenges')
-      .select('id, title, description, status, reward, starts_at, ends_at')
+      .select('id, title, description, status, reward, starts_at, ends_at, review_status, review_note, pdf_url')
       .eq('establishment_id', establishmentId)
-      .order('starts_at', { ascending: false });
-    const list = (ch as Challenge[]) || [];
+      .order('created_at', { ascending: false });
+    const list = (ch as unknown as Challenge[]) || [];
     setChallenges(list);
     if (list.length) {
       const { data: pa } = await supabase
@@ -66,21 +74,34 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.title.trim().length < 3) return;
+    const pdf = form.pdf_url.trim();
+    if (pdf && !/^https:\/\/(drive|docs)\.google\.com\//.test(pdf)) {
+      toast({ title: fr ? 'Lien invalide' : 'Invalid link', description: fr ? 'Utilisez un lien Google Drive (https://drive.google.com/...).' : 'Use a Google Drive link (https://drive.google.com/...).', variant: 'destructive' });
+      return;
+    }
+    if (!form.ends_at) {
+      toast({ title: fr ? 'Date de fin requise' : 'End date required', variant: 'destructive' });
+      return;
+    }
     const { error } = await supabase.from('challenges').insert({
+      pdf_url: pdf || null,
+      eligible_series_ids: seriesIds,
+      duration_minutes: Math.min(600, Math.max(5, parseInt(form.duration) || 60)),
       establishment_id: establishmentId,
       title: form.title.trim().slice(0, 150),
       description: form.description.trim().slice(0, 500) || null,
       reward: form.reward.trim().slice(0, 150) || null,
-      ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : undefined,
+      ends_at: new Date(form.ends_at + 'T23:59:59').toISOString(),
       created_by: user?.id,
-    });
+    } as never);
     if (error) {
       toast({ title: fr ? 'Erreur' : 'Error', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: fr ? 'Challenge créé' : 'Challenge created' });
+    toast({ title: fr ? 'Challenge envoyé pour validation' : 'Challenge sent for review', description: fr ? 'L’équipe Yimaprof vérifie le PDF et prépare les questions.' : 'The Yimaprof team reviews the PDF and prepares the questions.' });
     setOpen(false);
-    setForm({ title: '', description: '', reward: '', ends_at: '' });
+    setForm({ title: '', description: '', reward: '', ends_at: '', pdf_url: '', duration: '60' });
+    setSeriesIds([]);
     load();
   };
 
@@ -110,7 +131,31 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
               </div>
               <div>
                 <Label htmlFor="ce">{fr ? 'Date de fin' : 'End date'}</Label>
-                <Input id="ce" type="date" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
+                <Input id="ce" type="date" required value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="cdu">{fr ? 'Durée (min)' : 'Duration (min)'}</Label>
+                <Input id="cdu" type="number" min={5} max={600} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="cp">{fr ? 'Lien Google Drive du PDF de l’épreuve' : 'Google Drive link to the paper PDF'}</Label>
+                <Input id="cp" type="url" maxLength={500} placeholder="https://drive.google.com/file/d/..." value={form.pdf_url} onChange={(e) => setForm({ ...form, pdf_url: e.target.value })} />
+                <p className="mt-1 text-xs text-muted-foreground">{fr ? 'Partagez le fichier en lecture seule avec « Toute personne disposant du lien ».' : 'Share the file read-only with "Anyone with the link".'}</p>
+              </div>
+              <div>
+                <Label>{fr ? 'Séries / Filières concernées' : 'Series / Tracks'}</Label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {seriesList.map((s) => {
+                    const on = seriesIds.includes(s.id);
+                    return (
+                      <button type="button" key={s.id} onClick={() => setSeriesIds(on ? seriesIds.filter((x) => x !== s.id) : [...seriesIds, s.id])}
+                        className={`rounded-full border px-3 py-1 text-xs transition-colors ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground'}`}>
+                        {s.code}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{fr ? 'Aucune sélection = toutes les séries.' : 'None selected = all series.'}</p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
@@ -139,15 +184,23 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
             <CardHeader className="pb-3">
               <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
                 <span className="flex items-center gap-2"><Award className="h-4 w-4 text-secondary" />{ch.title}</span>
-                <Badge variant={ch.status === 'active' ? 'secondary' : 'outline'}>
-                  {ch.status === 'active' ? (fr ? 'En cours' : 'Active') : fr ? 'Terminé' : 'Completed'}
-                </Badge>
+                <span className="flex gap-2">
+                  {ch.review_status && ch.review_status !== 'approved' && (
+                    <Badge variant={ch.review_status === 'rejected' ? 'destructive' : 'outline'}>
+                      {ch.review_status === 'rejected' ? (fr ? 'Refusé' : 'Rejected') : (fr ? 'En attente de validation' : 'Awaiting review')}
+                    </Badge>
+                  )}
+                  <Badge variant={ch.status === 'active' && new Date(ch.ends_at) > new Date() ? 'secondary' : 'outline'}>
+                    {ch.status === 'active' && new Date(ch.ends_at) > new Date() ? (fr ? 'En cours' : 'Active') : fr ? 'Terminé' : 'Completed'}
+                  </Badge>
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{ch.description}</p>
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                <span>{new Date(ch.starts_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')} → {new Date(ch.ends_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}</span>
+                <span>{fr ? 'Fin : ' : 'Ends: '}{new Date(ch.ends_at).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}</span>
+                {ch.review_status === 'rejected' && ch.review_note && <span className="text-destructive">{ch.review_note}</span>}
                 {ch.reward && <span>🏅 {ch.reward}</span>}
                 <span>{parts.length} {fr ? 'participants' : 'participants'}</span>
               </div>
