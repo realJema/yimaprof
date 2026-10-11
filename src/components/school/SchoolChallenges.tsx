@@ -46,12 +46,22 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', reward: '', starts_at: '', ends_at: '', pdf_url: '', duration: '60' });
+  const emptyForm = { title: '', description: '', reward: '', starts_at: '', ends_at: '', pdf_url: '', duration: '60' };
+  const DRAFT_KEY = `yima-school-challenge-draft-${establishmentId}`;
+  const draft = (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; } })();
+  const [form, setForm] = useState(draft?.form || emptyForm);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [seriesList, setSeriesList] = useState<{ id: string; code: string; name: string }[]>([]);
-  const [seriesIds, setSeriesIds] = useState<string[]>([]);
+  const [seriesIds, setSeriesIds] = useState<string[]>(draft?.seriesIds || []);
+  const [classIds, setClassIds] = useState<string[]>(draft?.classIds || []);
+  const [classList, setClassList] = useState<{ id: string; label: string }[]>([]);
+  // Temporary draft: kept until the form is submitted or explicitly cancelled.
+  useEffect(() => { localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, seriesIds, classIds })); }, [form, seriesIds, classIds, DRAFT_KEY]);
+  const resetDraft = () => { localStorage.removeItem(DRAFT_KEY); setForm(emptyForm); setSeriesIds([]); setClassIds([]); };
   useEffect(() => {
+    supabase.from('establishment_classes').select('class_id, label, classes(display_name)').eq('establishment_id', establishmentId)
+      .then(({ data }) => setClassList(((data as any[]) || []).map((c) => ({ id: c.class_id, label: c.label || c.classes?.display_name || '—' }))));
     supabase.from('series').select('id, code, name').eq('is_active', true).order('order_number').then(({ data }) => setSeriesList(data || []));
   }, []);
 
@@ -92,6 +102,8 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
     const { error } = await supabase.from('challenges').insert({
       pdf_url: pdf || null,
       eligible_series_ids: seriesIds,
+      eligible_class_ids: classIds,
+      class_id: classIds[0] || null,
       duration_minutes: Math.min(600, Math.max(5, parseInt(form.duration) || 60)),
       establishment_id: establishmentId,
       title: form.title.trim().slice(0, 150),
@@ -111,8 +123,7 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
     }
     toast({ title: fr ? 'Challenge envoyé pour validation' : 'Challenge sent for review', description: fr ? 'L’équipe Yimaprof vérifie le PDF et prépare les questions.' : 'The Yimaprof team reviews the PDF and prepares the questions.' });
     setOpen(false);
-    setForm({ title: '', description: '', reward: '', starts_at: '', ends_at: '', pdf_url: '', duration: '60' });
-    setSeriesIds([]);
+    resetDraft();
     load();
   };
 
@@ -125,7 +136,7 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="h-4 w-4 mr-2" />{fr ? 'Nouveau challenge' : 'New challenge'}</Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
             <DialogHeader><DialogTitle>{fr ? 'Créer un challenge' : 'Create a challenge'}</DialogTitle></DialogHeader>
             <form onSubmit={create} className="space-y-4">
               <div>
@@ -154,12 +165,17 @@ export default function SchoolChallenges({ establishmentId }: { establishmentId:
               </div>
               <ChallengeDocumentField value={form.pdf_url} onChange={(pdf_url) => setForm({ ...form, pdf_url })} onBusyChange={setUploading} />
               <div>
+                <Label>{fr ? 'Cible : classes / niveaux' : 'Target: classes / levels'}</Label>
+                <SeriesMultiSelect options={classList} value={classIds} onChange={setClassIds} />
+                <p className="mt-1 text-xs text-muted-foreground">{fr ? 'Aucune sélection = tous les élèves de l’établissement.' : 'None selected = all students of the school.'}</p>
+              </div>
+              <div>
                 <Label>{fr ? 'Séries / Filières concernées' : 'Series / Tracks'}</Label>
                 <SeriesMultiSelect options={seriesList.map((s) => ({ id: s.id, label: s.code }))} value={seriesIds} onChange={setSeriesIds} />
                 <p className="mt-1 text-xs text-muted-foreground">{fr ? 'Aucune sélection = toutes les séries.' : 'None selected = all series.'}</p>
               </div>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                <Button type="button" variant="outline" onClick={() => { resetDraft(); setOpen(false); }}>{fr ? 'Annuler' : 'Cancel'}</Button>
                 <Button type="submit" disabled={saving || uploading}>{saving ? (fr ? 'Envoi…' : 'Sending…') : (fr ? 'Créer' : 'Create')}</Button>
               </div>
             </form>

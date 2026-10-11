@@ -47,6 +47,7 @@ export default function Challenges() {
   const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
   const [attempted, setAttempted] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [myClassId, setMyClassId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -60,6 +61,8 @@ export default function Challenges() {
       setChallenges((data as unknown as ChallengeRow[]) || []);
 
       if (user) {
+        const { data: me } = await supabase.from('establishment_students').select('class_id').eq('user_id', user.id).eq('status', 'active').limit(1).maybeSingle();
+        setMyClassId(me?.class_id || null);
         const { data: att } = await supabase
           .from('challenge_attempts')
           .select('challenge_id, status')
@@ -72,7 +75,7 @@ export default function Challenges() {
     })();
   }, [user]);
 
-  const visible = challenges.filter((c) => seriesFilter === 'all' || !(c.eligible_series_ids || []).length || (c.eligible_series_ids || []).includes(seriesFilter));
+  const visible = challenges.filter((c) => (!(c.eligible_class_ids || []).length || !myClassId || (c.eligible_class_ids || []).includes(myClassId)) && seriesFilter === 'all' || !(c.eligible_series_ids || []).length || (c.eligible_series_ids || []).includes(seriesFilter));
 
   if (loading || subLoading) {
     return (
