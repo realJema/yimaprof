@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
-import { BarChart3, BookOpen, Clock, Target } from 'lucide-react';
+import { BarChart3, BookOpen, Clock, Target, Trophy, Dumbbell, Lightbulb, ArrowRight } from 'lucide-react';
 
 interface LessonProgressRow {
   lesson_id: string;
@@ -38,6 +38,8 @@ export default function StudentProgress() {
   const [lessons, setLessons] = useState<LessonProgressRow[]>([]);
   const [evals, setEvals] = useState<EvalRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exResults, setExResults] = useState<{ lesson_id: string; level: string; percent: number; created_at: string }[]>([]);
+  const [chResults, setChResults] = useState<{ score_scaled: number | null; graded_out_of: number }[]>([]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -46,7 +48,7 @@ export default function StudentProgress() {
       return;
     }
     (async () => {
-      const [{ data: lp }, { data: ev }] = await Promise.all([
+      const [{ data: lp }, { data: ev }, { data: lx }, { data: ca }] = await Promise.all([
         supabase
           .from('lesson_progress')
           .select('lesson_id, status, progress_percent, time_spent_seconds, last_viewed_at, lessons(title, chapter, subjects(name_fr, name_en))')
@@ -57,7 +59,11 @@ export default function StudentProgress() {
           .select('exam_id, total_score, total_possible, mcq_score, mcq_total, created_at, exams(title, subjects(name_fr, name_en))')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
+        supabase.from('lesson_exercise_results' as never).select('lesson_id, level, percent, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('challenge_attempts').select('score_scaled, graded_out_of').eq('user_id', user.id),
       ]);
+      setExResults((lx as unknown as typeof exResults) || []);
+      setChResults((ca as unknown as typeof chResults) || []);
       setLessons((lp as unknown as LessonProgressRow[]) || []);
       setEvals((ev as unknown as EvalRow[]) || []);
       setLoading(false);
@@ -73,9 +79,62 @@ export default function StudentProgress() {
   const stats = useMemo(() => {
     const completed = lessons.filter((l) => l.status === 'completed').length;
     const minutes = Math.round(lessons.reduce((s, l) => s + (l.time_spent_seconds || 0), 0) / 60);
-    const avg = evals.length ? Math.round(evals.reduce((s, e) => s + pct(e), 0) / evals.length) : 0;
-    return { completed, minutes, avg, attempts: evals.length };
-  }, [lessons, evals]);
+    const all = [
+      ...evals.map(pct),
+      ...exResults.map((r) => r.percent),
+      ...chResults.map((c) => Math.round(((c.score_scaled ?? 0) / (c.graded_out_of || 20)) * 100)),
+    ];
+    const avg = all.length ? Math.round(all.reduce((s, v) => s + v, 0) / all.length) : 0;
+    const byLevel = { facile: 0, intermediaire: 0, difficile: 0 } as Record<string, number>;
+    exResults.forEach((r) => { byLevel[r.level] = (byLevel[r.level] || 0) + 1; });
+    return { completed, minutes, avg, attempts: evals.length, exercises: exResults.length, challenges: chResults.length, byLevel, any: all.length > 0 };
+  }, [lessons, evals, exResults, chResults]);
+
+  const reco = useMemo(() => {
+    const weak = bySubjectWeak(evals, fr, pct);
+    if (!stats.any) return {
+      title: fr ? 'Commencez votre parcours' : 'Start your journey',
+      tips: [fr ? 'Fixez-vous 20 minutes d’étude par jour.' : 'Set yourself 20 minutes of study a day.'],
+      actions: [{ to: '/lessons', label: fr ? 'Ouvrir une leçon' : 'Open a lesson' }, { to: '/exams2', label: fr ? 'Parcourir les épreuves' : 'Browse papers' }],
+      weak,
+    };
+    if (stats.avg < 50) return {
+      title: fr ? 'Consolidez les bases' : 'Strengthen the basics',
+      tips: [
+        fr ? 'Relisez le cours avant chaque exercice et notez les définitions clés.' : 'Re-read the lesson before each exercise and note key definitions.',
+        fr ? 'Lisez attentivement le corrigé de chaque erreur.' : 'Read the correction of every mistake carefully.',
+      ],
+      actions: [{ to: '/lessons', label: fr ? 'Refaire les exercices de niveau Facile' : 'Redo the Easy-level exercises' }, { to: '/forum', label: fr ? 'Poser vos questions sur le forum' : 'Ask your questions on the forum' }],
+      weak,
+    };
+    if (stats.avg < 70) return {
+      title: fr ? 'Vous progressez, continuez' : 'You are progressing, keep going',
+      tips: [
+        fr ? 'Passez au niveau Intermédiaire dès que vous dépassez 70 % en Facile.' : 'Move to Intermediate once you score above 70% on Easy.',
+        fr ? 'Travaillez en priorité vos matières les plus faibles.' : 'Focus first on your weakest subjects.',
+      ],
+      actions: [{ to: '/lessons', label: fr ? 'Faire les exercices Intermédiaires' : 'Do Intermediate exercises' }, { to: '/exams2', label: fr ? 'Faire une auto-évaluation chronométrée' : 'Take a timed self-assessment' }],
+      weak,
+    };
+    if (stats.avg < 85) return {
+      title: fr ? 'Bon niveau, visez l’excellence' : 'Good level, aim for excellence',
+      tips: [
+        fr ? 'Entraînez-vous en conditions d’examen, sans consulter le cours.' : 'Practise in exam conditions, without the lesson.',
+        fr ? 'Analysez le temps passé par question.' : 'Check the time spent per question.',
+      ],
+      actions: [{ to: '/lessons', label: fr ? 'Attaquer le niveau Difficile' : 'Tackle the Hard level' }, { to: '/challenges', label: fr ? 'Participer à un challenge' : 'Join a challenge' }],
+      weak,
+    };
+    return {
+      title: fr ? 'Excellent travail' : 'Excellent work',
+      tips: [
+        fr ? 'Maintenez le rythme avec des épreuves d’années précédentes.' : 'Keep the pace with past papers.',
+        fr ? 'Expliquez les notions à vos camarades pour les ancrer.' : 'Explain concepts to classmates to anchor them.',
+      ],
+      actions: [{ to: '/challenges', label: fr ? 'Relever un challenge' : 'Take on a challenge' }, { to: '/forum', label: fr ? 'Aider sur le forum' : 'Help on the forum' }],
+      weak,
+    };
+  }, [stats, evals, fr]);
 
   const bySubject = useMemo(() => {
     const map = new Map<string, number[]>();
@@ -110,11 +169,13 @@ export default function StudentProgress() {
         {fr ? 'Ma progression' : 'My progress'}
       </h1>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-8">
         {[
           { label: fr ? 'Leçons terminées' : 'Lessons completed', value: `${stats.completed}/${lessons.length}`, icon: BookOpen },
           { label: fr ? 'Temps d’étude' : 'Study time', value: `${stats.minutes} min`, icon: Clock },
+          { label: fr ? 'Exercices effectués' : 'Exercises done', value: `${stats.exercises}`, icon: Dumbbell },
           { label: fr ? 'Épreuves faites' : 'Exams taken', value: `${stats.attempts}`, icon: Target },
+          { label: 'Challenges', value: `${stats.challenges}`, icon: Trophy },
           { label: fr ? 'Moyenne générale' : 'Overall average', value: `${stats.avg}%`, icon: BarChart3 },
         ].map((s) => (
           <Card key={s.label}>
@@ -126,6 +187,32 @@ export default function StudentProgress() {
           </Card>
         ))}
       </div>
+
+      <Card className="mb-6 border-secondary/30">
+        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Lightbulb className="h-5 w-5 text-secondary" />{reco.title}</CardTitle></CardHeader>
+        <CardContent className="grid gap-6 md:grid-cols-2">
+          <div>
+            <p className="mb-2 text-sm font-medium">{fr ? 'Conseils' : 'Tips'}</p>
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              {reco.tips.map((t) => <li key={t}>• {t}</li>)}
+              {reco.weak.length > 0 && <li>• {fr ? 'À renforcer : ' : 'To strengthen: '}<span className="font-medium text-foreground">{reco.weak.join(', ')}</span></li>}
+            </ul>
+            {stats.exercises > 0 && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {fr ? 'Exercices par niveau' : 'Exercises by level'} — {fr ? 'Facile' : 'Easy'} : {stats.byLevel.facile} · {fr ? 'Intermédiaire' : 'Intermediate'} : {stats.byLevel.intermediaire} · {fr ? 'Difficile' : 'Hard'} : {stats.byLevel.difficile}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{fr ? 'Actions conseillées' : 'Suggested actions'}</p>
+            {reco.actions.map((a) => (
+              <Button key={a.label} asChild variant="outline" className="w-full justify-between">
+                <Link to={a.to}>{a.label}<ArrowRight className="h-4 w-4" /></Link>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -185,4 +272,18 @@ export default function StudentProgress() {
       )}
     </div>
   );
+}
+
+function bySubjectWeak(evals: EvalRow[], fr: boolean, pct: (e: EvalRow) => number): string[] {
+  const map = new Map<string, number[]>();
+  evals.forEach((e) => {
+    const subject = (fr ? e.exams?.subjects?.name_fr : e.exams?.subjects?.name_en) || e.exams?.subjects?.name_fr || e.exams?.subjects?.name_en;
+    if (subject) map.set(subject, [...(map.get(subject) || []), pct(e)]);
+  });
+  return Array.from(map.entries())
+    .map(([s, l]) => ({ s, avg: l.reduce((a, b) => a + b, 0) / l.length }))
+    .filter((x) => x.avg < 50)
+    .sort((a, b) => a.avg - b.avg)
+    .slice(0, 3)
+    .map((x) => x.s);
 }

@@ -312,7 +312,17 @@ export default function LessonDetail() {
           exercises={parseLessonExercises(lesson.exercises)}
           minutes={lesson.estimated_minutes || 20}
           hasActiveSubscription={hasActiveSubscription}
-          onLevelFinished={() => setProgress((p) => Math.max(p, 60))}
+          onLevelFinished={(level, percent) => {
+            setProgress((p) => Math.max(p, 60));
+            if (user) {
+              supabase.from('lesson_exercise_results' as never).insert({
+                user_id: user.id,
+                lesson_id: lesson.id,
+                level,
+                percent: Math.max(0, Math.min(100, Math.round(percent))),
+              } as never).then(() => undefined);
+            }
+          }}
         />
       )}
     </div>
