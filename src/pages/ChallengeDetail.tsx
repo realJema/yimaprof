@@ -370,6 +370,11 @@ export default function ChallengeDetail() {
           {challenge.region && <Badge variant="outline" className="border-white/30 text-white">{challenge.region}</Badge>}
         </div>
         {challenge.description && <p className="mt-3 text-sm text-white/90">{challenge.description}</p>}
+        {challenge.reward && (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold">
+            🏅 {fr ? 'Prix à gagner : ' : 'Prize: '}{challenge.reward}
+          </p>
+        )}
       </div>
 
       {running && (

@@ -191,7 +191,7 @@ export default function LessonDetail() {
   const doc = resolveLessonDoc(lesson.file_url);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <SeoHead
         title={`${lesson.title} | Yimaprof`}
         description={lesson.summary || (fr ? 'Leçon Yimaprof' : 'Yimaprof lesson')}
