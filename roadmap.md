@@ -20,3 +20,11 @@
 - [x] Challenges : brouillon persistant (école + admin), aperçu et modification admin, cible classes/séries
 - [x] Challenges validés visibles par les élèves inscrits par leur école
 - [x] Leçons : exercices en mode focus + appréciations par niveau
+
+## Cahier « 2. Page Challenge » (14 oct.)
+- [x] Prix affiché dans le détail du challenge
+- [x] Filtres Série / Classe / Matière / Type sur Challenges
+- [x] Page leçon élargie ; niveaux Facile/Intermédiaire/Difficile colorés
+- [ ] Comptes parents créés par l'école (email ou téléphone, SMS bloqué), mots de passe auto, export PDF, import CSV
+- [ ] Protection renforcée du document (masquer lien source), couleurs de l'évaluation leçon
+- [ ] Connexion Google (Gmail) à diagnostiquer
