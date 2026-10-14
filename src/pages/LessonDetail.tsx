@@ -20,7 +20,7 @@ import { resolveLessonDoc } from '@/lib/lessonDocs';
 import { parseLessonQuestions } from '@/lib/lessonQuestions';
 import { parseLessonExercises } from '@/lib/lessonJsonExercises';
 import { LESSON_LEVELS, levelLabel, normalizeLevel } from '@/lib/lessonExercises';
-import { ArrowLeft, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, Clock, FileText, Lock } from 'lucide-react';
 
 interface LessonDetailRow {
   id: string;
@@ -187,7 +187,7 @@ export default function LessonDetail() {
   }
 
   const locked = !lesson.is_free && !hasActiveSubscription;
-  const subjectName = lesson.subjects?.name_fr || lesson.subjects?.name_en;
+  const subjectName = (fr ? lesson.subjects?.name_fr : lesson.subjects?.name_en) || lesson.subjects?.name_fr || lesson.subjects?.name_en;
   const doc = resolveLessonDoc(lesson.file_url);
 
   return (
@@ -204,20 +204,24 @@ export default function LessonDetail() {
         {fr ? 'Leçons' : 'Lessons'}
       </Button>
 
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">{lesson.title}</h1>
+      <header className="mb-8 border-b border-border pb-6">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary">
+          <BookOpen className="h-4 w-4" />
+          {fr ? 'Leçon' : 'Lesson'}
+        </div>
+        <h1 className="max-w-4xl break-words text-2xl sm:text-3xl font-bold leading-tight">{lesson.title}</h1>
         <div className="flex flex-wrap items-center gap-2 mt-3">
-          {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
-          {subjectName && <Badge variant="outline">{subjectName}</Badge>}
-          {lesson.chapter && <Badge variant="outline">{lesson.chapter}</Badge>}
+          {lesson.classes?.display_name && <Badge variant="outline" className="max-w-full whitespace-normal break-words border-primary/20 bg-primary/5 text-primary">{lesson.classes.display_name}</Badge>}
+          {subjectName && <Badge variant="outline" className="max-w-full whitespace-normal break-words border-secondary/20 bg-secondary/5 text-foreground">{subjectName}</Badge>}
+          {lesson.chapter && <Badge variant="outline" className="max-w-full whitespace-normal break-words">{lesson.chapter}</Badge>}
           {lesson.estimated_minutes && (
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />{lesson.estimated_minutes} min
             </span>
           )}
         </div>
-        {!focused && lesson.summary && <p className="text-muted-foreground mt-3">{lesson.summary}</p>}
-      </div>
+        {!focused && lesson.summary && <p className="max-w-3xl break-words text-muted-foreground mt-4 leading-relaxed">{lesson.summary}</p>}
+      </header>
 
       {focused ? null : locked && !user ? <AuthInvitation /> : locked ? (
         <Card className="border-secondary/40">
@@ -230,36 +234,35 @@ export default function LessonDetail() {
       ) : (
         <>
           {user && (
-            <Card className="mb-6">
-              <CardContent className="py-4 flex items-center gap-4">
-                <div className="flex-1">
-                  <p className="text-sm mb-2">{fr ? 'Ma progression' : 'My progress'}</p>
+            <div className="mb-8 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:gap-6">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex justify-between gap-3 text-sm">
+                    <p className="font-medium">{fr ? 'Ma progression' : 'My progress'}</p>
+                    <span className="tabular-nums text-primary">{progress}%</span>
+                  </div>
                   <Progress value={progress} />
                 </div>
-                <Button size="sm" variant={completed ? 'secondary' : 'default'} onClick={markCompleted} disabled={completed}>
+                <Button size="sm" className="shrink-0 self-start sm:self-auto" variant={completed ? 'secondary' : 'default'} onClick={markCompleted} disabled={completed}>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   {completed ? (fr ? 'Terminée' : 'Completed') : fr ? 'Marquer comme lue' : 'Mark as read'}
                 </Button>
-              </CardContent>
-            </Card>
+            </div>
           )}
 
           {doc?.embedUrl ? (
             <LessonDocumentViewer fileUrl={lesson.file_url} title={lesson.title} />
-          ) : (
-            <Card>
-              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false} hideOnBlur={false} hideOnTabChange>
-                <MarkdownText text={lesson.content} />
-              </ProtectedContent></CardContent>
-            </Card>
-          )}
+          ) : null}
 
-          {doc?.embedUrl && lesson.content && (
-            <Card className="mt-4">
-              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false} hideOnBlur={false} hideOnTabChange>
-                <MarkdownText text={lesson.content} />
-              </ProtectedContent></CardContent>
-            </Card>
+          {lesson.content && (
+            <section className="lesson-reading-content min-w-0 py-6" aria-label={fr ? 'Texte du cours' : 'Lesson text'}>
+              <h2 className="mb-4 flex items-center gap-2 font-semibold">
+                <FileText className="h-5 w-5 text-secondary" />
+                {doc?.embedUrl ? (fr ? 'Notes de cours' : 'Course notes') : (fr ? 'Le cours' : 'Course material')}
+              </h2>
+              <ProtectedContent watermark={false} hideOnBlur={false} hideOnTabChange className="border-l-2 border-primary/30 pl-4 sm:pl-6">
+                <MarkdownText text={lesson.content} className="max-w-4xl break-words text-base leading-8" />
+              </ProtectedContent>
+            </section>
           )}
 
 
