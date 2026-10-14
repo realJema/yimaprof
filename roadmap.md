@@ -28,3 +28,8 @@
 - [ ] Comptes parents créés par l'école (email ou téléphone, SMS bloqué), mots de passe auto, export PDF, import CSV
 - [ ] Protection renforcée du document (masquer lien source), couleurs de l'évaluation leçon
 - [ ] Connexion Google (Gmail) à diagnostiquer
+
+## Protection et présentation des leçons (14 octobre)
+- [ ] Renforcer les protections du lecteur sans bloquer le défilement et préciser les limites des documents externes
+- [ ] Améliorer la hiérarchie, l’alignement et les couleurs de la page de lecture sans changer les droits ni les exercices
+- [ ] Vérifier le lecteur, les protections et la navigation
