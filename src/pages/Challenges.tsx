@@ -29,6 +29,7 @@ interface ChallengeRow {
   graded_out_of: number;
   establishment_id: string | null;
   eligible_class_ids: string[] | null;
+  subject_id: string | null;
 }
 
 const scopeMeta: Record<string, { icon: typeof School; fr: string; en: string; className: string }> = {
@@ -44,6 +45,11 @@ export default function Challenges() {
   const { hasActiveSubscription, loading: subLoading } = useSubscription();
   const [seriesList, setSeriesList] = useState<{ id: string; code: string }[]>([]);
   const [seriesFilter, setSeriesFilter] = useState('all');
+  const [classList, setClassList] = useState<{ id: string; display_name: string }[]>([]);
+  const [subjectList, setSubjectList] = useState<{ id: string; name_fr: string | null; name_en: string | null; name: string }[]>([]);
+  const [classFilter, setClassFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [scopeFilter, setScopeFilter] = useState('all');
   const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
   const [attempted, setAttempted] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -53,9 +59,13 @@ export default function Challenges() {
     (async () => {
       const { data: se } = await supabase.from('series').select('id, code').eq('is_active', true).order('order_number');
       setSeriesList(se || []);
+      const { data: cl } = await supabase.from('classes').select('id, display_name').order('display_name');
+      setClassList(cl || []);
+      const { data: su } = await supabase.from('subjects').select('id, name, name_fr, name_en').eq('is_active', true).order('name');
+      setSubjectList(su || []);
       const { data } = await supabase
         .from('challenges')
-        .select('id, title, description, scope, region, status, reward, starts_at, ends_at, exam_id, duration_minutes, graded_out_of, establishment_id, eligible_class_ids, eligible_series_ids')
+        .select('id, title, description, scope, region, status, reward, starts_at, ends_at, exam_id, duration_minutes, graded_out_of, establishment_id, eligible_class_ids, eligible_series_ids, subject_id')
         .eq('review_status', 'approved')
         .order('ends_at', { ascending: true });
       setChallenges((data as unknown as ChallengeRow[]) || []);
@@ -80,7 +90,10 @@ export default function Challenges() {
     const ser = c.eligible_series_ids || [];
     const classOk = !cls.length || !myClassId || cls.includes(myClassId);
     const seriesOk = seriesFilter === 'all' || !ser.length || ser.includes(seriesFilter);
-    return classOk && seriesOk;
+    const classFilterOk = classFilter === 'all' || !cls.length || cls.includes(classFilter);
+    const subjectOk = subjectFilter === 'all' || c.subject_id === subjectFilter;
+    const scopeOk = scopeFilter === 'all' || c.scope === scopeFilter;
+    return classOk && seriesOk && classFilterOk && subjectOk && scopeOk;
   });
 
   if (loading || subLoading) {
@@ -125,13 +138,36 @@ export default function Challenges() {
           </CardContent>
         </Card>
       ) : (<>
-      {seriesList.length > 0 && challenges.length > 0 && (
-        <div className="mb-4 flex justify-end">
+      {challenges.length > 0 && (
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <Select value={seriesFilter} onValueChange={setSeriesFilter}>
-            <SelectTrigger className="w-56"><SelectValue placeholder={fr ? 'Série / Filière' : 'Series / Track'} /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{fr ? 'Toutes les séries' : 'All series'}</SelectItem>
               {seriesList.map((s) => <SelectItem key={s.id} value={s.id}>{s.code}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{fr ? 'Toutes les classes' : 'All classes'}</SelectItem>
+              {classList.map((c) => <SelectItem key={c.id} value={c.id}>{c.display_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{fr ? 'Toutes les matières' : 'All subjects'}</SelectItem>
+              {subjectList.map((s) => <SelectItem key={s.id} value={s.id}>{(fr ? s.name_fr : s.name_en) || s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={scopeFilter} onValueChange={setScopeFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{fr ? 'Tous les types' : 'All types'}</SelectItem>
+              <SelectItem value="national">{fr ? 'Public (national)' : 'Public (national)'}</SelectItem>
+              <SelectItem value="regional">{fr ? 'Régional' : 'Regional'}</SelectItem>
+              <SelectItem value="establishment">{fr ? 'Établissement' : 'School'}</SelectItem>
             </SelectContent>
           </Select>
         </div>

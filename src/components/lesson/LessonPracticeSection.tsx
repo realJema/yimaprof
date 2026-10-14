@@ -67,6 +67,11 @@ export default function LessonPracticeSection({
             {JSON_LEVELS.map((lv) => {
               const list = exercises[lv];
               const locked = !hasActiveSubscription && lv !== 'facile';
+              const tone = lv === 'facile'
+                ? 'border-accent/40 bg-accent/10 hover:bg-accent/20 [&_.lv-title]:text-accent'
+                : lv === 'intermediaire'
+                ? 'border-secondary/40 bg-secondary/10 hover:bg-secondary/20 [&_.lv-title]:text-secondary'
+                : 'border-destructive/40 bg-destructive/10 hover:bg-destructive/20 [&_.lv-title]:text-destructive';
               return (
                 <Button
                   key={lv}
@@ -74,7 +79,7 @@ export default function LessonPracticeSection({
                   variant="outline"
                   disabled={list.length === 0}
                   onClick={() => { setLevel(lv); setMode(null); }}
-                  className="h-auto min-h-24 justify-start p-4 text-left"
+                  className={`h-auto min-h-24 justify-start border-2 p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${tone}`}
                 >
                   <span className="w-full">
                     <span className="flex items-center justify-between gap-2 font-medium">
