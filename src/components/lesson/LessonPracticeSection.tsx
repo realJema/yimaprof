@@ -68,7 +68,7 @@ export default function LessonPracticeSection({
               const list = exercises[lv];
               const locked = !hasActiveSubscription && lv !== 'facile';
               const tone = lv === 'facile'
-                ? 'border-success/40 bg-success/10 hover:bg-success/20 [&_.lv-title]:text-success'
+                ? 'border-accent/40 bg-accent/10 hover:bg-accent/20 [&_.lv-title]:text-accent'
                 : lv === 'intermediaire'
                 ? 'border-secondary/40 bg-secondary/10 hover:bg-secondary/20 [&_.lv-title]:text-secondary'
                 : 'border-destructive/40 bg-destructive/10 hover:bg-destructive/20 [&_.lv-title]:text-destructive';
