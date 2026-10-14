@@ -248,7 +248,7 @@ export default function LessonDetail() {
             <LessonDocumentViewer fileUrl={lesson.file_url} title={lesson.title} />
           ) : (
             <Card>
-              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false}>
+              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false} hideOnBlur={false} hideOnTabChange>
                 <MarkdownText text={lesson.content} />
               </ProtectedContent></CardContent>
             </Card>
@@ -256,7 +256,7 @@ export default function LessonDetail() {
 
           {doc?.embedUrl && lesson.content && (
             <Card className="mt-4">
-              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false}>
+              <CardContent className="py-6 prose-sm max-w-none"><ProtectedContent watermark={false} hideOnBlur={false} hideOnTabChange>
                 <MarkdownText text={lesson.content} />
               </ProtectedContent></CardContent>
             </Card>

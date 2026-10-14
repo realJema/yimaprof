@@ -40,6 +40,8 @@ export default function LessonJsonImport({
       return;
     }
     setError(null);
+    // Apply immediately so saving the lesson never drops validated exercises.
+    onChange(result.data!);
     setPending(result.data!);
   };
 
@@ -111,7 +113,7 @@ export default function LessonJsonImport({
         <div className="rounded-lg border border-secondary/40 bg-secondary/5 p-3 space-y-2">
           <p className="flex items-center gap-2 text-sm font-medium">
             <CheckCircle2 className="h-4 w-4 text-secondary" />
-            {fr ? 'JSON valide — aperçu avant enregistrement' : 'Valid JSON — preview before saving'}
+            {fr ? 'JSON valide — exercices ajoutés à la leçon (enregistrez la leçon pour confirmer)' : 'Valid JSON — exercises added to the lesson (save the lesson to confirm)'}
           </p>
           <div className="flex flex-wrap gap-2">
             {JSON_LEVELS.map((lv) => (
