@@ -196,3 +196,16 @@ All colors MUST be HSL. Mobile-first responsive design.
 @media print {
   .protected-content { visibility: hidden !important; }
 }
+
+/* Scoped to lesson reading; leave exercise inputs and other pages untouched.
+   These rules cannot reach inside a third-party document iframe. */
+.lesson-reading-content,
+.lesson-reading-content * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.lesson-reading-content img {
+  -webkit-user-drag: none;
+}
