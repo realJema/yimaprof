@@ -30,6 +30,15 @@
 - [ ] Connexion Google (Gmail) à diagnostiquer
 
 ## Protection et présentation des leçons (14 octobre)
-- [ ] Renforcer les protections du lecteur sans bloquer le défilement et préciser les limites des documents externes
-- [ ] Améliorer la hiérarchie, l’alignement et les couleurs de la page de lecture sans changer les droits ni les exercices
+- [x] Renforcer les protections du lecteur sans bloquer le défilement et préciser les limites des documents externes
+- [x] Améliorer la hiérarchie, l’alignement et les couleurs de la page de lecture sans changer les droits ni les exercices
 - [ ] Vérifier le lecteur, les protections et la navigation
+
+## Application mobile native (15 octobre)
+- [x] Dépendances Capacitor installées (core, cli, ios, android) et configuration créée
+- [x] Dossiers natifs Android et iPhone ajoutés, rechargement à chaud depuis le bac à sable
+- [ ] Import CSV des élèves, code d’invitation élève, comptes parents créés par l’école
+- [ ] Récits de test du parcours mobile (connexion, abonnements, leçons, épreuves) sur un vrai appareil
+- [ ] Retirer le bloc `server.url` et préparer les icônes, splash et signatures avant App Store / Play Store
+- [ ] Comptes développeur : Apple (99 $/an), Google (25 $ une fois) — à la charge de l’établissement
+- [ ] Notifications push en arrière-plan : non en place (API web indisponible sur iPhone, extensions natives à prévoir)
