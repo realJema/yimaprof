@@ -1,4 +1,5 @@
 # Architecture rules
+- Execute admin-approved payouts only through admin-payout with a durable unique database claim, atomic provider-confirmed settlement and lookup-only recovery; provider reference/nonce alone do not guarantee idempotency.
 
 - Keep the payout introduction and secured request flow in the shared PayoutRequestDialog so school and affiliate withdrawal behavior remains consistent.
 - Persist school-space tab selection in the `tab` URL parameter so refresh and browser back/forward preserve navigation context.
