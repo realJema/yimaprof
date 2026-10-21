@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,14 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ amount: '', method: 'mtn_momo', phone: '', password: '' });
+  // Google/Facebook-only accounts have no password; the server then relies on the email code.
+  const [hasPassword, setHasPassword] = useState(true);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const ids = data.user?.identities;
+      if (ids && ids.length > 0) setHasPassword(ids.some((i) => i.provider === 'email'));
+    });
+  }, []);
 
   const close = () => {
     if (submitting) return;
@@ -127,8 +135,14 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
                 <Input id="pn" required maxLength={20} placeholder="+2376XXXXXXXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div>
-                <Label htmlFor="pw">{fr ? 'Votre mot de passe' : 'Your password'}</Label>
-                <Input id="pw" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                {hasPassword ? (
+                  <>
+                    <Label htmlFor="pw">{fr ? 'Votre mot de passe' : 'Your password'}</Label>
+                    <Input id="pw" type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{fr ? 'Compte connecté avec Google/Facebook : aucun mot de passe requis.' : 'Account signed in with Google/Facebook: no password required.'}</p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">{fr ? 'Un code de confirmation à 6 chiffres vous sera envoyé par email.' : 'A 6-digit confirmation code will be emailed to you.'}</p>
               </div>
               <div className="flex justify-end gap-2">
