@@ -1664,6 +1664,57 @@ export type Database = {
           },
         ]
       }
+      payout_transfers: {
+        Row: {
+          amount: number
+          approved_by: string
+          created_at: string
+          currency: string
+          error_code: string | null
+          id: string
+          kind: string
+          method: string
+          payout_id: string
+          phone: string
+          provider_reference: string | null
+          provider_status: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_by: string
+          created_at?: string
+          currency: string
+          error_code?: string | null
+          id?: string
+          kind: string
+          method: string
+          payout_id: string
+          phone: string
+          provider_reference?: string | null
+          provider_status?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string
+          created_at?: string
+          currency?: string
+          error_code?: string | null
+          id?: string
+          kind?: string
+          method?: string
+          payout_id?: string
+          phone?: string
+          provider_reference?: string | null
+          provider_status?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       periods: {
         Row: {
           created_at: string | null
@@ -2383,6 +2434,10 @@ export type Database = {
         Returns: Json
       }
       check_subscription_expiry: { Args: never; Returns: number }
+      claim_payout_transfer: {
+        Args: { p_actor: string; p_id: string; p_kind: string }
+        Returns: Json
+      }
       commercial_overview: { Args: never; Returns: Json }
       commercial_referrals: {
         Args: never
@@ -2460,6 +2515,16 @@ export type Database = {
           id: string
           username: string
         }[]
+      }
+      finish_payout_transfer: {
+        Args: {
+          p_error?: string
+          p_reference?: string
+          p_state: string
+          p_status?: string
+          p_transfer: string
+        }
+        Returns: string
       }
       get_public_profiles: {
         Args: { _ids: string[] }
