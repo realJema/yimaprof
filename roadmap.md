@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Retraits : remplacer la validation manuelle par le versement MeSomb protégé contre les doublons, vérifier les échecs et la confirmation
 - [x] Lot 1 Notifications sans noms techniques + Trimestre
 - [x] Lot 2 Offres : prix trimestriels/annuels réels, bandeau à pourcentages retiré, offres FR/EN
 - [x] Lot 3 Multi-filières + filtre Série (leçons, challenges, admin épreuves)
