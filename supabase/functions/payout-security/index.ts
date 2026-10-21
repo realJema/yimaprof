@@ -89,7 +89,15 @@ Deno.serve(async (req) => {
       if (!/^\+?[0-9]{8,15}$/.test(phone)) return json({ error: 'Invalid phone number' }, 400);
       // Accounts without an email/password identity (Google/Facebook only) have no
       // password to re-check; they rely on the email OTP step below.
-      const hasPassword = (user.identities ?? []).some((i) => i.provider === 'email');
+      // Use the sign-in method of the current session (token already verified above):
+      // a session opened with Google/Facebook skips the password even if the account also has one.
+      let sessionMethods: string[] = [];
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        sessionMethods = Array.isArray(payload?.amr) ? payload.amr.map((a: { method?: string }) => a?.method ?? '') : [];
+      } catch { /* fall back to identities */ }
+      const signedInWithOAuth = sessionMethods.includes('oauth');
+      const hasPassword = !signedInWithOAuth && (user.identities ?? []).some((i) => i.provider === 'email');
       if (hasPassword) {
         if (password.length < 6) return json({ error: 'Password required' }, 400);
         // Re-verify the password with a throwaway client (no session persistence).
