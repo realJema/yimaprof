@@ -2450,6 +2450,10 @@ export type Database = {
           type: string
         }[]
       }
+      finalize_payment_transaction: {
+        Args: { p_extra?: Json; p_transaction_id: string }
+        Returns: Json
+      }
       find_affiliate_by_username: {
         Args: { _username: string }
         Returns: {
