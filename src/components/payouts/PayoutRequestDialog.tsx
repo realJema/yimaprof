@@ -31,9 +31,16 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
   // Google/Facebook-only accounts have no password; the server then relies on the email code.
   const [hasPassword, setHasPassword] = useState(true);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      const ids = data.user?.identities;
-      if (ids && ids.length > 0) setHasPassword(ids.some((i) => i.provider === 'email'));
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session) return;
+      let oauth = false;
+      try {
+        const payload = JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        oauth = Array.isArray(payload?.amr) && payload.amr.some((a: { method?: string }) => a?.method === 'oauth');
+      } catch { /* ignore */ }
+      const ids = session.user.identities ?? [];
+      setHasPassword(!oauth && (ids.length === 0 || ids.some((i) => i.provider === 'email')));
     });
   }, []);
 
