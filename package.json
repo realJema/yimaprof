@@ -8,7 +8,10 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:live": "CAP_LIVE_RELOAD=1 npx cap sync",
+    "cap:release": "vite build && npx cap sync",
+    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor '#ffffff' --splashBackgroundColor '#ffffff'"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
