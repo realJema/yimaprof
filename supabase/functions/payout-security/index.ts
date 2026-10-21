@@ -87,14 +87,18 @@ Deno.serve(async (req) => {
         return json({ error: 'Invalid amount', available, minPayout }, 400);
       }
       if (!/^\+?[0-9]{8,15}$/.test(phone)) return json({ error: 'Invalid phone number' }, 400);
-      if (password.length < 6) return json({ error: 'Password required' }, 400);
-
-      // Re-verify the password with a throwaway client (no session persistence).
-      const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
-        auth: { persistSession: false },
-      });
-      const { error: pwError } = await anon.auth.signInWithPassword({ email: user.email, password });
-      if (pwError) return json({ error: 'Incorrect password' }, 401);
+      // Accounts without an email/password identity (Google/Facebook only) have no
+      // password to re-check; they rely on the email OTP step below.
+      const hasPassword = (user.identities ?? []).some((i) => i.provider === 'email');
+      if (hasPassword) {
+        if (password.length < 6) return json({ error: 'Password required' }, 400);
+        // Re-verify the password with a throwaway client (no session persistence).
+        const anon = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
+          auth: { persistSession: false },
+        });
+        const { error: pwError } = await anon.auth.signInWithPassword({ email: user.email, password });
+        if (pwError) return json({ error: 'Incorrect password' }, 401);
+      }
 
       // No duplicate pending payout for the same school.
       const { data: pendingPayout } = await admin
