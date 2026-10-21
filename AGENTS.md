@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Capacitor live reload (`server.url`) is opt-in via CAP_LIVE_RELOAD=1 so default syncs always produce store-safe builds with bundled assets.
+
 - Keep the payout introduction and secured request flow in the shared PayoutRequestDialog so school and affiliate withdrawal behavior remains consistent.
 - Persist school-space tab selection in the `tab` URL parameter so refresh and browser back/forward preserve navigation context.
 - Keep lesson series arrays synchronized with the legacy primary series through a database trigger so older school forms remain compatible.
