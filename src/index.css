@@ -209,3 +209,27 @@ All colors MUST be HSL. Mobile-first responsive design.
 .lesson-reading-content img {
   -webkit-user-drag: none;
 }
+
+/* ---- Cross-browser / mobile WebView compatibility (additive only) ---- */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
+}
+/* 100vh is wrong in iOS Safari and in-app browsers: use dynamic viewport where available */
+@supports (height: 100dvh) {
+  .min-h-screen { min-height: 100dvh; }
+  .h-screen { height: 100dvh; }
+}
+@supports not (height: 100dvh) {
+  .min-h-screen { min-height: calc(var(--app-vh, 1vh) * 100); }
+  .h-screen { height: calc(var(--app-vh, 1vh) * 100); }
+}
+/* Prevent iOS auto-zoom when focusing small form fields */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea { font-size: max(16px, 1em); }
+}
+button, [role="button"], a { touch-action: manipulation; }

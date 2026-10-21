@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  build: {
+    target: ["es2019", "safari13", "chrome80", "firefox78", "edge88"],
+    cssTarget: ["safari13", "chrome80"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
