@@ -98,7 +98,7 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
             <div className="space-y-4">
               <ol className="list-decimal space-y-3 pl-5 text-sm">
                 <li>{fr ? 'Indiquez le montant, choisissez MTN MoMo ou Orange Money, puis saisissez le numéro qui recevra votre retrait.' : 'Enter the amount, choose MTN MoMo or Orange Money, then enter the number that will receive your payout.'}</li>
-                <li>{fr ? 'Confirmez avec votre mot de passe. Un code à 6 chiffres sera envoyé à l’adresse email de votre compte connecté.' : 'Confirm with your password. A 6-digit code will be sent to the email address of your signed-in account.'}</li>
+                <li>{hasPassword ? (fr ? 'Confirmez avec votre mot de passe. Un code à 6 chiffres sera envoyé à l’adresse email de votre compte connecté.' : 'Confirm with your password. A 6-digit code will be sent to the email address of your signed-in account.') : (fr ? 'Un code à 6 chiffres sera envoyé à l’adresse email de votre compte Google/Facebook.' : 'A 6-digit code will be sent to the email address of your Google/Facebook account.')}</li>
                 <li>{fr ? 'Saisissez ce code dans les 10 minutes pour valider la demande. Le versement est ensuite effectué manuellement par l’équipe, sous 48h.' : 'Enter this code within 10 minutes to confirm the request. The team then processes the payout manually within 48 hours.'}</li>
               </ol>
               <div className="border-t border-border pt-3 text-sm space-y-1">
