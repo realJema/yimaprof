@@ -23,72 +23,37 @@ export async function activateSubscriptionForTransaction(
   tx: any,
   extra: Record<string, unknown> = {},
 ): Promise<{ ok: boolean; subscriptionId?: string; error?: string; alreadyDone?: boolean }> {
-  if (tx.status === 'completed') {
-    return { ok: true, subscriptionId: tx.subscription_id ?? undefined, alreadyDone: true };
+  // All three writes (cancel old subscription, create new subscription, mark
+  // transaction completed) run inside a single Postgres transaction via the
+  // finalize_payment_transaction function. The function locks the transaction
+  // row (FOR UPDATE), so concurrent confirmations (webhook + polling) are
+  // serialized and any mid-flow failure rolls everything back.
+  const { data, error } = await supabase.rpc('finalize_payment_transaction', {
+    p_transaction_id: tx.id,
+    p_extra: extra,
+  });
+
+  if (error) {
+    console.error('Failed to finalize transaction atomically:', error);
+    return { ok: false, error: 'Failed to finalize transaction' };
   }
 
-  const metadata = (tx.metadata || {}) as { plan_id?: string; referred_by?: string; billing_cycle?: string };
-  if (!metadata.plan_id) {
-    return { ok: false, error: 'Missing plan_id in transaction metadata' };
+  const result = (data || {}) as {
+    ok?: boolean;
+    subscription_id?: string | null;
+    already_done?: boolean;
+    error?: string;
+  };
+
+  if (!result.ok) {
+    return { ok: false, error: result.error || 'Failed to finalize transaction' };
   }
 
-  const { data: plan } = await supabase
-    .from('subscription_plans')
-    .select('duration_days')
-    .eq('id', metadata.plan_id)
-    .single();
-
-  const baseDays = plan?.duration_days || 30;
-  const durationDays = metadata.billing_cycle === 'trimester' ? baseDays * 3
-    : metadata.billing_cycle === 'annual' ? baseDays * 9
-    : baseDays;
-  const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString();
-
-  // Cancel any existing active subscription for this user
-  await supabase
-    .from('subscriptions')
-    .update({ status: 'canceled', updated_at: new Date().toISOString() })
-    .eq('user_id', tx.user_id)
-    .eq('status', 'active');
-
-  const { data: newSub, error: subError } = await supabase
-    .from('subscriptions')
-    .insert({
-      user_id: tx.user_id,
-      plan_id: metadata.plan_id,
-      status: 'active',
-      started_at: new Date().toISOString(),
-      expires_at: expiresAt,
-      auto_renew: true,
-      referred_by: metadata.referred_by || null,
-    })
-    .select()
-    .single();
-
-  if (subError || !newSub) {
-    console.error('Failed to create subscription:', subError);
-    return { ok: false, error: 'Failed to create subscription' };
-  }
-
-  const { error: updateError } = await supabase
-    .from('transactions')
-    .update({
-      status: 'completed',
-      subscription_id: newSub.id,
-      metadata: {
-        ...metadata,
-        ...extra,
-        completed_at: new Date().toISOString(),
-      },
-    })
-    .eq('id', tx.id)
-    .neq('status', 'completed');
-
-  if (updateError) {
-    console.error('Failed to update transaction after activation:', updateError);
-  }
-
-  return { ok: true, subscriptionId: newSub.id };
+  return {
+    ok: true,
+    subscriptionId: result.subscription_id ?? undefined,
+    alreadyDone: result.already_done === true,
+  };
 }
 
 export async function markTransactionFailed(
