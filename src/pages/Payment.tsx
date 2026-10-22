@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export default function Payment() {
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const paymentStarted = useRef(false);
   const [referrerUsername, setReferrerUsername] = useState<string | null>(null);
   const [detectedCarrier, setDetectedCarrier] = useState<'MTN' | 'ORANGE' | null>(null);
   const planId = searchParams.get('planId');
@@ -167,7 +167,7 @@ export default function Payment() {
     setDetectedCarrier(carrier);
   };
   const handlePayment = async () => {
-    if (!plan || !user) return;
+    if (!plan || !user || paymentStarted.current) return;
     if (!phoneNumber.trim()) {
       toast({
         title: 'Error',
@@ -187,15 +187,8 @@ export default function Payment() {
 
     const cleanedPhone = phoneNumber.replace(/\s/g, '');
 
-    // Save phone number to profile
-    try {
-      await supabase
-        .from('profiles')
-        .update({ phone: cleanedPhone })
-        .eq('id', user.id);
-    } catch (error) {
-      console.error('Error saving phone:', error);
-    }
+    paymentStarted.current = true;
+    setLoading(true);
 
     // Navigate to processing page immediately with payment params
     const params = new URLSearchParams({
