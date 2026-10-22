@@ -127,10 +127,11 @@ export default function PaymentProcessing() {
 
         }
       } else {
-        setStatus('failed');
+        setStatus('timeout');
       }
     } catch (error) {
-      setStatus('failed');
+      // A lost HTTP response does not prove that the operator did not debit.
+      setStatus('timeout');
     }
   }, [planId, phoneNumber, amount, cycle, referredBy, user, navigate, handleTransactionUpdate, toast]);
 
@@ -351,14 +352,16 @@ export default function PaymentProcessing() {
               <div className="space-y-4">
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
                   <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Si vous avez déjà confirmé le paiement sur votre téléphone, cliquez sur "Vérifier" pour confirmer.
+                    {transactionId
+                      ? 'Si vous avez déjà confirmé sur votre téléphone, cliquez sur « Vérifier ». Ne lancez pas un deuxième paiement.'
+                      : 'La connexion a été interrompue avant réception de la référence. Vérifiez votre compte Mobile Money et votre historique YimaProf avant tout nouveau paiement.'}
                   </p>
                 </div>
                 
                 <div className="flex flex-col gap-3">
                   <Button 
                     onClick={handleVerify} 
-                    disabled={verifying}
+                    disabled={verifying || !transactionId}
                     className="w-full" 
                     size="lg"
                   >
