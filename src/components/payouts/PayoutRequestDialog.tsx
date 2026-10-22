@@ -83,11 +83,14 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
     const { data, error } = await supabase.functions.invoke('payout-security', {
       body: { action: 'request', kind, establishmentId, amount: parseInt(form.amount, 10), method: form.method, phone: form.phone.trim(), password: form.password },
     });
-    setSubmitting(false);
     if (error || data?.error) {
-      toast({ title: fr ? 'Demande refusée' : 'Request refused', description: data?.error || (fr ? 'Vérifiez le montant et votre mot de passe.' : 'Check the amount and your password.'), variant: 'destructive' });
+      const reason = await readError(data, error);
+      setSubmitting(false);
+      const label = reason ? ERROR_LABELS[reason] : undefined;
+      toast({ title: fr ? 'Demande refusée' : 'Request refused', description: label ? (fr ? label.fr : label.en) : (fr ? 'La demande n’a pas pu être envoyée. Réessayez dans un instant.' : 'The request could not be sent. Try again shortly.'), variant: 'destructive' });
       return;
     }
+    setSubmitting(false);
     setOtpId(data.otpId);
     setStep('otp');
     toast({ title: fr ? 'Code envoyé par email' : 'Code sent by email', description: fr ? 'Saisissez le code à 6 chiffres reçu par email.' : 'Enter the 6-digit code you received by email.' });
@@ -99,11 +102,14 @@ export default function PayoutRequestDialog({ kind, establishmentId, available, 
     const { data, error } = await supabase.functions.invoke('payout-security', {
       body: { action: 'confirm', kind, establishmentId, otpId, code },
     });
-    setSubmitting(false);
     if (error || data?.error) {
-      toast({ title: fr ? 'Code invalide' : 'Invalid code', description: data?.error, variant: 'destructive' });
+      const reason = await readError(data, error);
+      setSubmitting(false);
+      const label = reason ? ERROR_LABELS[reason] : undefined;
+      toast({ title: fr ? 'Code invalide' : 'Invalid code', description: label ? (fr ? label.fr : label.en) : undefined, variant: 'destructive' });
       return;
     }
+    setSubmitting(false);
     toast({ title: fr ? 'Demande confirmée' : 'Request confirmed', description: fr ? 'Elle sera traitée sous 48h.' : 'It will be processed within 48h.' });
     close();
     onDone();
