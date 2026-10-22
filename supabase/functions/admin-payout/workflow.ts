@@ -6,7 +6,13 @@ export interface Transfer {
 
 export interface ProviderTransaction {
   pk?: string; status?: string; amount?: number; currency?: string;
-  country?: string; service?: string; bParty?: string; type?: string;
+  country?: string; service?: string; type?: string;
+  // MeSomb returns snake_case (b_party); some SDK versions expose bParty.
+  b_party?: string; bParty?: string;
+}
+
+export function counterparty(tx?: ProviderTransaction): string {
+  return tx?.b_party ?? tx?.bParty ?? '';
 }
 
 export function localPhone(phone: string): string {
