@@ -53,6 +53,11 @@ export async function runPayout(action: 'approve' | 'reconcile', deps: Dependenc
   } catch {
     error = result.claimed ? 'PROVIDER_SEND_UNCERTAIN' : 'PROVIDER_LOOKUP_UNAVAILABLE';
     deps.log(error, transfer);
+    // A failed send call is not proof the provider never received the deposit:
+    // run one lookup-only pass before leaving the transfer in the unknown state.
+    if (result.claimed) {
+      try { tx = await deps.check(transfer); } catch { deps.log('PROVIDER_LOOKUP_UNAVAILABLE', transfer); }
+    }
   }
   const state = outcome(transfer, tx);
   return await deps.finish(transfer, state, tx, error ?? (state === 'unknown' ? 'AWAITING_PROVIDER_CONFIRMATION' : undefined));
