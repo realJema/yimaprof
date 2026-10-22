@@ -18,7 +18,7 @@ export function localPhone(phone: string): string {
 export function outcome(transfer: Transfer, tx?: ProviderTransaction): 'paid' | 'failed' | 'unknown' {
   if (!tx?.pk || Number(tx.amount) !== transfer.amount || tx.currency !== transfer.currency ||
     tx.country !== 'CM' || tx.service !== (transfer.method === 'mtn_momo' ? 'MTN' : 'ORANGE') ||
-    localPhone(tx.bParty ?? '') !== localPhone(transfer.phone) || tx.type !== 'DEPOSIT') return 'unknown';
+    localPhone(tx.bParty ?? '') !== localPhone(transfer.phone) || (tx.type && !/deposit/i.test(tx.type))) return 'unknown';
   if (tx.status === 'SUCCESS') return 'paid';
   if (tx.status === 'FAILED') return 'failed';
   return 'unknown';

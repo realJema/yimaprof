@@ -1,5 +1,6 @@
 # Roadmap
-- [ ] Retraits : remplacer la validation manuelle par le versement MeSomb protégé contre les doublons, vérifier les échecs et la confirmation
+- [x] Retraits : remplacer la validation manuelle par le versement MeSomb protégé contre les doublons, vérifier les échecs et la confirmation
+- [ ] Essai réel d’un retrait de 20 FCFA par un administrateur (connexion de test et versements MeSomb à confirmer)
 - [x] Lot 1 Notifications sans noms techniques + Trimestre
 - [x] Lot 2 Offres : prix trimestriels/annuels réels, bandeau à pourcentages retiré, offres FR/EN
 - [x] Lot 3 Multi-filières + filtre Série (leçons, challenges, admin épreuves)

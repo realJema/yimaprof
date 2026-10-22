@@ -31,7 +31,7 @@ Deno.test('Wrong recipient cannot mark a payout paid', () => {
 Deno.test('Wrong amount cannot mark a payout paid', () => {
   assertEquals(outcome(transfer, { ...transaction, amount: 500 }), 'unknown');
 });
-Deno.test('A collect transaction cannot settle a deposit', () => {
+Deno.test('A non-deposit transaction cannot settle a deposit', () => {
   assertEquals(outcome(transfer, { ...transaction, type: 'COLLECT' }), 'unknown');
 });
 Deno.test('Explicit matched provider failure remains unpaid', async () => {
