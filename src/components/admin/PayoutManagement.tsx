@@ -194,6 +194,7 @@ export function PayoutManagement() {
                       <div className="flex gap-2 justify-end">
                         <Button size="sm" disabled={Boolean(busy)} onClick={() => setStatus(p, 'paid')}>{busy === `${p.kind}-${p.id}` ? (fr ? 'Traitement…' : 'Processing…') : checking ? (fr ? 'Vérifier le versement' : 'Check transfer') : (fr ? 'Valider et verser' : 'Approve and send')}</Button>
                         {!transfer && <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => setStatus(p, 'rejected')}>{fr ? 'Refuser' : 'Reject'}</Button>}
+                        {transfer && <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => voidTransfer(p)}>{fr ? 'Annuler sans versement' : 'Cancel without transfer'}</Button>}
                       </div>
                     )}
                   </TableCell>
