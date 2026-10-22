@@ -12,3 +12,4 @@
 - Stuck payout transfers are released only through the admin-payout "void" action, which first re-checks the provider and can never void a transfer the provider confirms; voided payouts become rejected so balances unblock.
 
 - Track subscription payments through usePaymentTracking (Realtime, immediate read and lookup-only reconciliation); retain MeSomb background work with EdgeRuntime.waitUntil so navigation never waits for collection and an unknown outcome never triggers another debit.
+- After confirmed payment, use bounded subscription-only reads before a single replacement reload of the content destination; never reload the payment initiation URL or navigate to paid content before access is readable.

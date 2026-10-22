@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePaymentTracking } from '@/hooks/usePaymentTracking';
+import { refreshPaymentAccess } from '@/lib/paymentAccessRefresh';
 import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
 
 const TIMEOUT_SECONDS = 90;
@@ -21,7 +22,9 @@ export default function PaymentProcessing() {
   const { t } = useLanguage();
   const { refreshSubscription } = useSubscription();
   const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed' | 'timeout'>('initiating');
-  const [countdown, setCountdown] = useState(5);
+  const [accessReady, setAccessReady] = useState(false);
+  const [refreshingAccess, setRefreshingAccess] = useState(false);
+  const [accessRefreshAttempt, setAccessRefreshAttempt] = useState(0);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
   const [verifying, setVerifying] = useState(false);
   
@@ -44,7 +47,6 @@ export default function PaymentProcessing() {
     
     if (transaction.status === 'completed') {
       setStatus('completed');
-      await refreshSubscription();
       toast({
         title: t('payment_success'),
         description: t('payment_success_desc'),
@@ -55,7 +57,7 @@ export default function PaymentProcessing() {
       return true;
     }
     return false;
-  }, [t, toast, refreshSubscription]);
+  }, [t, toast]);
 
   const isResolvedRef = useRef(false);
   usePaymentTracking(transactionId, user?.id, terminalStatus => {
@@ -163,23 +165,28 @@ export default function PaymentProcessing() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
-  // Auto-redirect on success
+  // A confirmed debit can arrive before the subscription is readable.
+  // Retry only subscription reads; never restart the payment.
   useEffect(() => {
-    if (status === 'completed') {
-      cleanupSubscription();
-      const countdownInterval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(countdownInterval);
-            navigate('/exams2');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(countdownInterval);
-    }
-  }, [status, navigate, cleanupSubscription]);
+    if (status !== 'completed') return;
+    cleanupSubscription();
+    let cancelled = false;
+    setRefreshingAccess(true);
+    void refreshPaymentAccess(refreshSubscription, () => cancelled).then(ready => {
+      if (cancelled) return;
+      setAccessReady(ready);
+      setRefreshingAccess(false);
+    });
+    return () => { cancelled = true; };
+  }, [status, refreshSubscription, cleanupSubscription, accessRefreshAttempt]);
+
+  // Reload the destination once, after access is confirmed. Replacing the
+  // payment URL also keeps back/refresh from re-initiating this payment.
+  useEffect(() => {
+    if (!accessReady) return;
+    const redirect = setTimeout(() => window.location.replace('/exams2'), 1000);
+    return () => clearTimeout(redirect);
+  }, [accessReady]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -283,7 +290,11 @@ export default function PaymentProcessing() {
                 </span>
               )}
               {status === 'completed' && (
-                <span>Redirection vers les examens dans {countdown} secondes...</span>
+                <span>{accessReady
+                  ? 'Votre accès est activé. Ouverture des examens…'
+                  : refreshingAccess
+                    ? 'Paiement confirmé. Actualisation de vos accès…'
+                    : 'Paiement confirmé. Votre accès n’est pas encore disponible. Actualisez les accès sans repayer.'}</span>
               )}
               {status === 'failed' && (
                 <span className="text-amber-600 dark:text-amber-400">
@@ -379,8 +390,13 @@ export default function PaymentProcessing() {
 
             {/* Completed */}
             {status === 'completed' && (
-              <Button onClick={() => navigate('/exams2')} className="w-full" size="lg">
-                Accéder aux examens maintenant
+              <Button
+                onClick={() => accessReady ? window.location.replace('/exams2') : setAccessRefreshAttempt(previous => previous + 1)}
+                disabled={refreshingAccess}
+                className="w-full" size="lg"
+              >
+                {refreshingAccess && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {accessReady ? 'Accéder aux examens maintenant' : 'Actualiser mes accès'}
               </Button>
             )}
 
