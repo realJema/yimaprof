@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useMemo } from 'react';
+import { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,7 +26,7 @@ interface UserSubscription {
 interface SubscriptionContextType {
   subscription: UserSubscription | null;
   loading: boolean;
-  refreshSubscription: () => Promise<void>;
+  refreshSubscription: () => Promise<boolean>;
   hasActiveSubscription: boolean;
   subscriptionTier: string | null;
   daysRemaining: number | null;
@@ -79,11 +79,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshSubscription = async () => {
+  const refreshSubscription = useCallback(async (): Promise<boolean> => {
     if (!user) {
       setSubscription(null);
       setLoading(false);
-      return;
+      return false;
     }
 
     try {
@@ -101,6 +101,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         .eq('status', 'active')
         .gte('expires_at', now)
         .order('expires_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {
@@ -119,6 +120,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             }
           };
           setSubscription(processedData);
+          return true;
         } else {
           // Subscription exists but is expired
           console.log('Subscription found but expired, treating as no subscription');
@@ -133,11 +135,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } finally {
       setLoading(false);
     }
-  };
+    return false;
+  }, [user?.id]);
 
   useEffect(() => {
     refreshSubscription();
-  }, [user?.id]);
+  }, [refreshSubscription]);
 
   // Recalculate validity on each render to handle edge case of expiration during session
   const hasActiveSubscription = useMemo(() => {
