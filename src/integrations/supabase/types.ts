@@ -2633,6 +2633,10 @@ export type Database = {
             }
             Returns: Json
           }
+      void_payout_transfer: {
+        Args: { p_actor: string; p_transfer: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role:
