@@ -38,9 +38,14 @@ Deno.test('A non-deposit transaction cannot settle a deposit', () => {
 Deno.test('Explicit matched provider failure remains unpaid', async () => {
   const h = harness(); h.setTx({ ...transaction, status: 'FAILED' }); assertEquals(await runPayout('approve', h.deps), 'failed');
 });
-Deno.test('Timeout reserves funds; repeated approval checks without sending again', async () => {
-  const h = harness(); h.fail(); assertEquals(await runPayout('approve', h.deps), 'unknown');
-  assertEquals(await runPayout('approve', h.deps), 'paid'); assertEquals(h.sends(), 1); assertEquals(h.checks(), 1);
+Deno.test('Timeout triggers a lookup-only fallback that settles without sending again', async () => {
+  const h = harness(); h.fail(); assertEquals(await runPayout('approve', h.deps), 'paid');
+  assertEquals(h.sends(), 1); assertEquals(h.checks(), 1);
+});
+Deno.test('Timeout without provider trace stays reserved; a later approval only checks', async () => {
+  const h = harness(); h.fail(); h.setTx(); assertEquals(await runPayout('approve', h.deps), 'unknown');
+  h.setTx(transaction); assertEquals(await runPayout('approve', h.deps), 'paid');
+  assertEquals(h.sends(), 1); assertEquals(h.checks(), 2);
 });
 Deno.test('Concurrent approvals send at most once', async () => {
   const h = harness(); await Promise.all([runPayout('approve', h.deps), runPayout('approve', h.deps)]); assertEquals(h.sends(), 1);
