@@ -2,7 +2,8 @@ import { assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/asser
 import { bounded, outcome, runPayout, type Transfer, type ProviderTransaction, type Dependencies } from './workflow.ts';
 
 const transfer: Transfer = { id: 'transfer-1', payout_id: 'payout-1', kind: 'affiliate', state: 'sending', amount: 20, currency: 'XAF', method: 'mtn_momo', phone: '+237670123456' };
-const transaction: ProviderTransaction = { pk: 'provider-1', type: 'DEPOSIT', status: 'SUCCESS', amount: 20, currency: 'XAF', country: 'CM', service: 'MTN', bParty: '670123456' };
+// MeSomb returns snake_case b_party in the real API payload.
+const transaction: ProviderTransaction = { pk: 'provider-1', type: 'DEPOSIT', status: 'SUCCESS', amount: 20, currency: 'XAF', country: 'CM', service: 'MTN', b_party: '670123456' };
 function harness() {
   let stored: Transfer | null = null;
   let sends = 0;
@@ -26,7 +27,7 @@ Deno.test('API acceptance or pending transaction must not mark paid', async () =
   const h = harness(); h.setTx({ ...transaction, status: 'PENDING' }); assertEquals(await runPayout('approve', h.deps), 'unknown');
 });
 Deno.test('Wrong recipient cannot mark a payout paid', () => {
-  assertEquals(outcome(transfer, { ...transaction, bParty: '690123456' }), 'unknown');
+  assertEquals(outcome(transfer, { ...transaction, b_party: '690123456' }), 'unknown');
 });
 Deno.test('Wrong amount cannot mark a payout paid', () => {
   assertEquals(outcome(transfer, { ...transaction, amount: 500 }), 'unknown');

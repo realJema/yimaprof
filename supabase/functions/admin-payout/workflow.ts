@@ -6,7 +6,13 @@ export interface Transfer {
 
 export interface ProviderTransaction {
   pk?: string; status?: string; amount?: number; currency?: string;
-  country?: string; service?: string; bParty?: string; type?: string;
+  country?: string; service?: string; type?: string;
+  // MeSomb returns snake_case (b_party); some SDK versions expose bParty.
+  b_party?: string; bParty?: string;
+}
+
+export function counterparty(tx?: ProviderTransaction): string {
+  return tx?.b_party ?? tx?.bParty ?? '';
 }
 
 export function localPhone(phone: string): string {
@@ -18,7 +24,7 @@ export function localPhone(phone: string): string {
 export function outcome(transfer: Transfer, tx?: ProviderTransaction): 'paid' | 'failed' | 'unknown' {
   if (!tx?.pk || Number(tx.amount) !== transfer.amount || tx.currency !== transfer.currency ||
     tx.country !== 'CM' || tx.service !== (transfer.method === 'mtn_momo' ? 'MTN' : 'ORANGE') ||
-    localPhone(tx.bParty ?? '') !== localPhone(transfer.phone) || (tx.type && !/deposit/i.test(tx.type))) return 'unknown';
+    localPhone(counterparty(tx)) !== localPhone(transfer.phone) || (tx.type && !/deposit/i.test(tx.type))) return 'unknown';
   if (tx.status === 'SUCCESS') return 'paid';
   if (tx.status === 'FAILED') return 'failed';
   return 'unknown';
