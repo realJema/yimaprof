@@ -149,13 +149,40 @@ Deno.serve(async (req) => {
         .single();
       if (otpError || !otpRow) return json({ error: 'Could not start verification' }, 500);
 
-      // Reuse the existing notification/email pipeline.
+      // The code travels ONLY by email, sent directly (the notification trigger path is
+      // not reliable). The in-app notification never contains the code: a code readable
+      // in a popup on the same page would defeat the second factor.
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const emailResponse = await fetch(`${url}/functions/v1/send-notification-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          title: 'Code de confirmation de retrait',
+          message:
+            `Votre code de confirmation est ${code}. Il expire dans ${OTP_TTL_MINUTES} minutes. ` +
+            `Montant demandé : ${amount.toLocaleString()} FCFA. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email et changez votre mot de passe.`,
+          type: 'account_activity',
+          priority: 'high',
+          metadata: { activity_type: 'payout_otp' },
+          actionUrl: kind === 'affiliate' ? '/affiliate' : '/school',
+        }),
+      });
+      if (!emailResponse.ok) {
+        console.error('payout otp email failed', emailResponse.status);
+        return json({ error: 'Could not deliver code' }, 502);
+      }
+
       await admin.rpc('send_notification', {
         p_user_id: user.id,
-        p_title: 'Code de confirmation de retrait',
+        p_title: 'Demande de retrait',
         p_message:
-          `Votre code de confirmation est ${code}. Il expire dans ${OTP_TTL_MINUTES} minutes. ` +
-          `Montant demandé : ${amount.toLocaleString()} FCFA. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message et changez votre mot de passe.`,
+          `Un code de confirmation vient d'être envoyé à votre adresse email pour un retrait de ${amount.toLocaleString()} FCFA. ` +
+          `Si vous n'êtes pas à l'origine de cette demande, changez votre mot de passe.`,
         p_type: 'account_activity',
         p_priority: 'high',
         p_metadata: {},
