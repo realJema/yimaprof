@@ -11,7 +11,10 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
   status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 });
 
-const detail = (e: unknown) => (e instanceof Error ? e.message : String(e ?? 'unknown')).slice(0, 300);
+const detail = (e: unknown) => {
+  const m = e instanceof Error ? e.message : (e as { message?: string })?.message ?? String(e ?? 'unknown');
+  return m.slice(0, 300);
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
