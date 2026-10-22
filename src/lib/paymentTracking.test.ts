@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it } from 'node:test';
+import { strict as assert } from 'node:assert';
 import { trackPayment, type PaymentTerminalStatus } from './paymentTracking';
 
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -33,9 +34,9 @@ describe('Supabase payment tracking', () => {
   it('reads a completed payment immediately, including on page refresh', async () => {
     const f = fixture('completed');
     await flush();
-    expect(f.outcomes).toEqual(['completed']);
-    expect(f.checks()).toBe(0);
-    expect(f.tasks.every(t => t.cancelled)).toBe(true);
+    assert.deepEqual(f.outcomes, ['completed']);
+    assert.equal(f.checks(), 0);
+    assert.equal(f.tasks.every(t => t.cancelled), true);
     f.stop();
   });
 
@@ -45,44 +46,44 @@ describe('Supabase payment tracking', () => {
     f.connected();
     f.receive('completed');
     await flush();
-    expect(f.outcomes).toEqual(['completed']);
+    assert.deepEqual(f.outcomes, ['completed']);
     f.stop();
   });
 
   it('recovers a missed webhook by lookup of the existing payment', async () => {
     const f = fixture();
     await flush();
-    expect(f.outcomes).toEqual([]);
+    assert.deepEqual(f.outcomes, []);
     f.setStatus('completed');
     const task = f.tasks.find(t => t.delay === 15000 && !t.cancelled);
-    expect(task).toBeDefined();
+    assert.ok(task);
     task?.callback();
     await flush();
-    expect(f.checks()).toBe(1);
-    expect(f.outcomes).toEqual(['completed']);
+    assert.equal(f.checks(), 1);
+    assert.deepEqual(f.outcomes, ['completed']);
     f.stop();
   });
 
   it('keeps pending payments unresolved and cancels all work on exit', async () => {
     const f = fixture();
     await flush();
-    expect(f.outcomes).toEqual([]);
+    assert.deepEqual(f.outcomes, []);
     f.stop();
     f.receive('completed');
     f.tasks.forEach(t => t.callback());
     await flush();
-    expect(f.checks()).toBe(0);
-    expect(f.outcomes).toEqual([]);
-    expect(f.unsubscribed()).toBe(true);
+    assert.equal(f.checks(), 0);
+    assert.deepEqual(f.outcomes, []);
+    assert.equal(f.unsubscribed(), true);
   });
 
   it('recognizes provider-confirmed failures but not unknown states', async () => {
     const f = fixture('unknown');
     await flush();
-    expect(f.outcomes).toEqual([]);
+    assert.deepEqual(f.outcomes, []);
     f.receive('failed');
     f.receive('completed');
-    expect(f.outcomes).toEqual(['failed']);
+    assert.deepEqual(f.outcomes, ['failed']);
     f.stop();
   });
 });
