@@ -1,3 +1,4 @@
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { PaymentOperation, RandomGenerator } from 'https://esm.sh/@hachther/mesomb@2.0.1';
@@ -7,10 +8,7 @@ import {
   normalizeStatus,
 } from '../_shared/finalizeTransaction.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+declare const EdgeRuntime: { waitUntil: (task: Promise<unknown>) => void };
 
 // Determine service type from phone number (Cameroon)
 function detectService(phoneNumber: string): 'MTN' | 'ORANGE' | null {
@@ -78,7 +76,7 @@ serve(async (req) => {
     });
 
     const requestBody = await req.json();
-    console.log('Request body:', requestBody);
+    console.log('Payment request received');
     
     const { planId, phoneNumber, referredBy } = requestBody;
     const cycle: 'monthly' | 'trimester' | 'annual' =
@@ -119,8 +117,8 @@ serve(async (req) => {
     }
     
     const cleanedPhone = phoneValidation.cleaned;
-    const service = detectService(cleanedPhone)!;
-    console.log('Phone validated:', cleanedPhone, 'Service:', service);
+    const service = detectService(cleanedPhone);
+    if (!service) return new Response(JSON.stringify({ error: 'Unsupported operator' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -216,7 +214,7 @@ serve(async (req) => {
       reference: `sub_${pendingTransaction.id.substring(0, 8)}`
     };
 
-    console.log('MeSomb collect request:', collectRequest);
+    console.log('MeSomb collection initiated:', { transactionId: pendingTransaction.id, service, cycle });
     
     // Update transaction to processing immediately
     await supabase.from('transactions').update({
@@ -232,7 +230,7 @@ serve(async (req) => {
     // Fire-and-forget: Start the SDK call but don't await it.
     // The webhook stays authoritative, but if the SDK already reports a final
     // outcome we finalise here so a missed webhook can't block a paid user.
-    paymentOperation.makeCollect(collectRequest)
+    const collectionTask = paymentOperation.makeCollect(collectRequest)
       .then(async (response) => {
         console.log('MeSomb SDK response (background):', {
           success: response.isOperationSuccess(),
@@ -287,7 +285,13 @@ serve(async (req) => {
         // Don't update to failed - webhook is authoritative
       });
 
-    
+    // Explicitly keep the Supabase worker alive after the HTTP response.
+    EdgeRuntime.waitUntil(collectionTask);
+    EdgeRuntime.waitUntil((async () => {
+      const { error } = await supabase.from('profiles').update({ phone: cleanedPhone }).eq('id', user.id);
+      if (error) console.error('Payment phone persistence failed:', { transactionId: pendingTransaction.id, code: error.code });
+    })());
+
     // Return immediately - don't wait for SDK response
     // Frontend will show "Confirm on your phone" right away
     return new Response(JSON.stringify({

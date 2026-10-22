@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { usePaymentTracking } from '@/hooks/usePaymentTracking';
 import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
 
 const TIMEOUT_SECONDS = 90;
@@ -15,7 +16,7 @@ const TIMEOUT_SECONDS = 90;
 export default function PaymentProcessing() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
   const { refreshSubscription } = useSubscription();
@@ -25,7 +26,6 @@ export default function PaymentProcessing() {
   const [verifying, setVerifying] = useState(false);
   
   const paymentInitiated = useRef(false);
-  const realtimeChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Payment params
@@ -38,7 +38,9 @@ export default function PaymentProcessing() {
 
   // Handle transaction status update
   const handleTransactionUpdate = useCallback(async (transaction: { status: string; metadata?: { failure_reason?: string } | null }): Promise<boolean> => {
-    console.log('Processing transaction update:', transaction.status);
+    if (isResolvedRef.current) return true;
+    if (transaction.status !== 'completed' && transaction.status !== 'failed') return false;
+    isResolvedRef.current = true;
     
     if (transaction.status === 'completed') {
       setStatus('completed');
@@ -55,79 +57,15 @@ export default function PaymentProcessing() {
     return false;
   }, [t, toast, refreshSubscription]);
 
-  // Polling fallback
-  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollIntervalRef = useRef(2000);
   const isResolvedRef = useRef(false);
-
-  const subscribeToTransaction = useCallback((txId: string) => {
-    console.log('Subscribing to transaction updates:', txId);
-    isResolvedRef.current = false;
-    pollIntervalRef.current = 2000;
-    
-    realtimeChannel.current = supabase
-      .channel(`transaction-${txId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'transactions',
-          filter: `id=eq.${txId}`
-        },
-        async (payload) => {
-          console.log('=== REALTIME WEBHOOK RESPONSE ===');
-          if (!isResolvedRef.current) {
-            const isTerminal = await handleTransactionUpdate(payload.new as { status: string; metadata?: { failure_reason?: string } | null });
-            if (isTerminal) {
-              isResolvedRef.current = true;
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    // Polling fallback
-    const poll = async () => {
-      if (isResolvedRef.current) return;
-      
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('status, metadata, updated_at, provider_reference')
-        .eq('id', txId)
-        .single();
-
-      if (!error && data) {
-        if (data.status === 'completed' || data.status === 'failed') {
-          if (!isResolvedRef.current) {
-            const isTerminal = await handleTransactionUpdate(data as { status: string; metadata?: { failure_reason?: string } | null });
-            if (isTerminal) {
-              isResolvedRef.current = true;
-            }
-          }
-          return;
-        }
-      }
-
-      pollIntervalRef.current = Math.min(pollIntervalRef.current * 1.5, 30000);
-      pollTimeoutRef.current = setTimeout(poll, pollIntervalRef.current);
-    };
-
-    pollTimeoutRef.current = setTimeout(poll, pollIntervalRef.current);
-  }, [handleTransactionUpdate]);
+  usePaymentTracking(transactionId, user?.id, terminalStatus => {
+    void handleTransactionUpdate({ status: terminalStatus });
+  });
 
   const cleanupSubscription = useCallback(() => {
-    if (pollTimeoutRef.current) {
-      clearTimeout(pollTimeoutRef.current);
-      pollTimeoutRef.current = null;
-    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
-    }
-    if (realtimeChannel.current) {
-      supabase.removeChannel(realtimeChannel.current);
-      realtimeChannel.current = null;
     }
   }, []);
 
@@ -163,6 +101,7 @@ export default function PaymentProcessing() {
       return;
     }
 
+    setStatus('processing');
     try {
       const { data, error } = await supabase.functions.invoke('mesomb-payment', {
         body: {
@@ -174,30 +113,31 @@ export default function PaymentProcessing() {
         }
       });
 
+      if (error) throw error;
       if (data?.transactionId) {
         setTransactionId(data.transactionId);
+        const persistedParams = new URLSearchParams(window.location.search);
+        persistedParams.set('transactionId', data.transactionId);
+        navigate(`/payment-processing?${persistedParams.toString()}`, { replace: true });
         
         if (data.status === 'completed' || data.testPayment) {
-          setStatus('completed');
-          await refreshSubscription();
-          toast({
-            title: t('payment_success'),
-            description: t('payment_success_desc'),
-          });
+          await handleTransactionUpdate({ status: 'completed' });
         } else {
           setStatus('processing');
-          subscribeToTransaction(data.transactionId);
+
         }
       } else {
-        setStatus('failed');
+        setStatus('timeout');
       }
     } catch (error) {
-      setStatus('failed');
+      // A lost HTTP response does not prove that the operator did not debit.
+      setStatus('timeout');
     }
-  }, [planId, phoneNumber, amount, referredBy, user, navigate, subscribeToTransaction, t, toast, refreshSubscription]);
+  }, [planId, phoneNumber, amount, cycle, referredBy, user, navigate, handleTransactionUpdate, toast]);
 
   // Main effect
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       navigate('/auth');
       return;
@@ -205,7 +145,7 @@ export default function PaymentProcessing() {
 
     if (transactionId && !paymentInitiated.current) {
       setStatus('processing');
-      subscribeToTransaction(transactionId);
+
       paymentInitiated.current = true;
       return;
     }
@@ -221,7 +161,7 @@ export default function PaymentProcessing() {
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
   // Auto-redirect on success
   useEffect(() => {
@@ -273,23 +213,13 @@ export default function PaymentProcessing() {
       resolvedStatus = data?.status ?? null;
     }
 
-    if (resolvedStatus === 'completed') {
-      isResolvedRef.current = true;
-      setStatus('completed');
-      await refreshSubscription();
-      toast({
-        title: t('payment_success'),
-        description: t('payment_success_desc'),
-      });
-    } else if (resolvedStatus === 'failed') {
-      isResolvedRef.current = true;
-      setStatus('failed');
+    if (resolvedStatus === 'completed' || resolvedStatus === 'failed') {
+      await handleTransactionUpdate({ status: resolvedStatus });
     } else {
-      // Still processing - go back to processing and restart timeout
       setStatus('processing');
       toast({
         title: 'Paiement en cours',
-        description: 'Le paiement n\'est pas encore confirmé. Veuillez patienter.',
+        description: "Le paiement n'est pas encore confirmé. Veuillez patienter.",
       });
     }
     setVerifying(false);
@@ -301,6 +231,8 @@ export default function PaymentProcessing() {
     const params = new URLSearchParams();
     if (planId) params.set('planId', planId);
     if (phoneNumber) params.set('phone', phoneNumber);
+    params.set('cycle', cycle);
+    if (referredBy) localStorage.setItem('referral_affiliate_id', referredBy);
     navigate(`/payment?${params.toString()}`);
   };
 
@@ -355,12 +287,12 @@ export default function PaymentProcessing() {
               )}
               {status === 'failed' && (
                 <span className="text-amber-600 dark:text-amber-400">
-                  Vous n'avez pas confirmé votre paiement à temps
+                  La confirmation du paiement n’est pas encore disponible.
                 </span>
               )}
               {status === 'timeout' && (
                 <span className="text-amber-600 dark:text-amber-400">
-                  Vous n'avez pas confirmé votre paiement à temps
+                  La confirmation du paiement n’est pas encore disponible.
                 </span>
               )}
             </CardDescription>
@@ -420,14 +352,16 @@ export default function PaymentProcessing() {
               <div className="space-y-4">
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
                   <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Si vous avez déjà confirmé le paiement sur votre téléphone, cliquez sur "Vérifier" pour confirmer.
+                    {transactionId
+                      ? 'Si vous avez déjà confirmé sur votre téléphone, cliquez sur « Vérifier ». Ne lancez pas un deuxième paiement.'
+                      : 'La connexion a été interrompue avant réception de la référence. Vérifiez votre compte Mobile Money et votre historique YimaProf avant tout nouveau paiement.'}
                   </p>
                 </div>
                 
                 <div className="flex flex-col gap-3">
                   <Button 
                     onClick={handleVerify} 
-                    disabled={verifying}
+                    disabled={verifying || !transactionId}
                     className="w-full" 
                     size="lg"
                   >
@@ -438,15 +372,7 @@ export default function PaymentProcessing() {
                     )}
                     Oui, vérifier mon paiement
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleRetry}
-                    className="w-full" 
-                    size="lg"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Réessayer le paiement
-                  </Button>
+
                 </div>
               </div>
             )}

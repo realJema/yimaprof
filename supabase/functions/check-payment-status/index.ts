@@ -69,13 +69,16 @@ serve(async (req) => {
     // Fall back to the status the SDK already recorded on the transaction.
     let remoteStatus: unknown = metadata.mesomb_status ?? null;
 
-    if (providerRef) {
+    // trxID was supplied at collection: recover even if the SDK reference write was missed.
+    if (providerRef || tx.provider === 'mesomb') {
       try {
         const operation = new PaymentOperation({ applicationKey, accessKey, secretKey });
         // deno-lint-ignore no-explicit-any
-        const results: any = await operation.getTransactions([providerRef]);
+        const results: any = await operation.getTransactions(
+          [providerRef || tx.id], providerRef ? 'MESOMB' : 'EXTERNAL',
+        );
         const remote = Array.isArray(results) ? results[0] : results;
-        console.log('MeSomb status lookup:', JSON.stringify(remote ?? null));
+        console.log('MeSomb status lookup:', { transactionId: tx.id, status: remote?.status ?? null });
         if (remote?.status) remoteStatus = remote.status;
       } catch (e) {
         console.error('MeSomb status lookup failed:', e instanceof Error ? e.message : e);
