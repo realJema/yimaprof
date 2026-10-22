@@ -31,6 +31,7 @@ const ERROR_LABELS: Record<string, { fr: string; en: string }> = {
   'Code already used': { fr: 'Ce code a déjà été utilisé.', en: 'This code was already used.' },
   'Too many attempts': { fr: 'Trop d’essais. Recommencez la demande.', en: 'Too many attempts. Start again.' },
   'Balance changed, restart the request': { fr: 'Votre solde a changé. Recommencez la demande.', en: 'Your balance changed. Start again.' },
+  'Could not deliver code': { fr: 'L’email contenant le code n’a pas pu être envoyé. Réessayez dans un instant ; si le problème persiste, contactez le support.', en: 'The email with the code could not be sent. Try again shortly; if the problem persists, contact support.' },
 };
 
 /** Reads the server's real refusal reason (non-2xx responses leave `data` empty). */

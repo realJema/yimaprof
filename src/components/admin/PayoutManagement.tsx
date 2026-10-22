@@ -60,6 +60,34 @@ export function PayoutManagement() {
     refresh();
   };
 
+  const voidTransfer = async (p: Payout) => {
+    if (busy) return;
+    if (!window.confirm(fr
+      ? `Annuler le versement de ${p.amount} ${p.currency} au ${p.phone} ? Ne le faites qu'après avoir vérifié dans votre tableau de bord MeSomb qu'AUCUN versement n'a eu lieu. Le retrait sera refusé et les fonds libérés.`
+      : `Cancel the ${p.amount} ${p.currency} transfer to ${p.phone}? Only do this after confirming in your MeSomb dashboard that NO transfer happened. The payout will be rejected and funds released.`)) return;
+    setBusy(`${p.kind}-${p.id}`);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired');
+      const { data, error } = await supabase.functions.invoke('admin-payout', {
+        body: { action: 'void', kind: p.kind, payoutId: p.id },
+      });
+      if (error || !data?.state) throw new Error('Void unconfirmed');
+      toast({
+        title: data.state === 'voided' ? (fr ? 'Versement annulé, fonds libérés' : 'Transfer cancelled, funds released')
+          : data.state === 'paid' ? (fr ? 'Versement confirmé par MeSomb' : 'Transfer confirmed by the provider')
+          : data.state === 'failed' ? (fr ? 'Versement échoué confirmé' : 'Transfer failure confirmed')
+          : (fr ? 'Toujours en attente' : 'Still pending'),
+        variant: data.state === 'failed' ? 'destructive' : 'default',
+      });
+    } catch {
+      toast({ title: fr ? 'Annulation non confirmée' : 'Cancellation unconfirmed', description: fr ? 'Actualisez puis réessayez.' : 'Refresh and try again.', variant: 'destructive' });
+    } finally {
+      await load();
+      setBusy(null);
+    }
+  };
+
   const setStatus = async (p: Payout, status: 'paid' | 'rejected') => {
     if (busy) return;
     const transfer = transfers.find((t) => t.payout_id === p.id && t.kind === p.kind);
