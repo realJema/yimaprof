@@ -17,6 +17,32 @@ interface Props {
   onDone: () => void;
 }
 
+const ERROR_LABELS: Record<string, { fr: string; en: string }> = {
+  'A payout request is already pending': { fr: 'Un retrait est déjà en cours pour ce compte. Attendez qu’il soit versé ou traité avant d’en demander un nouveau.', en: 'A payout is already in progress. Wait until it is paid or processed before requesting another one.' },
+  'Invalid amount': { fr: 'Montant invalide : il doit être au moins égal au minimum et ne pas dépasser votre solde disponible.', en: 'Invalid amount: it must reach the minimum and not exceed your available balance.' },
+  'Invalid phone number': { fr: 'Numéro de téléphone invalide.', en: 'Invalid phone number.' },
+  'Password required': { fr: 'Saisissez votre mot de passe.', en: 'Enter your password.' },
+  'Incorrect password': { fr: 'Mot de passe incorrect.', en: 'Incorrect password.' },
+  'Too many attempts, try again later': { fr: 'Trop de demandes de code. Réessayez dans 15 minutes.', en: 'Too many code requests. Try again in 15 minutes.' },
+  'Not authorized for this school': { fr: 'Vous n’êtes pas autorisé à retirer pour cet établissement.', en: 'You are not allowed to withdraw for this school.' },
+  'Not an approved referrer': { fr: 'Votre compte parrain n’est pas encore approuvé.', en: 'Your referrer account is not approved yet.' },
+  'Incorrect code': { fr: 'Code incorrect.', en: 'Incorrect code.' },
+  'Code expired': { fr: 'Code expiré. Recommencez la demande.', en: 'Code expired. Start again.' },
+  'Code already used': { fr: 'Ce code a déjà été utilisé.', en: 'This code was already used.' },
+  'Too many attempts': { fr: 'Trop d’essais. Recommencez la demande.', en: 'Too many attempts. Start again.' },
+  'Balance changed, restart the request': { fr: 'Votre solde a changé. Recommencez la demande.', en: 'Your balance changed. Start again.' },
+};
+
+/** Reads the server's real refusal reason (non-2xx responses leave `data` empty). */
+async function readError(data: { error?: string } | null, error: unknown): Promise<string | undefined> {
+  if (data?.error) return data.error;
+  const ctx = (error as { context?: Response } | null)?.context;
+  if (ctx && typeof ctx.json === 'function') {
+    try { const body = await ctx.clone().json(); if (typeof body?.error === 'string') return body.error; } catch { /* ignore */ }
+  }
+  return undefined;
+}
+
 /** Password + email OTP protected payout request, shared by schools and referrers. */
 export default function PayoutRequestDialog({ kind, establishmentId, available, minPayout, onDone }: Props) {
   const { language } = useLanguage();
