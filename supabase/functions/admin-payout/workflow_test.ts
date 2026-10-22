@@ -27,7 +27,7 @@ Deno.test('API acceptance or pending transaction must not mark paid', async () =
   const h = harness(); h.setTx({ ...transaction, status: 'PENDING' }); assertEquals(await runPayout('approve', h.deps), 'unknown');
 });
 Deno.test('Wrong recipient cannot mark a payout paid', () => {
-  assertEquals(outcome(transfer, { ...transaction, bParty: '690123456' }), 'unknown');
+  assertEquals(outcome(transfer, { ...transaction, b_party: '690123456' }), 'unknown');
 });
 Deno.test('Wrong amount cannot mark a payout paid', () => {
   assertEquals(outcome(transfer, { ...transaction, amount: 500 }), 'unknown');
