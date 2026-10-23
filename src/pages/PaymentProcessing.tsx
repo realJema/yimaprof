@@ -56,10 +56,21 @@ export default function PaymentProcessing() {
       return true;
     } else if (transaction.status === 'failed') {
       setStatus('failed');
+      // Load the stored failure reason to tailor guidance; never display it raw.
+      let reason = transaction.metadata?.failure_reason ?? null;
+      if (!reason && transactionId) {
+        const { data: row } = await supabase
+          .from('transactions')
+          .select('metadata')
+          .eq('id', transactionId)
+          .maybeSingle();
+        reason = (row?.metadata as { failure_reason?: string } | null)?.failure_reason ?? null;
+      }
+      setGuidance(paymentFailureGuidance(reason, carrier));
       return true;
     }
     return false;
-  }, [t, toast]);
+  }, [t, toast, transactionId, carrier]);
 
   const isResolvedRef = useRef(false);
   usePaymentTracking(transactionId, user?.id, terminalStatus => {
