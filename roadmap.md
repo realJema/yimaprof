@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Vérifier le suivi commun Orange/MTN et actualiser automatiquement les historiques dès les changements de transaction.
 - [x] Fluidifier Orange Money / MTN : démarrage immédiat, suivi Supabase et récupération de confirmation sans relancer un débit (5 tests réussis).
 - [ ] Vérifier un paiement Mobile Money réel connecté (Supabase externe : session de test non disponible).
 - [x] Débloquer « Annuler sans versement » (garde-fou base de données refusait le statut refusé)
