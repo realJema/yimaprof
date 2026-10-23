@@ -10,7 +10,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePaymentTracking } from '@/hooks/usePaymentTracking';
 import { refreshPaymentAccess } from '@/lib/paymentAccessRefresh';
-import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
+import { paymentFailureGuidance, type PaymentFailureGuidance } from '@/lib/paymentFailureGuidance';
+import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle, LifeBuoy, ListChecks } from 'lucide-react';
 
 const TIMEOUT_SECONDS = 90;
 
@@ -27,6 +28,7 @@ export default function PaymentProcessing() {
   const [accessRefreshAttempt, setAccessRefreshAttempt] = useState(0);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
   const [verifying, setVerifying] = useState(false);
+  const [guidance, setGuidance] = useState<PaymentFailureGuidance | null>(null);
   
   const paymentInitiated = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
