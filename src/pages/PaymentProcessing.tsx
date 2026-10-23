@@ -287,7 +287,7 @@ export default function PaymentProcessing() {
               {status === 'initiating' && 'Initialisation du paiement...'}
               {status === 'processing' && 'Confirmez sur votre téléphone'}
               {status === 'completed' && t('payment_success')}
-              {status === 'failed' && 'Paiement non confirmé'}
+              {status === 'failed' && (guidance?.title ?? 'Paiement non confirmé')}
               {status === 'timeout' && 'Avez-vous effectué le paiement ?'}
             </CardTitle>
             
@@ -311,7 +311,7 @@ export default function PaymentProcessing() {
               )}
               {status === 'failed' && (
                 <span className="text-amber-600 dark:text-amber-400">
-                  La confirmation du paiement n’est pas encore disponible.
+                  {guidance?.message ?? 'La confirmation du paiement n’est pas encore disponible.'}
                 </span>
               )}
               {status === 'timeout' && (
