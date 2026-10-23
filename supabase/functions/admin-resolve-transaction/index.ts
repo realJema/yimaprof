@@ -148,77 +148,40 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
-      // Get plan duration
-      const { data: plan } = await supabase
-        .from('subscription_plans')
-        .select('duration_days')
-        .eq('id', metadata.plan_id)
-        .single();
-      
-      const durationDays = plan?.duration_days || 30;
-      
-      // Cancel existing active subscription
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'canceled', updated_at: new Date().toISOString() })
-        .eq('user_id', transaction.user_id)
-        .eq('status', 'active');
-      
-      // Create new subscription
-      const { data: newSub, error: subError } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: transaction.user_id,
-          plan_id: metadata.plan_id,
-          status: 'active',
-          started_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
-          auto_renew: true,
-          referred_by: metadata.referred_by || null
-        })
-        .select()
-        .single();
-      
-      if (subError) {
-        return new Response(JSON.stringify({ 
-          error: 'Failed to create subscription',
-          details: subError.message 
+
+      // Shared atomic finalizer: cancels the old subscription, creates the new
+      // one with the correct billing cycle (monthly/trimester/annual) and marks
+      // the transaction completed in a single Postgres transaction.
+      const result = await activateSubscriptionForTransaction(supabase, transaction, {
+        admin_force_completed: true,
+        admin_id: user.id,
+        confirmed_by: 'admin',
+      });
+
+      if (!result.ok) {
+        return new Response(JSON.stringify({
+          error: 'Failed to complete transaction',
+          details: result.error
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
-      // Update transaction to completed
-      await supabase
-        .from('transactions')
-        .update({
-          status: 'completed',
-          subscription_id: newSub.id,
-          metadata: {
-            ...metadata,
-            admin_force_completed: true,
-            admin_id: user.id,
-            completed_at: new Date().toISOString()
-          }
-        })
-        .eq('id', transactionId);
-      
+
       // Log the admin action
       await supabase.rpc('log_audit', {
         p_action: 'admin_force_complete_transaction',
         p_target_type: 'transaction',
         p_target_id: transactionId,
-        p_metadata: { 
+        p_metadata: {
           admin_id: user.id,
-          subscription_id: newSub.id
+          subscription_id: result.subscriptionId
         }
       });
-      
+
       return new Response(JSON.stringify({
         success: true,
-        subscription_id: newSub.id,
+        subscription_id: result.subscriptionId,
         message: 'Transaction force-completed'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -310,99 +273,63 @@ serve(async (req) => {
         const mesombTx = mesombTxs[0];
         
         if (mesombTx.status === 'SUCCESS') {
-          // Get plan duration
-          const { data: plan } = await supabase
-            .from('subscription_plans')
-            .select('duration_days')
-            .eq('id', metadata.plan_id)
-            .single();
-          
-          const durationDays = plan?.duration_days || 30;
-          
-          // Cancel existing subscription
-          await supabase
-            .from('subscriptions')
-            .update({ status: 'canceled', updated_at: new Date().toISOString() })
-            .eq('user_id', transaction.user_id)
-            .eq('status', 'active');
-          
-          // Create new subscription
-          const { data: newSub } = await supabase
-            .from('subscriptions')
-            .insert({
-              user_id: transaction.user_id,
-              plan_id: metadata.plan_id,
-              status: 'active',
-              started_at: new Date().toISOString(),
-              expires_at: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
-              auto_renew: true,
-              referred_by: metadata.referred_by || null
-            })
-            .select()
-            .single();
-          
-          // Update transaction
-          await supabase
-            .from('transactions')
-            .update({
-              status: 'completed',
-              subscription_id: newSub?.id,
-              metadata: {
-                ...metadata,
-                admin_verified: true,
-                admin_id: user.id,
-                mesomb_status: mesombTx.status,
-                completed_at: new Date().toISOString()
-              }
-            })
-            .eq('id', transactionId);
-          
+          // Shared atomic finalizer: correct billing cycle, single transaction.
+          const result = await activateSubscriptionForTransaction(supabase, transaction, {
+            admin_verified: true,
+            admin_id: user.id,
+            mesomb_status: mesombTx.status,
+            confirmed_by: 'admin',
+          });
+
+          if (!result.ok) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: 'Failed to finalize transaction',
+              details: result.error
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
           await supabase.rpc('log_audit', {
             p_action: 'admin_verify_resolve_transaction',
             p_target_type: 'transaction',
             p_target_id: transactionId,
-            p_metadata: { 
+            p_metadata: {
               admin_id: user.id,
               resolution: 'completed',
               mesomb_status: mesombTx.status
             }
           });
-          
+
           return new Response(JSON.stringify({
             success: true,
             resolution: 'completed',
             mesomb_status: mesombTx.status,
-            subscription_id: newSub?.id
+            subscription_id: result.subscriptionId
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
-          
+
         } else if (mesombTx.status === 'FAILED' || mesombTx.status === 'CANCELLED') {
-          await supabase
-            .from('transactions')
-            .update({
-              status: 'failed',
-              metadata: {
-                ...metadata,
-                admin_verified: true,
-                admin_id: user.id,
-                mesomb_status: mesombTx.status,
-                failed_at: new Date().toISOString()
-              }
-            })
-            .eq('id', transactionId);
-          
+          await markTransactionFailed(supabase, transaction, `MeSomb status: ${mesombTx.status}`, {
+            admin_verified: true,
+            admin_id: user.id,
+            mesomb_status: mesombTx.status,
+          });
+
           await supabase.rpc('log_audit', {
             p_action: 'admin_verify_resolve_transaction',
             p_target_type: 'transaction',
             p_target_id: transactionId,
-            p_metadata: { 
+            p_metadata: {
               admin_id: user.id,
               resolution: 'failed',
               mesomb_status: mesombTx.status
             }
           });
-          
+
           return new Response(JSON.stringify({
             success: true,
             resolution: 'failed',
@@ -410,6 +337,7 @@ serve(async (req) => {
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
+
           
         } else {
           // Still pending in MeSomb
