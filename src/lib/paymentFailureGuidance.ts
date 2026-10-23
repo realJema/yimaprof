@@ -6,6 +6,7 @@ export type PaymentCarrier = 'MTN' | 'ORANGE' | null;
 export type PaymentFailureKind =
   | 'insufficient_balance'
   | 'limit_reached'
+  | 'balance_or_limit'
   | 'cancelled'
   | 'operator_rejected'
   | 'expired'
@@ -35,8 +36,15 @@ export function classifyPaymentFailure(reason: string | null | undefined): Payme
   if (!reason) return 'unknown';
   const text = reason.toLowerCase();
 
-  if (/solde|insufficient|insuffisant|fonds/.test(text)) return 'insufficient_balance';
-  if (/limite|limit|plafond|maximum/.test(text)) return 'limit_reached';
+  // Provider messages like "Either the balance is low, or the payee has
+  // reached its limit or it is not allowed" are ambiguous: never pretend
+  // we know which cause it was.
+  const mentionsBalance = /solde|balance|insufficient|insuffisant|fonds/.test(text);
+  const mentionsLimit = /limite|limit|plafond|maximum/.test(text);
+  if (mentionsBalance && mentionsLimit) return 'balance_or_limit';
+
+  if (mentionsBalance) return 'insufficient_balance';
+  if (mentionsLimit) return 'limit_reached';
   if (/annul|cancel|abandon/.test(text)) return 'cancelled';
   if (/rejet|reject|refus|denied|declin/.test(text)) return 'operator_rejected';
   if (/expir|timeout|délai|delai|timed?\s*out/.test(text)) return 'expired';
@@ -76,6 +84,21 @@ export function paymentFailureGuidance(
           'Patientez jusqu’au lendemain, le temps que la limite journalière se réinitialise.',
           `Ou contactez ${operator} pour connaître et ajuster vos plafonds.`,
           'Vous pourrez ensuite relancer le paiement.',
+        ],
+        canRetry: true,
+        suggestVerify: false,
+        suggestSupport: false,
+      };
+    case 'balance_or_limit':
+      return {
+        kind,
+        title: 'Paiement refusé : solde ou limite',
+        message: `${operator} a refusé le paiement, soit parce que le solde est insuffisant, soit parce qu’une limite de votre compte est atteinte. Aucun montant n’a été débité.`,
+        steps: [
+          `Vérifiez d’abord le solde de votre compte ${operator}.`,
+          'S’il est insuffisant, rechargez-le du montant de l’abonnement, en pensant aux petits frais.',
+          'Si le solde est suffisant, une limite journalière est probablement atteinte : patientez jusqu’au lendemain ou contactez votre opérateur.',
+          'Relancez ensuite le paiement en toute sécurité.',
         ],
         canRetry: true,
         suggestVerify: false,

@@ -17,6 +17,15 @@ describe('classifyPaymentFailure', () => {
     assert.equal(classifyPaymentFailure('Transaction limit exceeded'), 'limit_reached');
   });
 
+  it('treats the ambiguous provider message as balance-or-limit, never a single cause', () => {
+    const ambiguous = 'Either the balance is low, or the payee has reached its limit or it is not allowed';
+    assert.equal(classifyPaymentFailure(ambiguous), 'balance_or_limit');
+    assert.equal(
+      classifyPaymentFailure(`MeSomb status: FAILED - ${ambiguous}`),
+      'balance_or_limit',
+    );
+  });
+
   it('detects user cancellation', () => {
     assert.equal(classifyPaymentFailure('Paiement annulé par l’utilisateur'), 'cancelled');
     assert.equal(classifyPaymentFailure('User cancelled the request'), 'cancelled');
@@ -57,6 +66,19 @@ describe('paymentFailureGuidance', () => {
     assert.ok(guidance.message.includes('Aucun montant'));
     assert.ok(guidance.message.includes('Orange Money'));
     assert.equal(guidance.canRetry, true);
+  });
+
+  it('covers both causes without claiming one for the ambiguous message', () => {
+    const guidance = paymentFailureGuidance(
+      'Either the balance is low, or the payee has reached its limit or it is not allowed',
+      'MTN',
+    );
+    assert.equal(guidance.kind, 'balance_or_limit');
+    const visible = [guidance.title, guidance.message, ...guidance.steps].join(' ');
+    assert.ok(visible.includes('solde'));
+    assert.ok(visible.includes('limite'));
+    assert.ok(visible.includes('Aucun montant'));
+    assert.ok(visible.includes('MTN Mobile Money'));
   });
 
   it('includes the carrier USSD code in cancellation steps', () => {
