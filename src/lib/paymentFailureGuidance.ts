@@ -36,7 +36,14 @@ export function classifyPaymentFailure(reason: string | null | undefined): Payme
   if (!reason) return 'unknown';
   const text = reason.toLowerCase();
 
-  if (/solde|insufficient|insuffisant|fonds/.test(text)) return 'insufficient_balance';
+  // Provider messages like "Either the balance is low, or the payee has
+  // reached its limit or it is not allowed" are ambiguous: never pretend
+  // we know which cause it was.
+  const mentionsBalance = /solde|balance|insufficient|insuffisant|fonds/.test(text);
+  const mentionsLimit = /limite|limit|plafond|maximum/.test(text);
+  if (mentionsBalance && mentionsLimit) return 'balance_or_limit';
+
+  if (mentionsBalance) return 'insufficient_balance';
   if (/limite|limit|plafond|maximum/.test(text)) return 'limit_reached';
   if (/annul|cancel|abandon/.test(text)) return 'cancelled';
   if (/rejet|reject|refus|denied|declin/.test(text)) return 'operator_rejected';
