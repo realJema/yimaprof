@@ -10,7 +10,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePaymentTracking } from '@/hooks/usePaymentTracking';
 import { refreshPaymentAccess } from '@/lib/paymentAccessRefresh';
-import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle } from 'lucide-react';
+import { paymentFailureGuidance, type PaymentFailureGuidance } from '@/lib/paymentFailureGuidance';
+import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle, LifeBuoy, ListChecks } from 'lucide-react';
 
 const TIMEOUT_SECONDS = 90;
 
@@ -27,6 +28,7 @@ export default function PaymentProcessing() {
   const [accessRefreshAttempt, setAccessRefreshAttempt] = useState(0);
   const [transactionId, setTransactionId] = useState<string | null>(searchParams.get('transactionId'));
   const [verifying, setVerifying] = useState(false);
+  const [guidance, setGuidance] = useState<PaymentFailureGuidance | null>(null);
   
   const paymentInitiated = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,10 +56,21 @@ export default function PaymentProcessing() {
       return true;
     } else if (transaction.status === 'failed') {
       setStatus('failed');
+      // Load the stored failure reason to tailor guidance; never display it raw.
+      let reason = transaction.metadata?.failure_reason ?? null;
+      if (!reason && transactionId) {
+        const { data: row } = await supabase
+          .from('transactions')
+          .select('metadata')
+          .eq('id', transactionId)
+          .maybeSingle();
+        reason = (row?.metadata as { failure_reason?: string } | null)?.failure_reason ?? null;
+      }
+      setGuidance(paymentFailureGuidance(reason, carrier));
       return true;
     }
     return false;
-  }, [t, toast]);
+  }, [t, toast, transactionId, carrier]);
 
   const isResolvedRef = useRef(false);
   usePaymentTracking(transactionId, user?.id, terminalStatus => {
@@ -274,7 +287,7 @@ export default function PaymentProcessing() {
               {status === 'initiating' && 'Initialisation du paiement...'}
               {status === 'processing' && 'Confirmez sur votre téléphone'}
               {status === 'completed' && t('payment_success')}
-              {status === 'failed' && 'Paiement non confirmé'}
+              {status === 'failed' && (guidance?.title ?? 'Paiement non confirmé')}
               {status === 'timeout' && 'Avez-vous effectué le paiement ?'}
             </CardTitle>
             
@@ -298,7 +311,7 @@ export default function PaymentProcessing() {
               )}
               {status === 'failed' && (
                 <span className="text-amber-600 dark:text-amber-400">
-                  La confirmation du paiement n’est pas encore disponible.
+                  {guidance?.message ?? 'La confirmation du paiement n’est pas encore disponible.'}
                 </span>
               )}
               {status === 'timeout' && (
@@ -400,18 +413,63 @@ export default function PaymentProcessing() {
               </Button>
             )}
 
-            {/* Failed - yellow warning style */}
+            {/* Failed - guided recovery, never exposes technical details */}
             {status === 'failed' && (
               <div className="space-y-4">
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Le paiement n'a pas été confirmé. Vous pouvez réessayer.
-                  </p>
+                {guidance && guidance.steps.length > 0 && (
+                  <div className="bg-muted/50 border border-border rounded-lg p-4 text-left space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <ListChecks className="h-4 w-4 text-primary shrink-0" />
+                      Que faire maintenant ?
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 pl-1">
+                      {guidance.steps.map((step, index) => (
+                        <li key={index} className="text-sm text-muted-foreground">{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  {guidance?.suggestVerify && transactionId && (
+                    <Button
+                      onClick={handleVerify}
+                      disabled={verifying}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      {verifying ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Vérifier mon paiement
+                    </Button>
+                  )}
+
+                  {(guidance?.canRetry ?? true) && (
+                    <Button onClick={handleRetry} className="w-full" size="lg">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Réessayer le paiement
+                    </Button>
+                  )}
+
+                  {guidance?.suggestSupport && (
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => { window.location.href = 'mailto:support@yimaprof.com?subject=Probl%C3%A8me%20de%20paiement'; }}
+                    >
+                      <LifeBuoy className="h-4 w-4 mr-2" />
+                      Contacter le support
+                    </Button>
+                  )}
                 </div>
-                <Button onClick={handleRetry} className="w-full" size="lg">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Réessayer le paiement
-                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  Votre sécurité est préservée : aucun second débit ne peut être lancé sans votre confirmation sur le téléphone.
+                </p>
               </div>
             )}
           </CardContent>
