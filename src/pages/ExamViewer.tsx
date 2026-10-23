@@ -1,6 +1,7 @@
 import type { JsonLevel } from '@/lib/lessonJsonExercises';
 import { normalizeLevel } from '@/lib/lessonExercises';
 import { isFreeExam as isFreeExamVisibility, isLessonOnlyExam } from '@/lib/examVisibility';
+import { isEvaluationLocked } from '@/lib/examAccess';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -994,8 +995,9 @@ export default function ExamViewer() {
   // Subscription encouragement banner for free exams or free-preview access (when user is not subscribed)
   const showSubscriptionBanner = (exam.visibility === 'free' || isFreePreview) && isFreeUser && !hasAccess;
   const isFreeExam = exam.visibility === 'free';
-  // Evaluation is locked for all non-subscribed / non-authenticated users
-  const evaluationLocked = !user || (isPremiumExam && isFreeUser && !hasAccess);
+  // Evaluation is locked for all non-subscribed / non-authenticated users,
+  // including on free exams (their statement and correction stay open).
+  const evaluationLocked = isEvaluationLocked({ isAuthenticated: !!user, isFreeUser, hasAccess });
   // Free exams: solutions only shown in correction mode (not instantly)
   const showAnswers = mode === 'correction' || (mode === 'evaluation' && submitted);
   const durationMinutes = exam.durations?.minutes || DEFAULT_DURATION_MINUTES;
