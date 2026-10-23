@@ -413,18 +413,63 @@ export default function PaymentProcessing() {
               </Button>
             )}
 
-            {/* Failed - yellow warning style */}
+            {/* Failed - guided recovery, never exposes technical details */}
             {status === 'failed' && (
               <div className="space-y-4">
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Le paiement n'a pas été confirmé. Vous pouvez réessayer.
-                  </p>
+                {guidance && guidance.steps.length > 0 && (
+                  <div className="bg-muted/50 border border-border rounded-lg p-4 text-left space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <ListChecks className="h-4 w-4 text-primary shrink-0" />
+                      Que faire maintenant ?
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 pl-1">
+                      {guidance.steps.map((step, index) => (
+                        <li key={index} className="text-sm text-muted-foreground">{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  {guidance?.suggestVerify && transactionId && (
+                    <Button
+                      onClick={handleVerify}
+                      disabled={verifying}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      {verifying ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Vérifier mon paiement
+                    </Button>
+                  )}
+
+                  {(guidance?.canRetry ?? true) && (
+                    <Button onClick={handleRetry} className="w-full" size="lg">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Réessayer le paiement
+                    </Button>
+                  )}
+
+                  {guidance?.suggestSupport && (
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => { window.location.href = 'mailto:support@yimaprof.com?subject=Probl%C3%A8me%20de%20paiement'; }}
+                    >
+                      <LifeBuoy className="h-4 w-4 mr-2" />
+                      Contacter le support
+                    </Button>
+                  )}
                 </div>
-                <Button onClick={handleRetry} className="w-full" size="lg">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Réessayer le paiement
-                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  Votre sécurité est préservée : aucun second débit ne peut être lancé sans votre confirmation sur le téléphone.
+                </p>
               </div>
             )}
           </CardContent>
