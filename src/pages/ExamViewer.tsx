@@ -1,6 +1,7 @@
 import type { JsonLevel } from '@/lib/lessonJsonExercises';
 import { normalizeLevel } from '@/lib/lessonExercises';
 import { isFreeExam as isFreeExamVisibility, isLessonOnlyExam } from '@/lib/examVisibility';
+import { isEvaluationLocked } from '@/lib/examAccess';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
