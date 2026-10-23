@@ -208,7 +208,11 @@ serve(async (req) => {
       trxID: pendingTransaction.id, // Our transaction ID for webhook reconciliation
       currency: 'XAF',
       country: 'CM',
-      fees: true,
+      // MTN: the merchant absorbs MeSomb fees so the payer is debited exactly
+      // the displayed price. With fees on top, MTN rejects the collect with
+      // "balance is low" whenever the payer holds exactly the plan price —
+      // the top MTN failure cause. Orange keeps the existing behavior.
+      fees: service !== 'MTN',
       mode: 'asynchronous', // Always async - webhook handles completion
       message: 'Subscription payment',
       reference: `sub_${pendingTransaction.id.substring(0, 8)}`
@@ -274,7 +278,7 @@ serve(async (req) => {
           });
           console.log('SDK finalisation result:', result);
         } else if (normalized === 'failed') {
-          await markTransactionFailed(supabase, freshTx, `MeSomb status: ${response.status}`, {
+          await markTransactionFailed(supabase, freshTx, `MeSomb status: ${response.status}${response.message ? ` — ${response.message}` : ''}`, {
             confirmed_by: 'sdk',
             mesomb_message: response.message
           });
