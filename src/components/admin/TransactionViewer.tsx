@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,11 +35,7 @@ export function TransactionViewer() {
   const [bulkVerifying, setBulkVerifying] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       const { data: transactionsData, error } = await supabase
         .from('transactions')
@@ -75,7 +71,19 @@ export function TransactionViewer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchTransactions();
+    const channel = supabase.channel('admin-transaction-history')
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'transactions',
+      }, () => { void fetchTransactions(); })
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') void fetchTransactions();
+      });
+    return () => { void supabase.removeChannel(channel); };
+  }, [fetchTransactions]);
 
   // Ask MeSomb for the real status of a stuck transaction and finalize it
   // (completed -> subscription activated, or failed). Never sends money again:

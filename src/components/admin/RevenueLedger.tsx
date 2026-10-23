@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,13 +34,22 @@ export function RevenueLedger() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
-  const load = async () => {
-    setLoading(true);
-    const { data } = await supabase.rpc('admin_revenue_ledger' as never);
-    setRows(((data as Row[]) || []).map((r) => ({ ...r, amount: Number(r.amount) })));
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.rpc('admin_revenue_ledger' as never);
+    if (!error) setRows(((data as Row[]) || []).map((r) => ({ ...r, amount: Number(r.amount) })));
     setLoading(false);
-  };
-  useEffect(() => { load(); }, []);
+  }, []);
+  useEffect(() => {
+    void load();
+    const channel = supabase.channel('admin-payment-revenue')
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'transactions',
+      }, () => { void load(); })
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') void load();
+      });
+    return () => { void supabase.removeChannel(channel); };
+  }, [load]);
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (type !== 'all' && r.revenue_type !== type) return false;
@@ -67,7 +76,7 @@ export function RevenueLedger() {
     <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2"><Receipt className="h-5 w-5" />{fr ? 'Historique des revenus' : 'Revenue history'}</CardTitle>
-        <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-4 w-4" /></Button>
+        <Button variant="outline" size="sm" onClick={() => { void load(); }}><RefreshCw className="h-4 w-4" /></Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">

@@ -13,3 +13,4 @@
 
 - Track subscription payments through usePaymentTracking (Realtime, immediate read and lookup-only reconciliation); retain MeSomb background work with EdgeRuntime.waitUntil so navigation never waits for collection and an unknown outcome never triggers another debit.
 - After confirmed payment, use bounded subscription-only reads before a single replacement reload of the content destination; never reload the payment initiation URL or navigate to paid content before access is readable.
+- Refresh admin transaction and payment-revenue histories from Supabase transaction events with effect-scoped channel cleanup; both carriers share the same authoritative transaction table.

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Vérifier le suivi commun Orange/MTN et actualiser automatiquement les historiques dès les changements de transaction (Realtime activé sur transactions, 9 tests réussis).
+- [ ] Confirmer la livraison des notifications MeSomb : aucun journal webhook disponible ; les confirmations Orange récentes proviennent de la vérification de statut, un paiement réel reste nécessaire pour vérifier la livraison côté prestataire.
 - [x] Fluidifier Orange Money / MTN : démarrage immédiat, suivi Supabase et récupération de confirmation sans relancer un débit (5 tests réussis).
 - [ ] Vérifier un paiement Mobile Money réel connecté (Supabase externe : session de test non disponible).
 - [x] Débloquer « Annuler sans versement » (garde-fou base de données refusait le statut refusé)
