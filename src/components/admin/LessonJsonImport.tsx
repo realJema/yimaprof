@@ -12,6 +12,7 @@ import {
   validateLessonExercisesJson,
 } from '@/lib/lessonJsonExercises';
 import { AlertTriangle, CheckCircle2, Upload } from 'lucide-react';
+import { stageLessonImport, cancelLessonImport, type LessonImportDraft } from '@/lib/lessonImportDraft';
 
 /**
  * Step 3 of the lesson form: paste or import the exercises JSON.
@@ -31,23 +32,32 @@ export default function LessonJsonImport({
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<LessonExercises | null>(null);
+  const draftRef = useRef<LessonImportDraft | null>(null);
+
+  const cancel = () => {
+    if (draftRef.current) onChange(cancelLessonImport(draftRef.current));
+    draftRef.current = null;
+    setPending(null);
+  };
 
   const validate = () => {
     const result = validateLessonExercisesJson(text, fr);
-    if (!result.ok) {
-      setPending(null);
-      setError(result.error!);
+    if (!result.ok || !result.data) {
+      cancel();
+      setError(result.error ?? (fr ? 'JSON invalide.' : 'Invalid JSON.'));
       return;
     }
     setError(null);
     // Apply immediately so saving the lesson never drops validated exercises.
-    onChange(result.data!);
-    setPending(result.data!);
+    draftRef.current = stageLessonImport(draftRef.current, value, result.data);
+    onChange(result.data);
+    setPending(result.data);
   };
 
   const pickFile = async (file: File | null) => {
     if (!file) return;
     const content = await file.text();
+    cancel();
     setText(content);
     setPending(null);
     setError(null);
@@ -56,6 +66,7 @@ export default function LessonJsonImport({
   const apply = () => {
     if (!pending) return;
     onChange(pending);
+    draftRef.current = null;
     setPending(null);
     setText('');
     setError(null);
@@ -71,7 +82,7 @@ export default function LessonJsonImport({
           className="font-mono text-xs mt-1"
           placeholder='{"facile": [...], "intermediaire": [...], "difficile": [...]}'
           value={text}
-          onChange={(e) => { setText(e.target.value); setPending(null); setError(null); }}
+          onChange={(e) => { cancel(); setText(e.target.value); setError(null); }}
         />
       </div>
 
@@ -92,7 +103,7 @@ export default function LessonJsonImport({
         </Button>
         {pending && (
           <>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setPending(null)}>
+            <Button type="button" variant="ghost" size="sm" onClick={cancel}>
               {fr ? 'Annuler' : 'Cancel'}
             </Button>
             <Button type="button" size="sm" variant="secondary" onClick={apply}>

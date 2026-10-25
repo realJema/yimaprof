@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePaymentTracking } from '@/hooks/usePaymentTracking';
 import { refreshPaymentAccess } from '@/lib/paymentAccessRefresh';
+import { isConfirmedPaymentStartRefusal, readPaymentStartRefusal } from '@/lib/paymentStartFailure';
 import { paymentFailureGuidance, type PaymentFailureGuidance } from '@/lib/paymentFailureGuidance';
 import { Loader2, CheckCircle, Phone, AlertTriangle, RefreshCw, MessageCircle, LifeBuoy, ListChecks } from 'lucide-react';
 
@@ -22,7 +23,7 @@ export default function PaymentProcessing() {
   const { toast } = useToast();
   const { t } = useLanguage();
   const { refreshSubscription } = useSubscription();
-  const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed' | 'timeout'>('initiating');
+  const [status, setStatus] = useState<'initiating' | 'processing' | 'completed' | 'failed' | 'timeout' | 'start_failed'>('initiating');
   const [accessReady, setAccessReady] = useState(false);
   const [refreshingAccess, setRefreshingAccess] = useState(false);
   const [accessRefreshAttempt, setAccessRefreshAttempt] = useState(0);
@@ -142,11 +143,12 @@ export default function PaymentProcessing() {
 
         }
       } else {
-        setStatus('timeout');
+        setStatus(isConfirmedPaymentStartRefusal(data) ? 'start_failed' : 'timeout');
       }
     } catch (error) {
       // A lost HTTP response does not prove that the operator did not debit.
-      setStatus('timeout');
+      const refused = await readPaymentStartRefusal(error);
+      if (!isResolvedRef.current) setStatus(refused ? 'start_failed' : 'timeout');
     }
   }, [planId, phoneNumber, amount, cycle, referredBy, user, navigate, handleTransactionUpdate, toast]);
 
@@ -275,7 +277,7 @@ export default function PaymentProcessing() {
               {status === 'completed' && (
                 <CheckCircle className="h-10 w-10 text-green-500" />
               )}
-              {status === 'failed' && (
+              {(status === 'failed' || status === 'start_failed') && (
                 <AlertTriangle className="h-10 w-10 text-amber-500" />
               )}
               {status === 'timeout' && (
@@ -288,6 +290,7 @@ export default function PaymentProcessing() {
               {status === 'processing' && 'Confirmez sur votre téléphone'}
               {status === 'completed' && t('payment_success')}
               {status === 'failed' && (guidance?.title ?? 'Paiement non confirmé')}
+              {status === 'start_failed' && 'Le paiement n’a pas pu démarrer'}
               {status === 'timeout' && 'Avez-vous effectué le paiement ?'}
             </CardTitle>
             
@@ -318,6 +321,9 @@ export default function PaymentProcessing() {
                 <span className="text-amber-600 dark:text-amber-400">
                   La confirmation du paiement n’est pas encore disponible.
                 </span>
+              )}
+              {status === 'start_failed' && (
+                <span>Votre demande n’a pas été envoyée à l’opérateur. Vérifiez l’offre et le numéro, puis réessayez.</span>
               )}
             </CardDescription>
           </CardHeader>
@@ -383,9 +389,9 @@ export default function PaymentProcessing() {
                 </div>
                 
                 <div className="flex flex-col gap-3">
-                  <Button 
+                  {transactionId && <Button 
                     onClick={handleVerify} 
-                    disabled={verifying || !transactionId}
+                    disabled={verifying}
                     className="w-full" 
                     size="lg"
                   >
@@ -395,6 +401,9 @@ export default function PaymentProcessing() {
                       <CheckCircle className="h-4 w-4 mr-2" />
                     )}
                     Oui, vérifier mon paiement
+                  </Button>}
+                  <Button variant="outline" onClick={() => navigate('/dashboard', { replace: true })} className="w-full">
+                    Retour à mon espace
                   </Button>
 
                 </div>
@@ -402,6 +411,17 @@ export default function PaymentProcessing() {
             )}
 
             {/* Completed */}
+            {status === 'start_failed' && (
+              <div className="flex flex-col gap-3">
+                <Button onClick={handleRetry} className="w-full" size="lg">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Réessayer le paiement
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/subscriptions', { replace: true })} className="w-full">
+                  Retour aux offres
+                </Button>
+              </div>
+            )}
             {status === 'completed' && (
               <Button
                 onClick={() => accessReady ? window.location.replace('/exams2') : setAccessRefreshAttempt(previous => previous + 1)}
