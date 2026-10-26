@@ -747,6 +747,8 @@ const Exams2 = () => {
             <p className="text-sm text-muted-foreground">
               {filteredExams.length} {language === 'fr' ? 'épreuve(s) trouvée(s)' : 'exam(s) found'}
             </p>
+
+            <ViewOffersButton />
           </div>
         </div>
       </div>
