@@ -431,12 +431,27 @@ export default function Subscriptions() {
                     {(['monthly', 'trimester', 'annual'] as const).map((cycle) => {
                       const price = cycle === 'monthly' ? plan.price : cycle === 'trimester' ? plan.price_trimester : plan.price_annual;
                       const offered = typeof price === 'number' && price > 0;
-                      return <div key={cycle} className="space-y-2 py-4">
-                        <p className="text-sm font-semibold text-primary">{cycle === 'monthly' ? (isEn ? 'Monthly' : 'Mensuel') : cycle === 'trimester' ? (isEn ? 'Trimester' : 'Trimestriel') : (isEn ? 'Annual' : 'Annuel')}</p>
-                        <p className="text-xl font-bold break-words">{offered ? formatPrice(price, plan.currency) : '—'}</p>
-                        {offered ? <Button onClick={() => handleSubscribe(plan.id, cycle)} disabled={subscribing === plan.id || isCurrentPlan} className="w-full" variant={cycle === 'monthly' ? 'outline' : 'default'}>{isCurrentPlan ? t('current_plan') : t('subscribe_to_plan')}</Button> : <p className="text-xs text-muted-foreground">{isEn ? 'Not available for this period' : 'Non proposé pour cette durée'}</p>}
+                      const dominant = cycle === 'trimester';
+                      return <div key={cycle} className={`space-y-2 py-4 ${dominant ? 'rounded-lg bg-secondary/10 -mx-3 px-3 border border-secondary/30' : ''}`}>
+                        <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                          {cycle === 'monthly' ? (isEn ? 'Monthly' : 'Mensuel') : cycle === 'trimester' ? (isEn ? 'Trimester' : 'Trimestriel') : (isEn ? 'Annual' : 'Annuel')}
+                          {dominant && (
+                            <Badge className="bg-secondary text-secondary-foreground italic font-extrabold">
+                              {isEn ? 'Most chosen' : 'Le plus choisi'}
+                            </Badge>
+                          )}
+                        </p>
+                        <p className={`font-bold break-words ${dominant ? 'text-2xl' : 'text-xl'}`}>{offered ? formatPrice(price, plan.currency) : '—'}</p>
+                        {offered ? <Button onClick={() => handleSubscribe(plan.id, cycle)} disabled={subscribing === plan.id || isCurrentPlan} className="w-full" variant={dominant ? 'default' : 'outline'}>{isCurrentPlan ? t('current_plan') : t('subscribe_to_plan')}</Button> : <p className="text-xs text-muted-foreground">{isEn ? 'Not available for this period' : 'Non proposé pour cette durée'}</p>}
                       </div>;
                     })}
+                  </div>
+
+                  {/* Reassurance right next to the payment buttons */}
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p className="flex items-center gap-2"><Check className="h-3 w-3 text-green-500 shrink-0" />{isEn ? 'Payment by Orange Money / MTN Mobile Money' : 'Paiement Orange Money / MTN Mobile Money'}</p>
+                    <p className="flex items-center gap-2"><Check className="h-3 w-3 text-green-500 shrink-0" />{isEn ? 'Immediate access after payment' : 'Accès immédiat après paiement'}</p>
+                    <p className="flex items-center gap-2"><Check className="h-3 w-3 text-green-500 shrink-0" />{isEn ? 'No secret code is ever asked on Yimaprof' : 'Aucun code secret demandé sur Yimaprof'}</p>
                   </div>
                 </CardContent>
               </Card>
