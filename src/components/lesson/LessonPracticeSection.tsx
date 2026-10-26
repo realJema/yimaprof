@@ -13,7 +13,9 @@ import {
   jsonLevelLabel,
   totalPoints,
 } from '@/lib/lessonJsonExercises';
-import { ArrowLeft, BookOpenCheck, ClipboardCheck, ListChecks, Lock } from 'lucide-react';
+import { ArrowLeft, BookOpenCheck, ClipboardCheck, Crown, ListChecks, Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MarkdownText } from '@/components/ui/markdown-text';
 
 type Mode = 'evaluation' | 'correction';
 
@@ -37,6 +39,8 @@ export default function LessonPracticeSection({
   const [mode, setMode] = useState<Mode | null>(null);
   // Corrections unlock only after the level was taken in Evaluation mode.
   const [doneLevels, setDoneLevels] = useState<Set<JsonLevel>>(new Set());
+  // Upsell shown once a non-subscriber finishes the free exercise (moment of maximum value).
+  const [upsellOpen, setUpsellOpen] = useState(false);
 
   useEffect(() => { onFocusChange?.(mode !== null); if (mode) window.scrollTo(0, 0); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -84,7 +88,11 @@ export default function LessonPracticeSection({
                   <span className="w-full">
                     <span className="flex items-center justify-between gap-2 font-medium">
                       {jsonLevelLabel(lv, fr)}
-                      {locked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                      {locked && (
+                        <Badge variant="secondary" className="gap-1 shrink-0">
+                          <Lock className="h-3 w-3" />Premium
+                        </Badge>
+                      )}
                     </span>
                     <span className="mt-1 block text-xs font-normal text-muted-foreground">
                       {!hasActiveSubscription && lv === 'facile'
@@ -107,14 +115,29 @@ export default function LessonPracticeSection({
               </span>
             </div>
             {!hasActiveSubscription && level !== 'facile' ? (
-              <div className="space-y-3 rounded-lg border border-secondary/40 p-5 text-center">
-                <Lock className="mx-auto h-6 w-6 text-muted-foreground" />
-                <p className="font-medium">
-                  {fr ? 'Ces exercices sont réservés aux abonnés' : 'These exercises are for subscribers'}
-                </p>
-                <Button asChild size="sm">
-                  <a href="/subscriptions">{fr ? 'Voir les abonnements' : 'See plans'}</a>
-                </Button>
+              <div className="space-y-3">
+                {/* Blurred preview of the locked content: people pay more easily for what they can see. */}
+                {exercises[level].slice(0, 2).map((ex, i) => (
+                  <div key={i} className="relative overflow-hidden rounded-lg border p-4 select-none" aria-hidden>
+                    <div className="pointer-events-none blur-sm opacity-60">
+                      <MarkdownText text={`**${i + 1}.** ${ex.question}`} />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Badge variant="secondary" className="gap-1 shadow-sm">
+                        <Lock className="h-3 w-3" />Premium
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                <div className="space-y-3 rounded-lg border border-secondary/40 p-5 text-center">
+                  <Lock className="mx-auto h-6 w-6 text-muted-foreground" />
+                  <p className="font-medium">
+                    {fr ? 'Ces exercices sont réservés aux abonnés' : 'These exercises are for subscribers'}
+                  </p>
+                  <Button asChild size="sm">
+                    <a href="/subscriptions">{fr ? 'Débloquer avec un abonnement' : 'Unlock with a plan'}</a>
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -144,7 +167,11 @@ export default function LessonPracticeSection({
             exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)}
             minutes={minutes}
             level={level}
-            onFinished={(percent) => { setDoneLevels((d) => new Set(d).add(level)); onLevelFinished?.(level, percent); }}
+            onFinished={(percent) => {
+              setDoneLevels((d) => new Set(d).add(level));
+              onLevelFinished?.(level, percent);
+              if (!hasActiveSubscription) setUpsellOpen(true);
+            }}
           />
         )}
 
@@ -152,6 +179,31 @@ export default function LessonPracticeSection({
           <LessonLevelCorrection exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)} />
         )}
       </CardContent>
+
+      {/* Upsell at the moment of maximum value: right after the free exercise. */}
+      <Dialog open={upsellOpen} onOpenChange={setUpsellOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-secondary" />
+              {fr ? 'Bravo, exercice terminé !' : 'Well done, exercise completed!'}
+            </DialogTitle>
+            <DialogDescription>
+              {fr
+                ? 'Débloquez les 2 autres niveaux (Intermédiaire et Difficile) + le corrigé détaillé pour progresser vraiment.'
+                : 'Unlock the 2 other levels (Intermediate and Hard) + the detailed correction to really progress.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setUpsellOpen(false)}>
+              {fr ? 'Plus tard' : 'Later'}
+            </Button>
+            <Button asChild className="gradient-primary">
+              <a href="/subscriptions">{fr ? 'Débloquer maintenant' : 'Unlock now'}</a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

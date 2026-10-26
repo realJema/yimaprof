@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { anonymizeSchoolName, matchesSchoolSearch } from '@/lib/schoolAnonymizer';
+import ViewOffersButton from '@/components/layout/ViewOffersButton';
 
 interface Exam {
   id: string;
@@ -747,6 +748,8 @@ const Exams2 = () => {
             <p className="text-sm text-muted-foreground">
               {filteredExams.length} {language === 'fr' ? 'épreuve(s) trouvée(s)' : 'exam(s) found'}
             </p>
+
+            <ViewOffersButton />
           </div>
         </div>
       </div>
