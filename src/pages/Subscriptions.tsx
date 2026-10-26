@@ -14,7 +14,8 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useEstablishment } from '@/hooks/useEstablishment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Crown, Globe, BookOpen, Zap, UserPlus, Loader2, Search, Sparkles, GraduationCap } from 'lucide-react';
+import { Check, Crown, Globe, BookOpen, Zap, UserPlus, Loader2, Search, Sparkles, GraduationCap, MessageCircle } from 'lucide-react';
+import { WHATSAPP_SUPPORT_NUMBER, whatsappSupportUrl } from '@/lib/supportContact';
 
 interface SubscriptionPlan {
   id: string;
@@ -460,6 +461,21 @@ export default function Subscriptions() {
         </div>
 
         <Dialog open={authOpen} onOpenChange={setAuthOpen}><DialogContent><DialogHeader><DialogTitle>{isEn ? "Join Yimaprof" : "Rejoignez Yimaprof"}</DialogTitle></DialogHeader><AuthInvitation /></DialogContent></Dialog>
+
+        {WHATSAPP_SUPPORT_NUMBER && (
+          <div className="flex justify-center">
+            <Button variant="outline" size="lg" asChild className="gap-2">
+              <a
+                href={whatsappSupportUrl(isEn ? 'Hello, I have a question about Yimaprof plans.' : 'Bonjour, j’ai une question sur les offres Yimaprof.')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="h-5 w-5 text-green-600" />
+                {isEn ? 'Need help? WhatsApp' : 'Besoin d’aide ? WhatsApp'}
+              </a>
+            </Button>
+          </div>
+        )}
 
         <div className="text-center pt-8">
           <p className="text-sm text-muted-foreground">

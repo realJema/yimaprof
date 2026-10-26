@@ -90,8 +90,14 @@ const Index = () => {
             <span className="text-secondary italic font-extrabold">prof</span>
           </h1>
           
-          <p className="mb-8 text-lg text-muted-foreground md:text-xl lg:text-2xl max-w-3xl mx-auto">
+          <p className="mb-4 text-lg text-muted-foreground md:text-xl lg:text-2xl max-w-3xl mx-auto">
             {t('hero_subtitle')}
+          </p>
+
+          <p className="mb-8 text-base md:text-lg font-medium text-foreground/80 max-w-3xl mx-auto">
+            {t('hero_subtitle') && language === 'en'
+              ? 'Your child reviews lessons, checks their real level, and prepares for tests and exams (BEPC / Probatoire / Bac) with corrected past papers.'
+              : 'Votre enfant révise ses leçons, évalue son niveau réel, prépare ses évaluations et ses examens (BEPC / Probatoire / Bac) avec des épreuves corrigées.'}
           </p>
           
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
