@@ -167,7 +167,11 @@ export default function LessonPracticeSection({
             exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)}
             minutes={minutes}
             level={level}
-            onFinished={(percent) => { setDoneLevels((d) => new Set(d).add(level)); onLevelFinished?.(level, percent); }}
+            onFinished={(percent) => {
+              setDoneLevels((d) => new Set(d).add(level));
+              onLevelFinished?.(level, percent);
+              if (!hasActiveSubscription) setUpsellOpen(true);
+            }}
           />
         )}
 
@@ -175,6 +179,31 @@ export default function LessonPracticeSection({
           <LessonLevelCorrection exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)} />
         )}
       </CardContent>
+
+      {/* Upsell at the moment of maximum value: right after the free exercise. */}
+      <Dialog open={upsellOpen} onOpenChange={setUpsellOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-secondary" />
+              {fr ? 'Bravo, exercice terminé !' : 'Well done, exercise completed!'}
+            </DialogTitle>
+            <DialogDescription>
+              {fr
+                ? 'Débloquez les 2 autres niveaux (Intermédiaire et Difficile) + le corrigé détaillé pour progresser vraiment.'
+                : 'Unlock the 2 other levels (Intermediate and Hard) + the detailed correction to really progress.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setUpsellOpen(false)}>
+              {fr ? 'Plus tard' : 'Later'}
+            </Button>
+            <Button asChild className="gradient-primary">
+              <a href="/subscriptions">{fr ? 'Débloquer maintenant' : 'Unlock now'}</a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
