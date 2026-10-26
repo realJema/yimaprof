@@ -88,7 +88,11 @@ export default function LessonPracticeSection({
                   <span className="w-full">
                     <span className="flex items-center justify-between gap-2 font-medium">
                       {jsonLevelLabel(lv, fr)}
-                      {locked && <Lock className="h-4 w-4 text-muted-foreground" />}
+                      {locked && (
+                        <Badge variant="secondary" className="gap-1 shrink-0">
+                          <Lock className="h-3 w-3" />Premium
+                        </Badge>
+                      )}
                     </span>
                     <span className="mt-1 block text-xs font-normal text-muted-foreground">
                       {!hasActiveSubscription && lv === 'facile'
@@ -111,14 +115,29 @@ export default function LessonPracticeSection({
               </span>
             </div>
             {!hasActiveSubscription && level !== 'facile' ? (
-              <div className="space-y-3 rounded-lg border border-secondary/40 p-5 text-center">
-                <Lock className="mx-auto h-6 w-6 text-muted-foreground" />
-                <p className="font-medium">
-                  {fr ? 'Ces exercices sont réservés aux abonnés' : 'These exercises are for subscribers'}
-                </p>
-                <Button asChild size="sm">
-                  <a href="/subscriptions">{fr ? 'Voir les abonnements' : 'See plans'}</a>
-                </Button>
+              <div className="space-y-3">
+                {/* Blurred preview of the locked content: people pay more easily for what they can see. */}
+                {exercises[level].slice(0, 2).map((ex, i) => (
+                  <div key={i} className="relative overflow-hidden rounded-lg border p-4 select-none" aria-hidden>
+                    <div className="pointer-events-none blur-sm opacity-60">
+                      <MarkdownText text={`**${i + 1}.** ${ex.question}`} />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Badge variant="secondary" className="gap-1 shadow-sm">
+                        <Lock className="h-3 w-3" />Premium
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                <div className="space-y-3 rounded-lg border border-secondary/40 p-5 text-center">
+                  <Lock className="mx-auto h-6 w-6 text-muted-foreground" />
+                  <p className="font-medium">
+                    {fr ? 'Ces exercices sont réservés aux abonnés' : 'These exercises are for subscribers'}
+                  </p>
+                  <Button asChild size="sm">
+                    <a href="/subscriptions">{fr ? 'Débloquer avec un abonnement' : 'Unlock with a plan'}</a>
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
