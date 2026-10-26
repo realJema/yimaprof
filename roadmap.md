@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Mesurer les consultations des offres et les paiements par pays, séparer les tests : connexion PostHog déclinée, choix de la solution en attente. Frein potentiel confirmé : seuls les numéros Orange/MTN camerounais sont acceptés ; impact sur les abandons non mesuré.
+- [ ] Mesurer les consultations des offres et les paiements par pays, séparer les tests : mise en attente à la demande de l’utilisateur, conserver le suivi actuel. Frein potentiel confirmé : seuls les numéros Orange/MTN camerounais sont acceptés ; impact sur les abandons non mesuré.
 
 - [x] Corriger la sortie après refus de démarrage du paiement, sans réessai en cas de résultat incertain (tests et navigateur avec réponses simulées).
 - [x] Restaurer les exercices précédents lors de l’annulation d’un import JSON validé (tests et composant vérifié dans le navigateur).
