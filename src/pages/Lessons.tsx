@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
 import AuthInvitation from '@/components/auth/AuthInvitation';
+import ViewOffersButton from '@/components/layout/ViewOffersButton';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, Clock, FileText, Lock, Search, Sparkles } from 'lucide-react';
 

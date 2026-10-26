@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { anonymizeSchoolName, matchesSchoolSearch } from '@/lib/schoolAnonymizer';
+import ViewOffersButton from '@/components/layout/ViewOffersButton';
 
 interface Exam {
   id: string;
