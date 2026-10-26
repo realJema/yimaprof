@@ -13,7 +13,9 @@ import {
   jsonLevelLabel,
   totalPoints,
 } from '@/lib/lessonJsonExercises';
-import { ArrowLeft, BookOpenCheck, ClipboardCheck, ListChecks, Lock } from 'lucide-react';
+import { ArrowLeft, BookOpenCheck, ClipboardCheck, Crown, ListChecks, Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MarkdownText } from '@/components/ui/markdown-text';
 
 type Mode = 'evaluation' | 'correction';
 
@@ -37,6 +39,8 @@ export default function LessonPracticeSection({
   const [mode, setMode] = useState<Mode | null>(null);
   // Corrections unlock only after the level was taken in Evaluation mode.
   const [doneLevels, setDoneLevels] = useState<Set<JsonLevel>>(new Set());
+  // Upsell shown once a non-subscriber finishes the free exercise (moment of maximum value).
+  const [upsellOpen, setUpsellOpen] = useState(false);
 
   useEffect(() => { onFocusChange?.(mode !== null); if (mode) window.scrollTo(0, 0); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
