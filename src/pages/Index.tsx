@@ -9,7 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const features = [
     {
@@ -95,7 +95,7 @@ const Index = () => {
           </p>
 
           <p className="mb-8 text-base md:text-lg font-medium text-foreground/80 max-w-3xl mx-auto">
-            {t('hero_subtitle') && language === 'en'
+            {language === 'en'
               ? 'Your child reviews lessons, checks their real level, and prepares for tests and exams (BEPC / Probatoire / Bac) with corrected past papers.'
               : 'Votre enfant révise ses leçons, évalue son niveau réel, prépare ses évaluations et ses examens (BEPC / Probatoire / Bac) avec des épreuves corrigées.'}
           </p>
