@@ -372,6 +372,14 @@ export default function Header() {
               </Link>
             </Button>
 
+            {/* Help & tutorials link */}
+            <Button variant={isActive('/help') ? "default" : "ghost"} size="sm" asChild className="hidden md:flex">
+              <Link to="/help" className="flex items-center space-x-2">
+                <HelpCircle className="h-4 w-4" />
+                <span>{language === 'fr' ? 'Aide' : 'Help'}</span>
+              </Link>
+            </Button>
+
             {/* More dropdown - subtle navigation links */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
