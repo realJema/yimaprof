@@ -4,7 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, Users, Building2, HandCoins, Download, CircleCheck, Smartphone, Monitor } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { useEstablishment } from '@/hooks/useEstablishment';
+import { supabase } from '@/integrations/supabase/client';
+import { GraduationCap, Users, Building2, HandCoins, Search, CircleCheck, Smartphone, Monitor } from 'lucide-react';
 
 import homeImg from '@/assets/tutorials/home.png';
 import authImg from '@/assets/tutorials/auth.png';
@@ -397,18 +401,63 @@ const sectionsByAudience: Record<string, Section[]> = {
   affiliates: affiliateSections,
 };
 
+const normalize = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const searchSynonyms: Record<string, string[]> = {
+  paiement: ['abonnement', 'payer', 'orange', 'mtn', 'offre', 'forfait'],
+  exercice: ['lecon', 'epreuve', 'evaluation', 'corrige'],
+  compte: ['inscription', 'connexion', 'mot de passe', 'google'],
+  parrainage: ['parrain', 'code', 'retrait', 'commission', 'gain'],
+};
+
+function matchesQuery(section: Section, query: string) {
+  const q = normalize(query.trim());
+  if (!q) return true;
+  const haystack = normalize(
+    [section.topic, section.intro ?? '', section.tip ?? '', ...section.steps.flatMap((s) => [s.title, s.text])].join(' '),
+  );
+  const terms = [q, ...Object.entries(searchSynonyms).filter(([k]) => k.startsWith(q) || q.startsWith(k)).flatMap(([, v]) => v)];
+  return terms.some((t) => haystack.includes(t));
+}
+
 export default function Help() {
+  const { user } = useAuth();
+  const { establishment } = useEstablishment();
+  const [isAffiliate, setIsAffiliate] = useState(false);
   const [audience, setAudience] = useState('students');
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (!user) { setIsAffiliate(false); return; }
+    supabase
+      .from('affiliate_applications')
+      .select('status')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsAffiliate(data?.status === 'approved'));
+  }, [user]);
+
+  const isSchoolHead = !!user && !!establishment && establishment.owner_id === user.id;
+  const visibleAudiences = audiences.filter(
+    (a) => (a.key !== 'schools' || isSchoolHead) && (a.key !== 'affiliates' || isAffiliate),
+  );
+
+  useEffect(() => {
+    if (!visibleAudiences.some((a) => a.key === audience)) setAudience('students');
+  }, [visibleAudiences, audience]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [audience]);
 
+  const suggestions = ['paiement', 'exercice', 'compte', ...(isAffiliate || isSchoolHead ? ['parrainage'] : [])];
+
   return (
     <div className="min-h-screen py-10 px-4">
       <SeoHead
         title="Aide et tutoriels — Yimaprof"
-        description="Tutoriels illustrés pas à pas : inscription, connexion, paiement d'abonnement, épreuves, leçons et challenges sur Yimaprof, pour les élèves, les parents, les chefs d'établissement et les parrains."
+        description="Tutoriels illustrés pas à pas : inscription, connexion, paiement d'abonnement, épreuves, leçons et challenges sur Yimaprof."
         path="/help"
       />
       <div className="max-w-5xl mx-auto">
@@ -417,20 +466,30 @@ export default function Help() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Des guides illustrés pas à pas pour utiliser Yimaprof facilement, selon votre profil.
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild>
-              <a href="/downloads/YimaProf_Tutoriels.pdf" download="YimaProf_Tutoriels.pdf">
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger le guide complet (PDF)
-              </a>
-            </Button>
-            <span className="text-sm text-muted-foreground">À imprimer ou à partager sur WhatsApp</span>
+          <div className="mt-6 max-w-xl mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="De quoi avez-vous besoin ? (paiement, exercice, compte…)"
+                aria-label="Rechercher dans l'aide"
+                className="pl-10 h-12 text-base"
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              {suggestions.map((s) => (
+                <Button key={s} type="button" size="sm" variant={normalize(query) === s ? 'default' : 'outline'} onClick={() => setQuery(s)}>
+                  {s}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
         <Tabs value={audience} onValueChange={setAudience} className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full mb-8 h-auto">
-            {audiences.map(({ key, label, icon: Icon }) => (
+          <TabsList className={`grid grid-cols-2 ${({ 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' } as Record<number, string>)[visibleAudiences.length] ?? ''} w-full mb-8 h-auto`}>
+            {visibleAudiences.map(({ key, label, icon: Icon }) => (
               <TabsTrigger key={key} value={key} className="flex items-center gap-2 py-3">
                 <Icon className="h-4 w-4" />
                 <span className="text-xs md:text-sm">{label}</span>
@@ -438,12 +497,19 @@ export default function Help() {
             ))}
           </TabsList>
 
-          {audiences.map(({ key, label }) => (
+          {visibleAudiences.map(({ key, label }) => {
+            const results = sectionsByAudience[key].filter((s) => matchesQuery(s, query));
+            return (
             <TabsContent key={key} value={key} className="space-y-8">
               <p className="text-muted-foreground text-center">
                 Tutoriels pour <span className="font-medium text-foreground">{label.toLowerCase()}</span>
               </p>
-              {sectionsByAudience[key].map((section) => (
+              {results.length === 0 && (
+                <p className="text-center text-muted-foreground">
+                  Aucun tutoriel ne correspond à « {query} ». Essayez « paiement », « exercice » ou « compte ».
+                </p>
+              )}
+              {results.map((section) => (
                 <Card key={section.topic}>
                   <CardContent className="p-6 md:p-8">
                     <h2 className="text-2xl font-bold mb-2">{section.topic}</h2>
@@ -496,7 +562,8 @@ export default function Help() {
                 </Card>
               ))}
             </TabsContent>
-          ))}
+            );
+          })}
         </Tabs>
       </div>
     </div>
