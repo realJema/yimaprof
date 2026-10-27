@@ -544,7 +544,7 @@ export default function Help() {
         description="Tutoriels illustrés pas à pas : inscription, connexion, paiement d'abonnement, épreuves, leçons et challenges sur Yimaprof."
         path="/help"
       />
-      <div className="sticky top-0 z-40 -mx-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-blur]:bg-background/90">
+      <div className="sticky top-0 z-40 -mx-4 border-b border-border bg-background">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
           <Button type="button" variant="outline" size="sm" onClick={goHome} className="gap-2 rounded-full">
             <Home className="h-4 w-4" />
