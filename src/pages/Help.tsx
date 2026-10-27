@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import SeoHead from '@/components/SeoHead';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useEstablishment } from '@/hooks/useEstablishment';
 import { supabase } from '@/integrations/supabase/client';
-import { GraduationCap, Users, Building2, HandCoins, Search, CircleCheck, Smartphone, Monitor, UserPlus, Wallet, BookOpen, KeyRound, Trophy, Sparkles, X } from 'lucide-react';
+import { GraduationCap, Users, Building2, HandCoins, CircleCheck, Smartphone, Monitor, UserPlus, Wallet, BookOpen, KeyRound, Trophy, Sparkles, Home } from 'lucide-react';
 
 import homeImg from '@/assets/tutorials/home.png';
 import authImg from '@/assets/tutorials/auth.png';
@@ -405,51 +404,16 @@ const sectionsByAudience: Record<string, Section[]> = {
 const normalize = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-const searchSynonyms: Record<string, string[]> = {
-  paiement: ['abonnement', 'payer', 'orange', 'mtn', 'offre', 'forfait', 'renouveler', 'argent', 'prix'],
-  payer: ['abonnement', 'paiement', 'orange', 'mtn', 'offre'],
-  abonnement: ['paiement', 'offre', 'forfait', 'renouveler'],
-  exercice: ['lecon', 'epreuve', 'evaluation', 'corrige', 'reviser'],
-  epreuve: ['examen', 'sujet', 'corrige', 'evaluation'],
-  corrige: ['correction', 'solution', 'epreuve'],
-  reviser: ['lecon', 'epreuve', 'exercice'],
-  compte: ['inscription', 'connexion', 'mot de passe', 'google', 'inscrire'],
-  inscrire: ['inscription', 'creer un compte', 'compte'],
-  connexion: ['connecter', 'mot de passe', 'google', 'compte'],
-  'mot de passe': ['oublie', 'connexion', 'reinitialiser'],
-  enfant: ['parent', 'abonnement', 'progression', 'suivi'],
-  challenge: ['concours', 'competition', 'classement'],
-  parrainage: ['parrain', 'code', 'retrait', 'commission', 'gain'],
-  retrait: ['retirer', 'gain', 'argent', 'commission', 'versement'],
-};
-
-function sectionScore(section: Section, query: string) {
-  const q = normalize(query.trim());
-  if (!q) return 1;
-  const topic = normalize(section.topic);
-  const body = normalize(
-    [section.intro ?? '', section.tip ?? '', ...section.steps.flatMap((s) => [s.title, s.text])].join(' '),
-  );
-  const words = q.split(/\s+/).filter((w) => w.length > 2 && !['des','les','une','pour','mon','mes','que','avec'].includes(w));
-  const terms = new Set<string>([q, ...words]);
-  for (const [k, v] of Object.entries(searchSynonyms)) {
-    if (words.some((w) => k.startsWith(w) || w.startsWith(k))) v.forEach((t) => terms.add(t));
-  }
-  let score = 0;
-  terms.forEach((t) => {
-    if (topic.includes(t)) score += 5;
-    if (body.includes(t)) score += 1;
-  });
-  return score;
-}
+const cardId = (audienceKey: string, topic: string) =>
+  `aide-${audienceKey}-${normalize(topic).replace(/[^a-z0-9]+/g, '-')}`;
 
 const quickNeeds = [
-  { label: 'Créer mon compte', query: 'inscription', icon: UserPlus },
-  { label: 'Payer un abonnement', query: 'paiement', icon: Wallet },
-  { label: 'Réviser une épreuve', query: 'epreuve', icon: BookOpen },
-  { label: 'Voir le corrigé', query: 'corrige', icon: CircleCheck },
-  { label: 'Mot de passe oublié', query: 'mot de passe', icon: KeyRound },
-  { label: 'Participer à un challenge', query: 'challenge', icon: Trophy },
+  { label: 'Créer mon compte', topics: ['Inscription et connexion'], icon: UserPlus },
+  { label: 'Payer un abonnement', topics: ["Paiement d'abonnement"], icon: Wallet },
+  { label: 'Réviser une épreuve', topics: ['Épreuves et leçons', 'Épreuves et leçons de votre enfant', 'Épreuves, leçons et challenges'], icon: BookOpen },
+  { label: 'Voir le corrigé', topics: ['Épreuves et leçons', 'Épreuves et leçons de votre enfant'], icon: CircleCheck },
+  { label: 'Mot de passe oublié', topics: ['Inscription et connexion'], icon: KeyRound },
+  { label: 'Participer à un challenge', topics: ['Challenges', 'Challenges de votre établissement'], icon: Trophy },
 ];
 
 const faq = [
@@ -460,9 +424,9 @@ const faq = [
   { q: 'Mon enfant peut-il utiliser le compte sur mon téléphone ?', a: "Oui. Le site fonctionne sur téléphone, tablette et ordinateur. Connectez-vous simplement avec le même compte." },
 ];
 
-function TutorialCard({ section, audienceLabel }: { section: Section; audienceLabel?: string }) {
+function TutorialCard({ section, audienceLabel, id, highlighted }: { section: Section; audienceLabel?: string; id?: string; highlighted?: boolean }) {
   return (
-    <Card className="overflow-hidden">
+    <Card id={id} className={`overflow-hidden scroll-mt-24 transition-shadow duration-300 ${highlighted ? 'ring-2 ring-primary shadow-lg' : ''}`}>
       <CardContent className="p-6 md:p-8">
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <h2 className="text-2xl font-bold">{section.topic}</h2>
@@ -511,7 +475,8 @@ export default function Help() {
   const { establishment } = useEstablishment();
   const [isAffiliate, setIsAffiliate] = useState(false);
   const [audience, setAudience] = useState('students');
-  const [query, setQuery] = useState('');
+  const [selection, setSelection] = useState<{ audience: string; topic: string; token: number } | null>(null);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) { setIsAffiliate(false); return; }
@@ -532,28 +497,45 @@ export default function Help() {
     if (!visibleAudiences.some((a) => a.key === audience)) setAudience('students');
   }, [visibleAudiences, audience]);
 
+  const openTutorial = (topics: string[]) => {
+    const order = [audience, 'students', ...visibleAudiences.map((a) => a.key)];
+    const tried = new Set<string>();
+    for (const key of order) {
+      if (tried.has(key) || !visibleAudiences.some((a) => a.key === key)) continue;
+      tried.add(key);
+      const section = sectionsByAudience[key].find((s) => topics.includes(s.topic));
+      if (section) {
+        setAudience(key);
+        setSelection({ audience: key, topic: section.topic, token: Date.now() });
+        return;
+      }
+    }
+  };
+
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [audience]);
+    if (!selection) return;
+    const id = cardId(selection.audience, selection.topic);
+    let timer = 0;
+    const reveal = (attempt: number) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setHighlighted(id);
+        timer = window.setTimeout(() => setHighlighted(null), 2600);
+      } else if (attempt < 15) {
+        timer = window.setTimeout(() => reveal(attempt + 1), 80);
+      }
+    };
+    reveal(0);
+    return () => window.clearTimeout(timer);
+  }, [selection]);
 
-  const searching = query.trim().length > 0;
-  const searchResults = useMemo(() => {
-    if (!searching) return [];
-    const seen = new Set<string>();
-    return visibleAudiences
-      .flatMap(({ key, label }) => sectionsByAudience[key].map((section) => ({ section, label, score: sectionScore(section, query) })))
-      .filter((r) => r.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .filter((r, _i, all) => r.score >= all[0].score / 2)
-      .filter((r) => {
-        const id = r.label + r.section.topic;
-        if (seen.has(id)) return false;
-        seen.add(id);
-        return true;
-      });
-  }, [query, searching, visibleAudiences]);
-
-  const suggestions = ['paiement', 'exercice', 'corrigé', 'compte', ...(isAffiliate || isSchoolHead ? ['parrainage'] : [])];
+  const goHome = () => {
+    setSelection(null);
+    setHighlighted(null);
+    setAudience('students');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -562,62 +544,33 @@ export default function Help() {
         description="Tutoriels illustrés pas à pas : inscription, connexion, paiement d'abonnement, épreuves, leçons et challenges sur Yimaprof."
         path="/help"
       />
+      <div className="sticky top-0 z-40 -mx-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-blur]:bg-background/90">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+          <Button type="button" variant="outline" size="sm" onClick={goHome} className="gap-2 rounded-full">
+            <Home className="h-4 w-4" />
+            Retour à l'accueil de l'aide
+          </Button>
+          <span className="hidden text-xs text-muted-foreground sm:block">Aide et tutoriels Yimaprof</span>
+        </div>
+      </div>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-3">Aide et tutoriels</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Pas besoin d'être à l'aise avec la technologie : choisissez ce que vous voulez faire, nous vous guidons étape par étape.
           </p>
-          <div className="mt-6 max-w-xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Écrivez votre besoin : paiement, corrigé, mot de passe…"
-                aria-label="Rechercher dans l'aide"
-                className="pl-10 pr-10 h-12 text-base"
-              />
-              {searching && (
-                <button type="button" onClick={() => setQuery('')} aria-label="Effacer la recherche" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  <X className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {suggestions.map((s) => (
-                <Button key={s} type="button" size="sm" variant={normalize(query) === normalize(s) ? 'default' : 'outline'} onClick={() => setQuery(s)}>
-                  {s}
-                </Button>
-              ))}
-            </div>
-          </div>
         </div>
-
-        {searching ? (
-          <div className="space-y-6">
-            <p className="text-center text-muted-foreground">
-              {searchResults.length > 0
-                ? `${searchResults.length} tutoriel${searchResults.length > 1 ? 's' : ''} pour « ${query} »`
-                : `Aucun tutoriel ne correspond à « ${query} ». Essayez « paiement », « corrigé » ou « compte ».`}
-            </p>
-            {searchResults.map(({ section, label }) => (
-              <TutorialCard key={label + section.topic} section={section} audienceLabel={label} />
-            ))}
-          </div>
-        ) : (
-          <>
             <section className="mb-10">
               <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-secondary" /> Que voulez-vous faire ?
               </h2>
               <p className="text-sm text-muted-foreground mb-4">Appuyez sur une carte pour afficher le tutoriel correspondant.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {quickNeeds.map(({ label, query: q, icon: Icon }) => (
+                {quickNeeds.map(({ label, topics, icon: Icon }) => (
                   <button
                     key={label}
                     type="button"
-                    onClick={() => setQuery(q)}
+                    onClick={() => openTutorial(topics)}
                     className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:shadow-md"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition">
@@ -630,7 +583,16 @@ export default function Help() {
             </section>
 
             <h2 className="text-xl font-semibold mb-4">Tous les tutoriels, selon votre profil</h2>
-            <Tabs value={audience} onValueChange={setAudience} className="w-full">
+            <Tabs
+              value={audience}
+              onValueChange={(value) => {
+                setSelection(null);
+                setHighlighted(null);
+                setAudience(value);
+                window.scrollTo(0, 0);
+              }}
+              className="w-full"
+            >
               <TabsList className={`grid grid-cols-2 ${({ 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' } as Record<number, string>)[visibleAudiences.length] ?? ''} w-full mb-8 h-auto`}>
                 {visibleAudiences.map(({ key, label, icon: Icon }) => (
                   <TabsTrigger key={key} value={key} className="flex items-center gap-2 py-3">
@@ -641,9 +603,10 @@ export default function Help() {
               </TabsList>
               {visibleAudiences.map(({ key }) => (
                 <TabsContent key={key} value={key} className="space-y-8">
-                  {sectionsByAudience[key].map((section) => (
-                    <TutorialCard key={section.topic} section={section} />
-                  ))}
+                  {sectionsByAudience[key].map((section) => {
+                    const id = cardId(key, section.topic);
+                    return <TutorialCard key={section.topic} id={id} highlighted={highlighted === id} section={section} />;
+                  })}
                 </TabsContent>
               ))}
             </Tabs>
@@ -659,8 +622,6 @@ export default function Help() {
                 ))}
               </Accordion>
             </section>
-          </>
-        )}
       </div>
     </div>
   );
