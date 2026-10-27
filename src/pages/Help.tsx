@@ -4,7 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, Users, Building2, HandCoins, Download, CircleCheck, Smartphone, Monitor } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { useEstablishment } from '@/hooks/useEstablishment';
+import { supabase } from '@/integrations/supabase/client';
+import { GraduationCap, Users, Building2, HandCoins, Search, CircleCheck, Smartphone, Monitor } from 'lucide-react';
 
 import homeImg from '@/assets/tutorials/home.png';
 import authImg from '@/assets/tutorials/auth.png';
@@ -484,7 +488,7 @@ export default function Help() {
         </div>
 
         <Tabs value={audience} onValueChange={setAudience} className="w-full">
-          <TabsList className={`grid grid-cols-2 ${visibleAudiences.length > 2 ? 'md:grid-cols-' + visibleAudiences.length : ''} w-full mb-8 h-auto`}>
+          <TabsList className={`grid grid-cols-2 ${({ 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' } as Record<number, string>)[visibleAudiences.length] ?? ''} w-full mb-8 h-auto`}>
             {visibleAudiences.map(({ key, label, icon: Icon }) => (
               <TabsTrigger key={key} value={key} className="flex items-center gap-2 py-3">
                 <Icon className="h-4 w-4" />
@@ -558,7 +562,8 @@ export default function Help() {
                 </Card>
               ))}
             </TabsContent>
-          ))}
+            );
+          })}
         </Tabs>
       </div>
     </div>
