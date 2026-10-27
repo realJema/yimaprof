@@ -430,7 +430,7 @@ function sectionScore(section: Section, query: string) {
   const body = normalize(
     [section.intro ?? '', section.tip ?? '', ...section.steps.flatMap((s) => [s.title, s.text])].join(' '),
   );
-  const words = q.split(/\s+/).filter((w) => w.length > 1);
+  const words = q.split(/\s+/).filter((w) => w.length > 2 && !['des','les','une','pour','mon','mes','que','avec'].includes(w));
   const terms = new Set<string>([q, ...words]);
   for (const [k, v] of Object.entries(searchSynonyms)) {
     if (words.some((w) => k.startsWith(w) || w.startsWith(k))) v.forEach((t) => terms.add(t));
@@ -544,6 +544,7 @@ export default function Help() {
       .flatMap(({ key, label }) => sectionsByAudience[key].map((section) => ({ section, label, score: sectionScore(section, query) })))
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
+      .filter((r, _i, all) => r.score >= all[0].score / 2)
       .filter((r) => {
         const id = r.label + r.section.topic;
         if (seen.has(id)) return false;
