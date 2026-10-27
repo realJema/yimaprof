@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School, TrendingUp, Briefcase, Users, Trophy } from 'lucide-react';
+import { LogOut, User, Menu, BookOpen, BarChart3, Settings, CreditCard, Shield, ChevronDown, Moon, Sun, Share2, Search, MessageCircle, X, Mail, Info, FileText, School, TrendingUp, Briefcase, Users, Trophy, HelpCircle } from 'lucide-react';
 import { useEstablishment } from '@/hooks/useEstablishment';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -207,6 +207,10 @@ export default function Header() {
     icon: Info,
     label: language === 'fr' ? 'Établissements' : 'Schools'
   }, {
+    to: '/help',
+    icon: HelpCircle,
+    label: language === 'fr' ? 'Aide' : 'Help'
+  }, {
     to: '/forum',
     icon: MessageCircle,
     label: 'Forum'
@@ -378,6 +382,12 @@ export default function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48 bg-card border-border z-50">
+                <DropdownMenuItem asChild>
+                  <Link to="/help" className="cursor-pointer flex items-center gap-2">
+                    <HelpCircle className="h-4 w-4" />
+                    {language === 'fr' ? 'Aide et tutoriels' : 'Help & tutorials'}
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/forum" className="cursor-pointer flex items-center gap-2">
                     <MessageCircle className="h-4 w-4" />
