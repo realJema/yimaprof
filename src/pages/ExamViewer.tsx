@@ -842,7 +842,7 @@ export default function ExamViewer() {
         console.error('Could not exit fullscreen:', error);
       }
     }
-    navigate(`/exam/${examId}?mode=preview`, {
+    navigate(`/exam/${examId}?mode=preview${isFreePreview ? '&freePreview=1' : ''}`, {
       replace: true
     });
   };
@@ -858,7 +858,7 @@ export default function ExamViewer() {
   // Handle close results
   const handleCloseResults = () => {
     setShowResultsDialog(false);
-    navigate(`/exam/${examId}?mode=preview`, {
+    navigate(`/exam/${examId}?mode=preview${isFreePreview ? '&freePreview=1' : ''}`, {
       replace: true
     });
   };
@@ -866,7 +866,7 @@ export default function ExamViewer() {
   // Handle view answers - navigate to correction mode with submitted answers
   const handleViewAnswers = () => {
     setShowResultsDialog(false);
-    navigate(`/exam/${examId}?mode=correction`, {
+    navigate(`/exam/${examId}?mode=correction${isFreePreview ? '&freePreview=1' : ''}`, {
       replace: true
     });
   };
@@ -1201,7 +1201,7 @@ export default function ExamViewer() {
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button size="sm" className={cn("gap-1.5 sm:gap-2 font-medium flex-1 sm:flex-none text-xs sm:text-sm", mode === 'correction' ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-400")} onClick={() => {
               if (mode === 'correction') {
-                navigate(`/exam/${examId}?mode=preview`);
+                navigate(`/exam/${examId}?mode=preview${isFreePreview ? '&freePreview=1' : ''}`);
               } else {
                 setShowCorrectionDialog(true);
               }
@@ -1370,7 +1370,7 @@ export default function ExamViewer() {
             <AlertDialogCancel>
               {language === 'fr' ? 'Annuler' : 'Cancel'}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate(`/exam/${examId}?mode=correction`)}>
+            <AlertDialogAction onClick={() => navigate(`/exam/${examId}?mode=correction${isFreePreview ? '&freePreview=1' : ''}`)}>
               {language === 'fr' ? 'Voir quand même' : 'View Anyway'}
             </AlertDialogAction>
           </AlertDialogFooter>
