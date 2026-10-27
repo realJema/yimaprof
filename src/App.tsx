@@ -48,6 +48,7 @@ const SchoolSpace = lazy(() => import("./pages/SchoolSpace"));
 const StudentProgress = lazy(() => import("./pages/Progress"));
 const Challenges = lazy(() => import("./pages/Challenges"));
 const ChallengeDetail = lazy(() => import("./pages/ChallengeDetail"));
+const Help = lazy(() => import("./pages/Help"));
 
 
 const queryClient = new QueryClient();
@@ -121,6 +122,7 @@ const App = () => {
                     <Route path="/admin/exam/new" element={<ExamManager />} />
                     <Route path="/admin/exam/edit/:examId" element={<ExamManager />} />
                     <Route path="/about" element={<About />} />
+                    <Route path="/help" element={<Help />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/terms" element={<Terms />} />
