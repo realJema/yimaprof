@@ -1,6 +1,7 @@
 # Roadmap
 
 - [ ] Finaliser Google Search Console : publier la balise avec approbation, valider la propriété et envoyer le sitemap existant.
+- [x] Répondre à la stratégie SEO / Search Console (élèves et parents).
 
 - [x] Corriger la sortie après refus de démarrage du paiement, sans réessai en cas de résultat incertain (tests et navigateur avec réponses simulées).
 - [x] Restaurer les exercices précédents lors de l’annulation d’un import JSON validé (tests et composant vérifié dans le navigateur).
