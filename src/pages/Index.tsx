@@ -2,28 +2,33 @@ import { Link } from "react-router-dom";
 import SeoHead from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import {
-  BookOpen, FileText, Layers, Trophy, MessageCircle, HelpCircle, PenLine, Target,
-  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock,
+  BookOpen, FileText, Trophy, MessageCircle, HelpCircle, PenLine, Target,
+  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock, Sprout, Flame, Rocket, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ViewOffersButton from "@/components/layout/ViewOffersButton";
 import { WHATSAPP_SUPPORT_NUMBER, whatsappSupportUrl } from "@/lib/supportContact";
 
+type PillCardProps = { to: string; icon: React.ElementType; color: string; bg: string; title: string; badge?: string; badgeCls?: string };
+const PillCard = ({ to, icon: Icon, color, bg, title, badge, badgeCls }: PillCardProps) => (
+  <Link to={to} className="group flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft transition-all duration-200 hover:scale-[1.03] hover:shadow-medium">
+    <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${bg} transition-transform group-hover:rotate-6`}>
+      <Icon className={`h-7 w-7 ${color}`} strokeWidth={2.2} />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block truncate font-semibold">{title}</span>
+      {badge && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeCls}`}>{badge}</span>}
+    </span>
+    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
+  </Link>
+);
+
 const Index = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const fr = language !== "en";
   const L = (a: string, b: string) => (fr ? a : b);
-
-  const contents = [
-    { to: "/lessons", icon: BookOpen, title: L("Leçons", "Lessons"), desc: L("Cours clairs par classe et matière", "Clear lessons by class and subject"), tone: "bg-primary/10 text-primary" },
-    { to: "/exams2", icon: FileText, title: L("Épreuves corrigées", "Corrected papers"), desc: L("BEPC, Probatoire, Bac, GCE", "BEPC, Probatoire, Bac, GCE"), tone: "bg-secondary/10 text-secondary" },
-    { to: "/lessons", icon: Layers, title: L("Exercices par niveau", "Exercises by level"), desc: L("Facile, Intermédiaire, Difficile", "Easy, Intermediate, Hard"), tone: "bg-accent/10 text-accent" },
-    { to: "/challenges", icon: Trophy, title: L("Challenges", "Challenges"), desc: L("Concours entre élèves", "Student competitions"), tone: "bg-secondary/10 text-secondary" },
-    { to: "/forum", icon: MessageCircle, title: L("Forum", "Forum"), desc: L("Pose tes questions", "Ask your questions"), tone: "bg-primary/10 text-primary" },
-    { to: "/help", icon: HelpCircle, title: L("Aide et tutoriels", "Help & tutorials"), desc: L("Guides pas à pas", "Step-by-step guides"), tone: "bg-accent/10 text-accent" },
-  ];
 
   const actions = [
     { to: "/lessons", icon: BookOpen, label: L("Réviser une leçon", "Review a lesson") },
@@ -92,21 +97,31 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Contents */}
-      <section className="px-4 py-16 md:py-20">
+      {/* Contents — Nomad-style pill cards */}
+      <section className="bg-lavender px-4 py-16 md:py-20">
         <div className="container mx-auto max-w-6xl">
-          <h2 className="mb-2 text-center text-3xl font-bold md:text-4xl">{L("Choisis ton niveau ou ta matière", "Choose your level or subject")}</h2>
-          <p className="mb-10 text-center text-muted-foreground">{L("Tout ce dont tu as besoin pour réviser, au même endroit.", "Everything you need to revise, in one place.")}</p>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {contents.map((c) => (
-              <Link key={c.title} to={c.to} className="group rounded-2xl border bg-card p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-medium md:p-6">
-                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${c.tone}`}>
-                  <c.icon className="h-6 w-6" />
-                </div>
-                <h3 className="font-semibold md:text-lg">{c.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{c.desc}</p>
-              </Link>
-            ))}
+          <h2 className="mb-2 text-center text-3xl font-bold md:text-4xl">{L("Tout pour réussir", "Everything to succeed")} 🎉</h2>
+          <p className="mb-10 text-center text-muted-foreground">{L("Choisis ta rubrique et commence à réviser en t'amusant.", "Pick a section and start revising with joy.")}</p>
+
+          <h3 className="mb-4 text-lg font-bold">{L("Leçons et exercices", "Lessons & exercises")}</h3>
+          <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { to: "/lessons", icon: BookOpen, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Leçons", "Lessons"), badge: L("Nouveau", "New"), badgeCls: "bg-fun-violet/15 text-fun-violet" },
+              { to: "/lessons", icon: Sprout, color: "text-fun-green", bg: "bg-fun-green/15", title: L("Exercices Facile", "Easy exercises"), badge: L("Gratuit", "Free"), badgeCls: "bg-fun-green/15 text-fun-green" },
+              { to: "/lessons", icon: Flame, color: "text-fun-orange", bg: "bg-fun-orange/15", title: L("Intermédiaire", "Intermediate"), badge: "Premium", badgeCls: "bg-fun-orange/15 text-fun-orange" },
+              { to: "/lessons", icon: Rocket, color: "text-fun-red", bg: "bg-fun-red/15", title: L("Difficile", "Hard"), badge: "Premium", badgeCls: "bg-fun-red/15 text-fun-red" },
+            ].map((c) => <PillCard key={c.title} {...c} />)}
+          </div>
+
+          <h3 className="mb-4 text-lg font-bold">{L("Épreuves et plus", "Papers & more")}</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { to: "/exams2", icon: FileText, color: "text-fun-blue", bg: "bg-fun-blue/15", title: L("Épreuves corrigées", "Corrected papers"), badge: "BEPC · Bac", badgeCls: "bg-fun-blue/15 text-fun-blue" },
+              { to: "/exams2", icon: Target, color: "text-fun-pink", bg: "bg-fun-pink/15", title: L("Auto-évaluation", "Self-assessment"), badge: "Premium", badgeCls: "bg-fun-pink/15 text-fun-pink" },
+              { to: "/challenges", icon: Trophy, color: "text-fun-yellow", bg: "bg-fun-yellow/20", title: "Challenges", badge: L("Concours", "Contests"), badgeCls: "bg-fun-yellow/20 text-foreground" },
+              { to: "/forum", icon: MessageCircle, color: "text-fun-green", bg: "bg-fun-green/15", title: "Forum", badge: L("Entraide", "Help"), badgeCls: "bg-fun-green/15 text-fun-green" },
+              { to: "/help", icon: HelpCircle, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Aide et tutoriels", "Help & tutorials") },
+            ].map((c) => <PillCard key={c.title} {...c} />)}
           </div>
         </div>
       </section>
