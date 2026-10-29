@@ -95,7 +95,7 @@ export default function Contact() {
                     <Label htmlFor="message">{t('message')}</Label>
                     <Textarea id="message" rows={6} required />
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={sending}>
                     {t('send_message')}
                   </Button>
                 </form>
