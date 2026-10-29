@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { browseQueryOptions, browseReadSignal } from '@/lib/browseQuery';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -41,29 +43,34 @@ export default function Lessons() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { hasActiveSubscription, loading: subscriptionLoading } = useSubscription();
-  const [allSeries, setAllSeries] = useState<{ id: string; code: string }[]>([]);
-
-  const [lessons, setLessons] = useState<LessonRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allSeries = [] } = useQuery({
+    queryKey: ['lesson-browse-series'],
+    ...browseQueryOptions,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('series').select('id, code').order('order_number').abortSignal(browseReadSignal());
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const { data: lessons = [], isLoading: loading, isError, refetch, isFetching } = useQuery({
+    queryKey: ['lesson-catalogue'],
+    ...browseQueryOptions,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, series_id, series_ids, series(code), classes(display_name), subjects(name_fr, name_en)')
+        .eq('is_published', true)
+        .order('order_number')
+        .abortSignal(browseReadSignal());
+      if (error) throw error;
+      return (data as unknown as LessonRow[]) || [];
+    },
+  });
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [seriesFilter, setSeriesFilter] = useState('all');
   const [lockOpen, setLockOpen] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const { data: seriesData } = await supabase.from('series').select('id, code').order('order_number');
-      setAllSeries(seriesData || []);
-      const { data } = await supabase
-        .from('lessons')
-        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, series_id, series_ids, series(code), classes(display_name), subjects(name_fr, name_en)')
-        .eq('is_published', true)
-        .order('order_number');
-      setLessons((data as unknown as LessonRow[]) || []);
-      setLoading(false);
-    })();
-  }, []);
 
   const classes = useMemo(
     () => Array.from(new Set(lessons.map((l) => l.classes?.display_name).filter(Boolean))) as string[],
@@ -79,7 +86,7 @@ export default function Lessons() {
     [lessons, allSeries],
   );
 
-  const filtered = lessons.filter((l) => {
+  const filtered = useMemo(() => lessons.filter((l) => {
     if (seriesFilter !== 'all' && !(l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).some((id) => allSeries.find((s) => s.id === id)?.code === seriesFilter)) return false;
     const subjectName = (fr ? l.subjects?.name_fr : l.subjects?.name_en) || l.subjects?.name_fr || l.subjects?.name_en || '';
     if (classFilter !== 'all' && l.classes?.display_name !== classFilter) return false;
@@ -93,7 +100,7 @@ export default function Lessons() {
       );
     }
     return true;
-  });
+  }), [lessons, seriesFilter, allSeries, fr, classFilter, subjectFilter, search]);
 
   // Student navigation: Subject -> Chapter -> Lesson (chapters come from lessons.chapter).
   const grouped = useMemo(() => {
@@ -181,6 +188,11 @@ export default function Lessons() {
       {loading || subscriptionLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+        </div>
+      ) : isError && lessons.length === 0 ? (
+        <div role="alert" className="space-y-3 py-8 text-center">
+          <p className="text-muted-foreground">{fr ? 'Les leçons ne sont pas disponibles pour le moment. Veuillez réessayer.' : 'Lessons are temporarily unavailable. Please try again.'}</p>
+          <Button variant="outline" disabled={isFetching} onClick={() => void refetch()}>{fr ? 'Réessayer' : 'Try again'}</Button>
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-muted-foreground">{fr ? 'Aucune leçon trouvée.' : 'No lesson found.'}</p>

@@ -1,4 +1,6 @@
 # Architecture rules
+- Cache browse metadata with explicit catalogue-only query options and bound read-only catalogue requests; keep payment and subscription access checks uncached so confirmations remain authoritative.
+- Load the help chat Markdown renderer on demand so unused rich-text parsing does not delay the first page.
 - Execute admin-approved payouts only through admin-payout with a durable unique database claim, atomic provider-confirmed settlement and lookup-only recovery; provider reference/nonce alone do not guarantee idempotency.
 
 - Keep the payout introduction and secured request flow in the shared PayoutRequestDialog so school and affiliate withdrawal behavior remains consistent.
