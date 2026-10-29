@@ -9,12 +9,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ViewOffersButton from "@/components/layout/ViewOffersButton";
 import { WHATSAPP_SUPPORT_NUMBER, whatsappSupportUrl } from "@/lib/supportContact";
+import iconLessons from "@/assets/card-icons/lessons.png";
+import iconFacile from "@/assets/card-icons/facile.png";
+import iconIntermediaire from "@/assets/card-icons/intermediaire.png";
+import iconDifficile from "@/assets/card-icons/difficile.png";
+import iconEpreuves from "@/assets/card-icons/epreuves.png";
+import iconEvaluation from "@/assets/card-icons/evaluation.png";
+import iconChallenges from "@/assets/card-icons/challenges.png";
+import iconForum from "@/assets/card-icons/forum.png";
+import iconAide from "@/assets/card-icons/aide.png";
 
-type PillCardProps = { to: string; icon: React.ElementType; emoji?: string; color: string; bg: string; title: string; badge?: string; badgeCls?: string };
-const PillCard = ({ to, icon: Icon, emoji, color, bg, title, badge, badgeCls }: PillCardProps) => (
+type PillCardProps = { to: string; icon: React.ElementType; img?: string; color: string; bg: string; title: string; badge?: string; badgeCls?: string };
+const PillCard = ({ to, icon: Icon, img, color, bg, title, badge, badgeCls }: PillCardProps) => (
   <Link to={to} className="group flex items-center gap-4 rounded-3xl bg-card px-5 py-5 shadow-soft transition-all duration-200 hover:scale-[1.03] hover:shadow-medium">
-    <span className="flex h-14 w-14 shrink-0 items-center justify-center text-5xl leading-none transition-transform group-hover:-rotate-6 group-hover:scale-110" aria-hidden>
-      {emoji ?? <Icon className={`h-10 w-10 ${color}`} strokeWidth={2.2} />}
+    <span className="flex h-14 w-14 shrink-0 items-center justify-center leading-none transition-transform group-hover:-rotate-6 group-hover:scale-110" aria-hidden>
+      {img
+        ? <img src={img} alt="" loading="lazy" width={56} height={56} className="h-14 w-14 object-contain drop-shadow-sm" />
+        : <Icon className={`h-10 w-10 ${color}`} strokeWidth={2.2} />}
     </span>
     <span className="min-w-0 flex-1">
       <span className="block text-sm font-extrabold uppercase leading-snug tracking-wide text-primary md:text-base">{title}</span>
