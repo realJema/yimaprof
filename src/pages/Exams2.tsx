@@ -623,85 +623,77 @@ const Exams2 = () => {
       </PopoverContent>
     </Popover>;
 
-  // Sidebar filters content (without system and school)
-  const FiltersContent = () => <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'} value={searchTerm} onChange={e => setParam('search', e.target.value || null)} className="pl-10 h-9" />
+  // Top filter bar — placed above the class list, immediately visible
+  const FiltersBar = () => <div className="bg-card rounded-2xl border p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold flex items-center gap-2 text-sm">
+          <Filter className="h-4 w-4" />
+          {language === 'fr' ? 'Filtres' : 'Filters'}
+          {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
+        </h2>
+        {activeFiltersCount > 0 && <Button variant="ghost" size="sm" className="text-xs" onClick={clearAllFilters}>
+            <X className="h-3.5 w-3.5 mr-1" />
+            {language === 'fr' ? 'Effacer les filtres' : 'Clear filters'}
+          </Button>}
       </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        {/* Search */}
+        <div className="relative col-span-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'} value={searchTerm} onChange={e => setParam('search', e.target.value || null)} className="pl-10 h-9" />
+        </div>
 
-      <Separator />
+        {/* Subjects - filtered by system */}
+        <MultiSelectPopover label={language === 'fr' ? 'Matières' : 'Subjects'} icon={BookOpen} items={filteredSubjects} selectedItems={selectedSubjects} onToggle={toggleSubject} counts={getFilterCounts.subjects} getItemName={item => getLocalizedName(item)} />
 
-      {/* Classes - filtered by system */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Classes' : 'Classes'}</label>
-        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={GraduationCap} items={filteredClasses} selectedItems={selectedClasses} onToggle={toggleClass} counts={getFilterCounts.classes} getItemName={item => item.display_name} />
-      </div>
+        {/* Series - filtered by system */}
+        <MultiSelectPopover label={language === 'fr' ? 'Série / Filière' : 'Series / Track'} icon={GraduationCap} items={filteredSeries} selectedItems={selectedSeries} onToggle={toggleSeries} counts={getFilterCounts.series} getItemName={item => getLocalizedName(item)} />
 
-      {/* Subjects - filtered by system */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Matières' : 'Subjects'}</label>
-        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={BookOpen} items={filteredSubjects} selectedItems={selectedSubjects} onToggle={toggleSubject} counts={getFilterCounts.subjects} getItemName={item => getLocalizedName(item)} />
-      </div>
-
-      {/* Series - filtered by system */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Série / Filière' : 'Series / Track'}</label>
-        <MultiSelectPopover label={language === 'fr' ? 'Sélectionner' : 'Select'} icon={GraduationCap} items={filteredSeries} selectedItems={selectedSeries} onToggle={toggleSeries} counts={getFilterCounts.series} getItemName={item => getLocalizedName(item)} />
-      </div>
-
-      <Separator />
-
-      {/* Year */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Année' : 'Year'}</label>
+        {/* Year */}
         <Select value={selectedYear} onValueChange={(value) => setParam('year', value)}>
           <SelectTrigger className="h-9">
-            <SelectValue />
+            <SelectValue placeholder={language === 'fr' ? 'Année' : 'Year'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
+            <SelectItem value="all">{language === 'fr' ? 'Toutes les années' : 'All years'}</SelectItem>
             {academicYears?.map(year => <SelectItem key={year.id} value={year.id}>{year.year_label}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Exam Type */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? "Type d'épreuves" : 'Exam Type'}</label>
+        {/* Exam Type */}
         <Select value={selectedExamType} onValueChange={(value) => setParam('type', value)}>
           <SelectTrigger className="h-9">
-            <SelectValue />
+            <SelectValue placeholder={language === 'fr' ? "Type d'épreuves" : 'Exam Type'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{language === 'fr' ? 'Tous' : 'All'}</SelectItem>
+            <SelectItem value="all">{language === 'fr' ? 'Tous les types' : 'All types'}</SelectItem>
             {examTypes?.map(type => <SelectItem key={type.id} value={type.id}>{getLocalizedName(type)}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Period */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">{language === 'fr' ? 'Période' : 'Period'}</label>
+        {/* Period */}
         <Select value={selectedPeriod} onValueChange={(value) => setParam('period', value)}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder={language === 'fr' ? 'Période' : 'Period'} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === 'fr' ? 'Toutes les périodes' : 'All periods'}</SelectItem>
+            {periods?.map(period => <SelectItem key={period.id} value={period.id}>{getLocalizedName(period)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+
+        {/* Sort */}
+        <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
           <SelectTrigger className="h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{language === 'fr' ? 'Toutes' : 'All'}</SelectItem>
-            {periods?.map(period => <SelectItem key={period.id} value={period.id}>{getLocalizedName(period)}</SelectItem>)}
+            <SelectItem value="newest">{language === 'fr' ? 'Plus récent' : 'Newest'}</SelectItem>
+            <SelectItem value="oldest">{language === 'fr' ? 'Plus ancien' : 'Oldest'}</SelectItem>
+            <SelectItem value="title">{language === 'fr' ? 'Titre' : 'Title'}</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
-      {activeFiltersCount > 0 && <>
-          <Separator />
-          <Button variant="outline" size="sm" className="w-full" onClick={clearAllFilters}>
-            <X className="h-4 w-4 mr-2" />
-            {language === 'fr' ? 'Effacer les filtres' : 'Clear filters'}
-          </Button>
-        </>}
     </div>;
   return <div className="min-h-screen bg-background">
       <SeoHead
