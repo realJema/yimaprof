@@ -158,6 +158,20 @@ const Exams2 = () => {
     setSearchParams(newParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  // Section change: class and series are section-specific, so reset them
+  const setSystem = useCallback((value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value && value !== 'all') {
+      newParams.set('system', value);
+    } else {
+      newParams.delete('system');
+    }
+    newParams.delete('class');
+    newParams.delete('series');
+    newParams.delete('page');
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   // Derived filter state from URL
   const selectedSystem = searchParams.get('system') || 'all';
   const selectedClasses = useMemo(() => getParamArray('class'), [getParamArray]);
