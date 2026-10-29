@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Alléger les chargements des catalogues et de l’assistance, puis vérifier navigation, réutilisation des listes et reprise après erreur.
 
 - [x] Finaliser Google Search Console : site vérifié, sitemap envoyé.
 - [x] Répondre à la stratégie SEO / Search Console (élèves et parents).
