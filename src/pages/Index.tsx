@@ -126,11 +126,11 @@ const Index = () => {
           <h3 className="mb-4 flex items-center gap-3 text-xl font-extrabold uppercase tracking-wide text-primary md:text-2xl"><ArrowDown className="h-6 w-6" />{L("Épreuves et plus", "Papers & more")}</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { to: "/exams2", emoji: "📝", icon: FileText, color: "text-fun-blue", bg: "bg-fun-blue/15", title: L("Épreuves corrigées", "Corrected papers"), badge: "BEPC · Bac", badgeCls: "bg-fun-blue/15 text-fun-blue" },
-              { to: "/exams2", icon: Target, color: "text-fun-pink", bg: "bg-fun-pink/15", title: L("Auto-évaluation", "Self-assessment"), badge: "Premium", badgeCls: "bg-fun-pink/15 text-fun-pink" },
-              { to: "/challenges", emoji: "🏆", icon: Trophy, color: "text-fun-yellow", bg: "bg-fun-yellow/20", title: "Challenges", badge: L("Concours", "Contests"), badgeCls: "bg-fun-yellow/20 text-foreground" },
-              { to: "/forum", emoji: "💬", icon: MessageCircle, color: "text-fun-green", bg: "bg-fun-green/15", title: "Forum", badge: L("Entraide", "Help"), badgeCls: "bg-fun-green/15 text-fun-green" },
-              { to: "/help", emoji: "🧭", icon: HelpCircle, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Aide et tutoriels", "Help & tutorials") },
+              { to: "/exams2", img: iconEpreuves, icon: FileText, color: "text-fun-blue", bg: "bg-fun-blue/15", title: L("Épreuves corrigées", "Corrected papers"), badge: "BEPC · Bac", badgeCls: "bg-fun-blue/15 text-fun-blue" },
+              { to: "/exams2", img: iconEvaluation, icon: Target, color: "text-fun-pink", bg: "bg-fun-pink/15", title: L("Auto-évaluation", "Self-assessment"), badge: "Premium", badgeCls: "bg-fun-pink/15 text-fun-pink" },
+              { to: "/challenges", img: iconChallenges, icon: Trophy, color: "text-fun-yellow", bg: "bg-fun-yellow/20", title: "Challenges", badge: L("Concours", "Contests"), badgeCls: "bg-fun-yellow/20 text-foreground" },
+              { to: "/forum", img: iconForum, icon: MessageCircle, color: "text-fun-green", bg: "bg-fun-green/15", title: "Forum", badge: L("Entraide", "Help"), badgeCls: "bg-fun-green/15 text-fun-green" },
+              { to: "/help", img: iconAide, icon: HelpCircle, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Aide et tutoriels", "Help & tutorials") },
             ].map((c) => <PillCard key={c.title} {...c} />)}
           </div>
         </div>
