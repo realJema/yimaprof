@@ -1066,7 +1066,6 @@ const Exams2 = () => {
                 )}
               </>}
           </main>
-        </div>
       </div>
 
       {/* Locked exam dialog for non-subscribers */}
