@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Alléger les chargements des catalogues et de l’assistance, puis vérifier navigation, réutilisation des listes et reprise après erreur.
+- [x] Alléger les chargements des catalogues et de l’assistance : lectures parallèles, cache réservé aux listes, reprise après erreur ; navigation réelle et 26 tests vérifiés.
 
 - [x] Finaliser Google Search Console : site vérifié, sitemap envoyé.
 - [x] Répondre à la stratégie SEO / Search Console (élèves et parents).
