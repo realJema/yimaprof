@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { browseQueryOptions, browseReadSignal } from '@/lib/browseQuery';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -16,18 +15,17 @@ export default function ViewOffersButton() {
   const { hasActiveSubscription, loading } = useSubscription();
   const { language } = useLanguage();
   const fr = language === 'fr';
-  const { data: minPrice } = useQuery({
-    queryKey: ['browse-minimum-plan-price'],
-    ...browseQueryOptions,
-    enabled: !loading && !hasActiveSubscription,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('subscription_plans').select('price')
-        .eq('is_active', true).order('price', { ascending: true }).limit(1)
-        .abortSignal(browseReadSignal());
-      if (error) throw error;
-      return data?.[0]?.price ?? null;
-    },
-  });
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from('subscription_plans')
+      .select('price')
+      .eq('is_active', true)
+      .order('price', { ascending: true })
+      .limit(1)
+      .then(({ data }) => setMinPrice(data?.[0]?.price ?? null));
+  }, []);
 
   if (loading || hasActiveSubscription) return null;
 

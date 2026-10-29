@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { browseQueryOptions, browseReadSignal } from '@/lib/browseQuery';
 import SeoHead from '@/components/SeoHead';
 import AuthInvitation from '@/components/auth/AuthInvitation';
 import { useAuth } from '@/hooks/useAuth';
@@ -205,9 +204,8 @@ const Exams2 = () => {
   });
 
   // Fetch all exams (public and free)
-  const { data: exams, isLoading: examsLoading, isError: examsError, refetch: refetchExams, isFetching: examsFetching } = useQuery({
+  const { data: exams, isLoading: examsLoading } = useQuery({
     queryKey: ['all-exams'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const { data, error } = await supabase.from('exams').select(`
           id, title, description, is_published, visibility, created_at, series_ids,
@@ -223,8 +221,7 @@ const Exams2 = () => {
         .eq('is_published', true)
         .in('visibility', ['public', 'free'])
         .order('created_at', { ascending: false })
-        .range(0, 99999)
-        .abortSignal(browseReadSignal());
+        .range(0, 99999);
       if (error) throw error;
       return data as unknown as Exam[];
     }
@@ -235,8 +232,6 @@ const Exams2 = () => {
     data: schools
   } = useQuery({
     queryKey: ['establishments'],
-    ...browseQueryOptions,
-    enabled: selectedSchools.length > 0,
     queryFn: async () => {
       const {
         data,
@@ -250,7 +245,6 @@ const Exams2 = () => {
     data: classes
   } = useQuery({
     queryKey: ['classes'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const {
         data,
@@ -264,7 +258,6 @@ const Exams2 = () => {
     data: subjects
   } = useQuery({
     queryKey: ['subjects'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const {
         data,
@@ -278,7 +271,6 @@ const Exams2 = () => {
     data: academicYears
   } = useQuery({
     queryKey: ['academic_years'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const {
         data,
@@ -294,7 +286,6 @@ const Exams2 = () => {
     data: examTypes
   } = useQuery({
     queryKey: ['exam_types'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const {
         data,
@@ -308,7 +299,6 @@ const Exams2 = () => {
     data: periods
   } = useQuery({
     queryKey: ['periods'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const {
         data,
@@ -324,7 +314,6 @@ const Exams2 = () => {
     data: series
   } = useQuery({
     queryKey: ['series'],
-    ...browseQueryOptions,
     queryFn: async () => {
       const {
         data,
@@ -856,12 +845,7 @@ const Exams2 = () => {
               </div>}
 
             {/* Show content based on subscription status */}
-            {examsError && !exams ? (
-              <div role="alert" className="space-y-3 py-8 text-center">
-                <p className="text-muted-foreground">{language === 'fr' ? 'Les épreuves ne sont pas disponibles pour le moment. Veuillez réessayer.' : 'Papers are temporarily unavailable. Please try again.'}</p>
-                <Button variant="outline" disabled={examsFetching} onClick={() => void refetchExams()}>{language === 'fr' ? 'Réessayer' : 'Try again'}</Button>
-              </div>
-            ) : examsLoading ? (
+            {examsLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[...Array(12)].map((_, i) => <Card key={i}>
                     <CardContent className="p-4">
