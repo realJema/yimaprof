@@ -3,12 +3,26 @@ import SeoHead from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen, FileText, Trophy, MessageCircle, HelpCircle, PenLine, Target,
-  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock,
+  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock, Sprout, Flame, Rocket, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ViewOffersButton from "@/components/layout/ViewOffersButton";
 import { WHATSAPP_SUPPORT_NUMBER, whatsappSupportUrl } from "@/lib/supportContact";
+
+type PillCardProps = { to: string; icon: React.ElementType; color: string; bg: string; title: string; badge?: string; badgeCls?: string };
+const PillCard = ({ to, icon: Icon, color, bg, title, badge, badgeCls }: PillCardProps) => (
+  <Link to={to} className="group flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft transition-all duration-200 hover:scale-[1.03] hover:shadow-medium">
+    <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${bg} transition-transform group-hover:rotate-6`}>
+      <Icon className={`h-7 w-7 ${color}`} strokeWidth={2.2} />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block truncate font-semibold">{title}</span>
+      {badge && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeCls}`}>{badge}</span>}
+    </span>
+    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
+  </Link>
+);
 
 const Index = () => {
   const { user } = useAuth();
