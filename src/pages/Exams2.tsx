@@ -356,11 +356,11 @@ const Exams2 = () => {
     if (!hasActiveSubscription) return;
     if (availableSystems.hasMultiple) return; // User has both, keep current selection
     if (availableSystems.francophone && selectedSystem !== 'francophone') {
-      setParam('system', 'francophone');
+      setSystem('francophone');
     } else if (availableSystems.anglophone && selectedSystem !== 'anglophone') {
-      setParam('system', 'anglophone');
+      setSystem('anglophone');
     }
-  }, [availableSystems, hasActiveSubscription, selectedSystem, setParam]);
+  }, [availableSystems, hasActiveSubscription, selectedSystem, setSystem]);
 
   // Filter exams based on subscription access or free visibility
   const accessibleExams = useMemo(() => {
@@ -738,7 +738,7 @@ const Exams2 = () => {
                   <span className="text-sm font-medium text-muted-foreground">
                     {language === 'fr' ? 'Système:' : 'System:'}
                   </span>
-                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setParam('system', value)} className="bg-muted p-1 rounded-lg">
+                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setSystem(value)} className="bg-muted p-1 rounded-lg">
                     {(hasActiveSubscription ? availableSystems.hasMultiple : true) && (
                       <ToggleGroupItem value="all" className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm">
                         {language === 'fr' ? 'Tous' : 'All'}
