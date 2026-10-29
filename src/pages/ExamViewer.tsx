@@ -1126,7 +1126,7 @@ export default function ExamViewer() {
       <div className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* Title - Hidden on mobile (shown in header) */}
-          <h2 className="hidden sm:block font-semibold text-lg mb-3">{exam.title}</h2>
+          <h1 className="hidden sm:block font-semibold text-lg mb-3">{exam.title}</h1>
           
           {/* Mobile: Compact Info Grid */}
           <div className="grid grid-cols-2 gap-2 sm:hidden mb-3">

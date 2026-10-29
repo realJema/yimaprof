@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SeoHead from '@/components/SeoHead';
 import { Button } from '@/components/ui/button';
@@ -8,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 
 export default function Contact() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -20,10 +23,28 @@ export default function Contact() {
     })),
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [sending, setSending] = useState(false);
+  const fr = language === 'fr';
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Implement contact form submission
-    console.log('Contact form submitted');
+    const form = e.currentTarget;
+    const get = (id: string) => ((form.elements.namedItem(id) as HTMLInputElement | null)?.value ?? '').trim();
+    setSending(true);
+    const { error } = await supabase.from('contact_messages' as never).insert({
+      first_name: get('firstName').slice(0, 100),
+      last_name: get('lastName').slice(0, 100),
+      email: get('email').slice(0, 255),
+      subject: get('subject').slice(0, 200),
+      message: get('message').slice(0, 5000),
+    } as never);
+    setSending(false);
+    if (error) {
+      toast.error(fr ? "Votre message n'a pas pu être envoyé. Veuillez réessayer." : 'Your message could not be sent. Please try again.');
+      return;
+    }
+    form.reset();
+    toast.success(fr ? 'Message envoyé ! Nous vous répondrons rapidement.' : 'Message sent! We will get back to you soon.');
   };
 
   return (
