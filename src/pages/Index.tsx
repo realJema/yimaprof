@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import SeoHead from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import {
-  BookOpen, FileText, Layers, Trophy, MessageCircle, HelpCircle, PenLine, Target,
+  BookOpen, FileText, Trophy, MessageCircle, HelpCircle, PenLine, Target,
   ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,15 +15,6 @@ const Index = () => {
   const { language } = useLanguage();
   const fr = language !== "en";
   const L = (a: string, b: string) => (fr ? a : b);
-
-  const contents = [
-    { to: "/lessons", icon: BookOpen, title: L("Leçons", "Lessons"), desc: L("Cours clairs par classe et matière", "Clear lessons by class and subject"), tone: "bg-primary/10 text-primary" },
-    { to: "/exams2", icon: FileText, title: L("Épreuves corrigées", "Corrected papers"), desc: L("BEPC, Probatoire, Bac, GCE", "BEPC, Probatoire, Bac, GCE"), tone: "bg-secondary/10 text-secondary" },
-    { to: "/lessons", icon: Layers, title: L("Exercices par niveau", "Exercises by level"), desc: L("Facile, Intermédiaire, Difficile", "Easy, Intermediate, Hard"), tone: "bg-accent/10 text-accent" },
-    { to: "/challenges", icon: Trophy, title: L("Challenges", "Challenges"), desc: L("Concours entre élèves", "Student competitions"), tone: "bg-secondary/10 text-secondary" },
-    { to: "/forum", icon: MessageCircle, title: L("Forum", "Forum"), desc: L("Pose tes questions", "Ask your questions"), tone: "bg-primary/10 text-primary" },
-    { to: "/help", icon: HelpCircle, title: L("Aide et tutoriels", "Help & tutorials"), desc: L("Guides pas à pas", "Step-by-step guides"), tone: "bg-accent/10 text-accent" },
-  ];
 
   const actions = [
     { to: "/lessons", icon: BookOpen, label: L("Réviser une leçon", "Review a lesson") },
