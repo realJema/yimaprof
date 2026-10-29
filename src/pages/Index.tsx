@@ -1,71 +1,49 @@
 import { Link } from "react-router-dom";
 import SeoHead from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Search, Download, Users, Star, CheckCircle, Globe, Smartphone, GraduationCap, Target, Zap, Shield } from "lucide-react";
-import { Logo } from "@/components/ui/logo";
+import {
+  BookOpen, FileText, Layers, Trophy, MessageCircle, HelpCircle, PenLine, Target,
+  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ViewOffersButton from "@/components/layout/ViewOffersButton";
+import { WHATSAPP_SUPPORT_NUMBER, whatsappSupportUrl } from "@/lib/supportContact";
 
 const Index = () => {
   const { user } = useAuth();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
+  const fr = language !== "en";
+  const L = (a: string, b: string) => (fr ? a : b);
 
-  const features = [
-    {
-      icon: Search,
-      title: t('advanced_search'),
-      description: t('advanced_search_desc')
-    },
-    {
-      icon: Download,
-      title: t('offline_access'),
-      description: t('offline_access_desc')
-    },
-    {
-      icon: Users,
-      title: t('community'),
-      description: t('community_desc')
-    },
-    {
-      icon: Globe,
-      title: t('multilingual'),
-      description: t('multilingual_desc')
-    }
+  const contents = [
+    { to: "/lessons", icon: BookOpen, title: L("Leçons", "Lessons"), desc: L("Cours clairs par classe et matière", "Clear lessons by class and subject"), tone: "bg-primary/10 text-primary" },
+    { to: "/exams2", icon: FileText, title: L("Épreuves corrigées", "Corrected papers"), desc: L("BEPC, Probatoire, Bac, GCE", "BEPC, Probatoire, Bac, GCE"), tone: "bg-secondary/10 text-secondary" },
+    { to: "/lessons", icon: Layers, title: L("Exercices par niveau", "Exercises by level"), desc: L("Facile, Intermédiaire, Difficile", "Easy, Intermediate, Hard"), tone: "bg-accent/10 text-accent" },
+    { to: "/challenges", icon: Trophy, title: L("Challenges", "Challenges"), desc: L("Concours entre élèves", "Student competitions"), tone: "bg-secondary/10 text-secondary" },
+    { to: "/forum", icon: MessageCircle, title: L("Forum", "Forum"), desc: L("Pose tes questions", "Ask your questions"), tone: "bg-primary/10 text-primary" },
+    { to: "/help", icon: HelpCircle, title: L("Aide et tutoriels", "Help & tutorials"), desc: L("Guides pas à pas", "Step-by-step guides"), tone: "bg-accent/10 text-accent" },
   ];
 
-  const howItWorksSteps = [
-    {
-      icon: GraduationCap,
-      title: t('step_1_title'),
-      description: t('step_1_desc'),
-      step: "01"
-    },
-    {
-      icon: Target,
-      title: t('step_2_title'),
-      description: t('step_2_desc'),
-      step: "02"
-    },
-    {
-      icon: Search,
-      title: t('step_3_title'),
-      description: t('step_3_desc'),
-      step: "03"
-    },
-    {
-      icon: Zap,
-      title: t('step_4_title'),
-      description: t('step_4_desc'),
-      step: "04"
-    }
+  const actions = [
+    { to: "/lessons", icon: BookOpen, label: L("Réviser une leçon", "Review a lesson") },
+    { to: "/lessons", icon: PenLine, label: L("Faire un exercice (Facile gratuit)", "Do an exercise (Easy free)") },
+    { to: "/exams2", icon: Target, label: L("M'auto-évaluer", "Self-assess") },
+    { to: "/exams2", icon: GraduationCap, label: L("Préparer un examen", "Prepare an exam") },
+    { to: "/subscriptions", icon: Crown, label: L("Consulter les offres", "See plans") },
   ];
 
-  const stats = [
-    { number: "10,000+", label: t('exam_papers') },
-    { number: "50,000+", label: t('active_students') },
-    { number: "500+", label: t('schools') },
-    { number: "98%", label: t('satisfaction') }
+  const included = [
+    L("Tous les exercices Intermédiaire et Difficile des leçons", "All Intermediate and Hard lesson exercises"),
+    L("Les corrigés des exercices après auto-évaluation", "Exercise solutions after self-assessment"),
+    L("Les évaluations chronométrées sur les épreuves", "Timed evaluations on past papers"),
+    L("La page Progression avec conseils personnalisés", "Progress page with tailored advice"),
+  ];
+
+  const reassurance = [
+    { icon: Smartphone, text: L("Paiement Orange Money / MTN", "Orange Money / MTN payment") },
+    { icon: Zap, text: L("Accès immédiat", "Instant access") },
+    { icon: ShieldCheck, text: L("Aucun code secret demandé sur YimaProf", "No secret code asked on YimaProf") },
   ];
 
   return (
@@ -75,245 +53,131 @@ const Index = () => {
         description="Révisez les épreuves officielles du Cameroun (BEPC, Probatoire, Bac, GCE) avec corrections détaillées, évaluations chronométrées et forum d'entraide."
         path="/"
       />
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20 px-4">
-        <div className="container mx-auto max-w-6xl text-center">
-          <div className="mb-8 flex justify-center">
-            <div className="flex items-center gap-3 rounded-full bg-white/80 px-6 py-3 shadow-soft">
-              <Logo size="xl" />
-            </div>
-          </div>
-          
-          <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">
-            {t('hero_title')}{" "}
+
+      <div className="pt-4"><ViewOffersButton /></div>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10 px-4 py-14 md:py-24">
+        <div className="container mx-auto max-w-5xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-1.5 text-sm font-medium shadow-soft">
+            <GraduationCap className="h-4 w-4 text-primary" /> BEPC · Probatoire · Bac · GCE
+          </span>
+          <h1 className="mt-6 text-4xl font-extrabold leading-tight md:text-6xl">
+            {L("Révise, évalue-toi et réussis tes examens avec ", "Review, self-assess and pass your exams with ")}
             <span className="text-foreground">Yima</span>
             <span className="text-secondary italic font-extrabold">prof</span>
           </h1>
-          
-          <p className="mb-4 text-lg text-muted-foreground md:text-xl lg:text-2xl max-w-3xl mx-auto">
-            {t('hero_subtitle')}
-          </p>
-
-          <p className="mb-8 text-base md:text-lg font-medium text-foreground/80 max-w-3xl mx-auto">
-            {language === 'en'
-              ? 'Your child reviews lessons, checks their real level, and prepares for tests and exams (BEPC / Probatoire / Bac) with corrected past papers.'
-              : 'Votre enfant révise ses leçons, évalue son niveau réel, prépare ses évaluations et ses examens (BEPC / Probatoire / Bac) avec des épreuves corrigées.'}
-          </p>
-          
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            {user ? (
-              <Button size="lg" className="gradient-primary text-lg px-8 py-6" asChild>
-                <Link to="/exams2">
-                  <Search className="mr-2 h-5 w-5" />
-                  {t('explore_exams')}
-                </Link>
-              </Button>
-            ) : (
-              <>
-                <Button size="lg" className="gradient-primary text-lg px-8 py-6" asChild>
-                  <Link to="/exams2">
-                    {t('get_started_free')}
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6" asChild>
-                  <Link to="/auth">
-                    {t('sign_in')}
-                  </Link>
-                </Button>
-              </>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
+            {L(
+              "Votre enfant révise ses leçons, évalue son niveau réel et prépare le BEPC, le Probatoire et le Bac avec des épreuves corrigées.",
+              "Your child reviews lessons, checks their real level and prepares for BEPC, Probatoire and Bac with corrected past papers."
             )}
-          </div>
-          
-          <div className="mt-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle className="h-4 w-4 text-accent" />
-            <span>{t('free_no_commitment')}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl font-bold text-primary md:text-4xl">
-                  {stat.number}
-                </div>
-                <div className="text-sm text-muted-foreground md:text-base">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4 md:text-4xl">
-              {t('how_it_works')}
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t('how_it_works_subtitle')}
-            </p>
-          </div>
-          
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {howItWorksSteps.map((step, index) => (
-              <div key={index} className="relative">
-                <div className="text-center">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 relative">
-                    <step.icon className="h-8 w-8 text-primary" />
-                    <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
-                      {step.step}
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
-                </div>
-                {index < howItWorksSteps.length - 1 && (
-                  <div className="hidden lg:block absolute top-10 -right-4 w-8 h-0.5 bg-primary/20"></div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4 md:text-4xl">
-              {t('why_choose')}
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t('why_choose_subtitle')}
-            </p>
-          </div>
-          
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-soft hover:shadow-medium transition-shadow">
-                <CardHeader className="text-center">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <feature.icon className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-center">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Educational Sections Info */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4 md:text-4xl">
-              {t('francophone')} & {t('anglophone')}
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Yimaprof supports both French and English educational systems across Africa, providing relevant exam papers for each curriculum.
-            </p>
-          </div>
-          
-          <div className="grid gap-8 md:grid-cols-2">
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-6 w-6 text-primary" />
-                  {t('francophone')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Access exam papers from French-speaking African countries including Cameroon, Senegal, Ivory Coast, and more.
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                    <span>BEPC, Probatoire, Baccalauréat</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                    <span>6ème à Terminale</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                    <span>All subjects in French</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-6 w-6 text-secondary" />
-                  {t('anglophone')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Comprehensive collection from English-speaking regions including GCE O/A Levels and local equivalent exams.
-                </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-secondary" />
-                    <span>GCE O Level, A Level</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-secondary" />
-                    <span>Form 1 to Upper Sixth</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-secondary" />
-                    <span>All subjects in English</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-primary to-secondary">
-        <div className="container mx-auto max-w-4xl text-center text-white">
-          <div className="mb-6 flex justify-center">
-            <Smartphone className="h-16 w-16" />
-          </div>
-          
-          <h2 className="text-3xl font-bold mb-4 md:text-4xl">
-            {t('cta_title')}
-          </h2>
-          
-          <p className="text-lg mb-8 text-white/90 max-w-2xl mx-auto">
-            {t('cta_subtitle')}
           </p>
-          
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" variant="secondary" className="text-lg px-8 py-6" asChild>
-              <Link to={user ? "/exams2" : "/auth?mode=signup"}>
-                {user ? t('explore_now') : t('create_account')}
-              </Link>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button size="lg" className="gradient-primary px-8 py-6 text-lg" asChild>
+              <Link to="/exams2">{user ? L("Explorer les épreuves", "Explore papers") : L("Commencer gratuitement", "Start for free")}</Link>
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6 bg-transparent border-white text-white hover:bg-white hover:text-primary" asChild>
-              <Link to="/subscriptions">
-                {t('view_subscriptions')}
-              </Link>
+            <Button size="lg" variant="outline" className="px-8 py-6 text-lg" asChild>
+              <Link to="/subscriptions">{L("Voir les offres", "See plans")}</Link>
             </Button>
           </div>
+          {!user && (
+            <p className="mt-5 text-sm text-muted-foreground">
+              {L("Déjà inscrit ?", "Already registered?")}{" "}
+              <Link to="/auth" className="font-semibold text-primary underline-offset-4 hover:underline">{L("Se connecter", "Sign in")}</Link>
+              {" · "}
+              <Link to="/auth?mode=signup" className="font-semibold text-primary underline-offset-4 hover:underline">{L("Créer un compte", "Create an account")}</Link>
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* Contents */}
+      <section className="px-4 py-16 md:py-20">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="mb-2 text-center text-3xl font-bold md:text-4xl">{L("Choisis ton niveau ou ta matière", "Choose your level or subject")}</h2>
+          <p className="mb-10 text-center text-muted-foreground">{L("Tout ce dont tu as besoin pour réviser, au même endroit.", "Everything you need to revise, in one place.")}</p>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {contents.map((c) => (
+              <Link key={c.title} to={c.to} className="group rounded-2xl border bg-card p-5 shadow-soft transition hover:-translate-y-1 hover:shadow-medium md:p-6">
+                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl ${c.tone}`}>
+                  <c.icon className="h-6 w-6" />
+                </div>
+                <h3 className="font-semibold md:text-lg">{c.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{c.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Quick actions */}
+      <section className="bg-muted/30 px-4 py-16 md:py-20">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="mb-10 text-center text-3xl font-bold md:text-4xl">{L("Que veux-tu faire aujourd'hui ?", "What do you want to do today?")}</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {actions.map((a) => (
+              <Link key={a.label} to={a.to} className="flex items-center gap-4 rounded-xl border bg-card p-4 font-medium shadow-soft transition hover:border-primary hover:shadow-medium">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><a.icon className="h-5 w-5" /></span>
+                <span className="flex-1">{a.label}</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Included */}
+      <section className="px-4 py-16 md:py-20">
+        <div className="container mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2">
+          <div>
+            <h2 className="text-3xl font-bold md:text-4xl">{L("Ce qui est inclus avec l'abonnement", "What the subscription includes")}</h2>
+            <p className="mt-3 text-muted-foreground">{L("L'exercice Facile et les épreuves gratuites restent ouverts à tous. L'abonnement débloque le reste :", "The Easy exercise and free papers stay open to all. The subscription unlocks the rest:")}</p>
+            <ul className="mt-6 space-y-3">
+              {included.map((i) => (
+                <li key={i} className="flex items-start gap-3"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-accent" /><span>{i}</span></li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-3xl border-2 border-secondary bg-card p-6 shadow-medium md:p-8">
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">
+              <Crown className="h-3 w-3" /> {L("Le plus choisi : Trimestre", "Most chosen: Term")}
+            </span>
+            <p className="mt-4 text-lg font-semibold">{L("Mensuel, Trimestre ou Annuel", "Monthly, Term or Annual")}</p>
+            <p className="text-sm text-muted-foreground">{L("Choisissez la durée qui convient à votre enfant.", "Pick the duration that suits your child.")}</p>
+            <Button size="lg" className="gradient-primary mt-6 w-full" asChild>
+              <Link to="/subscriptions"><Lock className="mr-2 h-4 w-4" />{L("Voir les offres", "See plans")}</Link>
+            </Button>
+            <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
+              {reassurance.map((r) => (
+                <li key={r.text} className="flex items-center gap-2"><r.icon className="h-4 w-4 text-primary" />{r.text}</li>
+              ))}
+            </ul>
+            <div className="mt-5 border-t pt-5">
+              {WHATSAPP_SUPPORT_NUMBER ? (
+                <Button variant="outline" className="w-full" asChild>
+                  <a href={whatsappSupportUrl(L("Bonjour, j'ai besoin d'aide sur YimaProf.", "Hello, I need help with YimaProf."))} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="mr-2 h-4 w-4" />{L("Besoin d'aide ? WhatsApp", "Need help? WhatsApp")}
+                  </a>
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/help"><HelpCircle className="mr-2 h-4 w-4" />{L("Besoin d'aide ?", "Need help?")}</Link>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="bg-primary/5 px-4 py-14">
+        <div className="container mx-auto max-w-3xl text-center">
+          <ClipboardCheck className="mx-auto h-10 w-10 text-primary" />
+          <h2 className="mt-4 text-2xl font-bold md:text-3xl">{L("Prêt à commencer ?", "Ready to start?")}</h2>
+          <Button size="lg" className="gradient-primary mt-6 px-8" asChild>
+            <Link to={user ? "/exams2" : "/auth?mode=signup"}>{user ? L("Explorer maintenant", "Explore now") : L("Créer un compte gratuit", "Create a free account")}</Link>
+          </Button>
         </div>
       </section>
     </div>
