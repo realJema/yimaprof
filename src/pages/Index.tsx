@@ -116,10 +116,10 @@ const Index = () => {
           <h3 className="mb-4 flex items-center gap-3 text-xl font-extrabold uppercase tracking-wide text-primary md:text-2xl"><ArrowDown className="h-6 w-6" />{L("Leçons et exercices", "Lessons & exercises")}</h3>
           <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { to: "/lessons", emoji: "📚", icon: BookOpen, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Leçons", "Lessons"), badge: L("Nouveau", "New"), badgeCls: "bg-fun-violet/15 text-fun-violet" },
-              { to: "/lessons", emoji: "🌱", icon: Sprout, color: "text-fun-green", bg: "bg-fun-green/15", title: L("Exercices Facile", "Easy exercises"), badge: L("Gratuit", "Free"), badgeCls: "bg-fun-green/15 text-fun-green" },
-              { to: "/lessons", emoji: "🔥", icon: Flame, color: "text-fun-orange", bg: "bg-fun-orange/15", title: L("Intermédiaire", "Intermediate"), badge: "Premium", badgeCls: "bg-fun-orange/15 text-fun-orange" },
-              { to: "/lessons", emoji: "🚀", icon: Rocket, color: "text-fun-red", bg: "bg-fun-red/15", title: L("Difficile", "Hard"), badge: "Premium", badgeCls: "bg-fun-red/15 text-fun-red" },
+              { to: "/lessons", img: iconLessons, icon: BookOpen, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Leçons", "Lessons"), badge: L("Nouveau", "New"), badgeCls: "bg-fun-violet/15 text-fun-violet" },
+              { to: "/lessons", img: iconFacile, icon: Sprout, color: "text-fun-green", bg: "bg-fun-green/15", title: L("Exercices Facile", "Easy exercises"), badge: L("Gratuit", "Free"), badgeCls: "bg-fun-green/15 text-fun-green" },
+              { to: "/lessons", img: iconIntermediaire, icon: Flame, color: "text-fun-orange", bg: "bg-fun-orange/15", title: L("Intermédiaire", "Intermediate"), badge: "Premium", badgeCls: "bg-fun-orange/15 text-fun-orange" },
+              { to: "/lessons", img: iconDifficile, icon: Rocket, color: "text-fun-red", bg: "bg-fun-red/15", title: L("Difficile", "Hard"), badge: "Premium", badgeCls: "bg-fun-red/15 text-fun-red" },
             ].map((c) => <PillCard key={c.title} {...c} />)}
           </div>
 
