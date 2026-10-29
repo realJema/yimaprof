@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, SlidersHorizontal, AlertCircle, ArrowRight, Sparkles, Lock, Crown } from 'lucide-react';
+import { Search, X, Clock, FileText, Building2, BookOpen, GraduationCap, ChevronLeft, ChevronRight, Filter, AlertCircle, ArrowRight, Sparkles, Lock, Crown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,9 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { anonymizeSchoolName, matchesSchoolSearch } from '@/lib/schoolAnonymizer';
 import ViewOffersButton from '@/components/layout/ViewOffersButton';
@@ -104,6 +102,20 @@ const getSubjectColor = (subjectName: string | undefined) => {
   return SUBJECT_COLORS[subjectName] || 'bg-card border-border';
 };
 
+// Playful Nomad-style palette for class cards
+const CLASS_CARD_STYLES = [
+  { emoji: '📗', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', chip: 'bg-emerald-100 dark:bg-emerald-900/50', text: 'text-emerald-700 dark:text-emerald-300' },
+  { emoji: '📘', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800', chip: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-300' },
+  { emoji: '📙', bg: 'bg-amber-50 dark:bg-amber-950/30', border: 'border-amber-200 dark:border-amber-800', chip: 'bg-amber-100 dark:bg-amber-900/50', text: 'text-amber-700 dark:text-amber-300' },
+  { emoji: '📕', bg: 'bg-rose-50 dark:bg-rose-950/30', border: 'border-rose-200 dark:border-rose-800', chip: 'bg-rose-100 dark:bg-rose-900/50', text: 'text-rose-700 dark:text-rose-300' },
+  { emoji: '🎒', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800', chip: 'bg-purple-100 dark:bg-purple-900/50', text: 'text-purple-700 dark:text-purple-300' },
+  { emoji: '📖', bg: 'bg-teal-50 dark:bg-teal-950/30', border: 'border-teal-200 dark:border-teal-800', chip: 'bg-teal-100 dark:bg-teal-900/50', text: 'text-teal-700 dark:text-teal-300' },
+  { emoji: '🎓', bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-200 dark:border-indigo-800', chip: 'bg-indigo-100 dark:bg-indigo-900/50', text: 'text-indigo-700 dark:text-indigo-300' },
+  { emoji: '🧮', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', chip: 'bg-orange-100 dark:bg-orange-900/50', text: 'text-orange-700 dark:text-orange-300' },
+  { emoji: '🖋️', bg: 'bg-pink-50 dark:bg-pink-950/30', border: 'border-pink-200 dark:border-pink-800', chip: 'bg-pink-100 dark:bg-pink-900/50', text: 'text-pink-700 dark:text-pink-300' },
+  { emoji: '🔬', bg: 'bg-cyan-50 dark:bg-cyan-950/30', border: 'border-cyan-200 dark:border-cyan-800', chip: 'bg-cyan-100 dark:bg-cyan-900/50', text: 'text-cyan-700 dark:text-cyan-300' },
+];
+
 const ITEMS_PER_PAGE = 12;
 
 const Exams2 = () => {
@@ -158,9 +170,6 @@ const Exams2 = () => {
   const sortBy = searchParams.get('sort') || 'newest';
   const searchTerm = searchParams.get('search') || '';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
-
-  // Mobile sidebar
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch subscription plan classes to determine accessible content
   const { data: subscriptionPlanClasses } = useQuery({
@@ -754,59 +763,55 @@ const Exams2 = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Desktop Sidebar - filters available to everyone */}
-          <aside className="hidden lg:block w-64 shrink-0">
-              <div className="sticky top-32 bg-card rounded-lg border p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    {language === 'fr' ? 'Filtres' : 'Filters'}
-                  </h2>
-                  {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
-                </div>
-                <FiltersContent />
-              </div>
-            </aside>
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Filter bar — above the class list, immediately visible */}
+        <FiltersBar />
 
-          {/* Main Content */}
-          <main className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4 gap-4">
-              <div className="flex items-center gap-3">
-                {/* Mobile Filter Button - available to everyone */}
-                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="sm" className="lg:hidden">
-                        <SlidersHorizontal className="h-4 w-4 mr-2" />
-                        {language === 'fr' ? 'Filtres' : 'Filters'}
-                        {activeFiltersCount > 0 && <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-80">
-                      <SheetHeader>
-                        <SheetTitle>{language === 'fr' ? 'Filtres' : 'Filters'}</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-4">
-                        <FiltersContent />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-              </div>
-
-              {/* Sort - available to everyone */}
-              <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
-                  <SelectTrigger className="w-[130px] h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">{language === 'fr' ? 'Plus récent' : 'Newest'}</SelectItem>
-                    <SelectItem value="oldest">{language === 'fr' ? 'Plus ancien' : 'Oldest'}</SelectItem>
-                    <SelectItem value="title">{language === 'fr' ? 'Titre' : 'Title'}</SelectItem>
-                  </SelectContent>
-                </Select>
+        {/* Class cards of the selected section (Nomad style) */}
+        {selectedSystem !== 'all' && filteredClasses.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold text-foreground">
+                {language === 'fr' ? 'Choisissez votre classe' : 'Choose your class'}
+              </h2>
+              <Badge variant="outline" className="text-xs capitalize">{selectedSystem}</Badge>
             </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {filteredClasses.map((cls, i) => {
+                const style = CLASS_CARD_STYLES[i % CLASS_CARD_STYLES.length];
+                const isSelected = selectedClasses.includes(cls.id);
+                const count = getFilterCounts.classes[cls.id] || 0;
+                return (
+                  <button
+                    key={cls.id}
+                    type="button"
+                    onClick={() => setParamArray('class', isSelected ? [] : [cls.id])}
+                    className="text-left group"
+                  >
+                    <Card className={`h-full rounded-3xl border-2 transition-all duration-200 hover:scale-[1.03] hover:shadow-lg ${style.bg} ${style.border} ${isSelected ? 'ring-2 ring-primary shadow-lg' : ''}`}>
+                      <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                        <span className={`text-3xl sm:text-4xl p-3 rounded-2xl ${style.chip} transition-transform duration-200 group-hover:-rotate-6`}>{style.emoji}</span>
+                        <span className="font-extrabold uppercase tracking-wide text-xs sm:text-sm text-foreground line-clamp-1">{cls.display_name}</span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${style.chip} ${style.text}`}>
+                          {count} {language === 'fr' ? 'épreuve(s)' : 'exam(s)'}
+                        </span>
+                        {isSelected && (
+                          <Badge className="bg-primary text-primary-foreground text-xs">
+                            ✓ {language === 'fr' ? 'Sélectionnée' : 'Selected'}
+                          </Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Main Content */}
+        <main className="min-w-0">
 
             {/* Active filters badges */}
             {(activeFiltersCount > 0 || selectedSchools.length > 0) && <div className="flex items-center gap-1.5 flex-wrap mb-4">
