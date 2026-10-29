@@ -3,24 +3,23 @@ import SeoHead from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen, FileText, Trophy, MessageCircle, HelpCircle, PenLine, Target,
-  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock, Sprout, Flame, Rocket, ChevronRight,
+  ClipboardCheck, GraduationCap, Crown, CheckCircle, Smartphone, Zap, ShieldCheck, ArrowRight, Lock, Sprout, Flame, Rocket, ArrowDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ViewOffersButton from "@/components/layout/ViewOffersButton";
 import { WHATSAPP_SUPPORT_NUMBER, whatsappSupportUrl } from "@/lib/supportContact";
 
-type PillCardProps = { to: string; icon: React.ElementType; color: string; bg: string; title: string; badge?: string; badgeCls?: string };
-const PillCard = ({ to, icon: Icon, color, bg, title, badge, badgeCls }: PillCardProps) => (
-  <Link to={to} className="group flex items-center gap-4 rounded-3xl bg-card p-4 shadow-soft transition-all duration-200 hover:scale-[1.03] hover:shadow-medium">
-    <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${bg} transition-transform group-hover:rotate-6`}>
-      <Icon className={`h-7 w-7 ${color}`} strokeWidth={2.2} />
+type PillCardProps = { to: string; icon: React.ElementType; emoji?: string; color: string; bg: string; title: string; badge?: string; badgeCls?: string };
+const PillCard = ({ to, icon: Icon, emoji, color, bg, title, badge, badgeCls }: PillCardProps) => (
+  <Link to={to} className="group flex items-center gap-4 rounded-3xl bg-card px-5 py-5 shadow-soft transition-all duration-200 hover:scale-[1.03] hover:shadow-medium">
+    <span className="flex h-14 w-14 shrink-0 items-center justify-center text-5xl leading-none transition-transform group-hover:-rotate-6 group-hover:scale-110" aria-hidden>
+      {emoji ?? <Icon className={`h-10 w-10 ${color}`} strokeWidth={2.2} />}
     </span>
     <span className="min-w-0 flex-1">
-      <span className="block truncate font-semibold">{title}</span>
+      <span className="block text-sm font-extrabold uppercase leading-snug tracking-wide text-primary md:text-base">{title}</span>
       {badge && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeCls}`}>{badge}</span>}
     </span>
-    <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
   </Link>
 );
 
@@ -33,7 +32,7 @@ const Index = () => {
   const actions = [
     { to: "/lessons", icon: BookOpen, label: L("Réviser une leçon", "Review a lesson") },
     { to: "/lessons", icon: PenLine, label: L("Faire un exercice (Facile gratuit)", "Do an exercise (Easy free)") },
-    { to: "/exams2", icon: Target, label: L("M'auto-évaluer", "Self-assess") },
+    { to: "/exams2", emoji: "🎯", icon: Target, label: L("M'auto-évaluer", "Self-assess") },
     { to: "/exams2", icon: GraduationCap, label: L("Préparer un examen", "Prepare an exam") },
     { to: "/subscriptions", icon: Crown, label: L("Consulter les offres", "See plans") },
   ];
@@ -98,29 +97,29 @@ const Index = () => {
       </section>
 
       {/* Contents — Nomad-style pill cards */}
-      <section className="bg-lavender px-4 py-16 md:py-20">
+      <section className="bg-gradient-to-b from-lavender to-background px-4 py-16 md:py-20">
         <div className="container mx-auto max-w-6xl">
           <h2 className="mb-2 text-center text-3xl font-bold md:text-4xl">{L("Tout pour réussir", "Everything to succeed")} 🎉</h2>
           <p className="mb-10 text-center text-muted-foreground">{L("Choisis ta rubrique et commence à réviser en t'amusant.", "Pick a section and start revising with joy.")}</p>
 
-          <h3 className="mb-4 text-lg font-bold">{L("Leçons et exercices", "Lessons & exercises")}</h3>
+          <h3 className="mb-4 flex items-center gap-3 text-xl font-extrabold uppercase tracking-wide text-primary md:text-2xl"><ArrowDown className="h-6 w-6" />{L("Leçons et exercices", "Lessons & exercises")}</h3>
           <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { to: "/lessons", icon: BookOpen, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Leçons", "Lessons"), badge: L("Nouveau", "New"), badgeCls: "bg-fun-violet/15 text-fun-violet" },
-              { to: "/lessons", icon: Sprout, color: "text-fun-green", bg: "bg-fun-green/15", title: L("Exercices Facile", "Easy exercises"), badge: L("Gratuit", "Free"), badgeCls: "bg-fun-green/15 text-fun-green" },
-              { to: "/lessons", icon: Flame, color: "text-fun-orange", bg: "bg-fun-orange/15", title: L("Intermédiaire", "Intermediate"), badge: "Premium", badgeCls: "bg-fun-orange/15 text-fun-orange" },
-              { to: "/lessons", icon: Rocket, color: "text-fun-red", bg: "bg-fun-red/15", title: L("Difficile", "Hard"), badge: "Premium", badgeCls: "bg-fun-red/15 text-fun-red" },
+              { to: "/lessons", emoji: "📚", icon: BookOpen, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Leçons", "Lessons"), badge: L("Nouveau", "New"), badgeCls: "bg-fun-violet/15 text-fun-violet" },
+              { to: "/lessons", emoji: "🌱", icon: Sprout, color: "text-fun-green", bg: "bg-fun-green/15", title: L("Exercices Facile", "Easy exercises"), badge: L("Gratuit", "Free"), badgeCls: "bg-fun-green/15 text-fun-green" },
+              { to: "/lessons", emoji: "🔥", icon: Flame, color: "text-fun-orange", bg: "bg-fun-orange/15", title: L("Intermédiaire", "Intermediate"), badge: "Premium", badgeCls: "bg-fun-orange/15 text-fun-orange" },
+              { to: "/lessons", emoji: "🚀", icon: Rocket, color: "text-fun-red", bg: "bg-fun-red/15", title: L("Difficile", "Hard"), badge: "Premium", badgeCls: "bg-fun-red/15 text-fun-red" },
             ].map((c) => <PillCard key={c.title} {...c} />)}
           </div>
 
-          <h3 className="mb-4 text-lg font-bold">{L("Épreuves et plus", "Papers & more")}</h3>
+          <h3 className="mb-4 flex items-center gap-3 text-xl font-extrabold uppercase tracking-wide text-primary md:text-2xl"><ArrowDown className="h-6 w-6" />{L("Épreuves et plus", "Papers & more")}</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { to: "/exams2", icon: FileText, color: "text-fun-blue", bg: "bg-fun-blue/15", title: L("Épreuves corrigées", "Corrected papers"), badge: "BEPC · Bac", badgeCls: "bg-fun-blue/15 text-fun-blue" },
+              { to: "/exams2", emoji: "📝", icon: FileText, color: "text-fun-blue", bg: "bg-fun-blue/15", title: L("Épreuves corrigées", "Corrected papers"), badge: "BEPC · Bac", badgeCls: "bg-fun-blue/15 text-fun-blue" },
               { to: "/exams2", icon: Target, color: "text-fun-pink", bg: "bg-fun-pink/15", title: L("Auto-évaluation", "Self-assessment"), badge: "Premium", badgeCls: "bg-fun-pink/15 text-fun-pink" },
-              { to: "/challenges", icon: Trophy, color: "text-fun-yellow", bg: "bg-fun-yellow/20", title: "Challenges", badge: L("Concours", "Contests"), badgeCls: "bg-fun-yellow/20 text-foreground" },
-              { to: "/forum", icon: MessageCircle, color: "text-fun-green", bg: "bg-fun-green/15", title: "Forum", badge: L("Entraide", "Help"), badgeCls: "bg-fun-green/15 text-fun-green" },
-              { to: "/help", icon: HelpCircle, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Aide et tutoriels", "Help & tutorials") },
+              { to: "/challenges", emoji: "🏆", icon: Trophy, color: "text-fun-yellow", bg: "bg-fun-yellow/20", title: "Challenges", badge: L("Concours", "Contests"), badgeCls: "bg-fun-yellow/20 text-foreground" },
+              { to: "/forum", emoji: "💬", icon: MessageCircle, color: "text-fun-green", bg: "bg-fun-green/15", title: "Forum", badge: L("Entraide", "Help"), badgeCls: "bg-fun-green/15 text-fun-green" },
+              { to: "/help", emoji: "🧭", icon: HelpCircle, color: "text-fun-violet", bg: "bg-fun-violet/15", title: L("Aide et tutoriels", "Help & tutorials") },
             ].map((c) => <PillCard key={c.title} {...c} />)}
           </div>
         </div>
