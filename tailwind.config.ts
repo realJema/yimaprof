@@ -17,6 +17,8 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
+        lavender: "hsl(var(--lavender))",
+        fun: { blue: "hsl(var(--fun-blue))", green: "hsl(var(--fun-green))", orange: "hsl(var(--fun-orange))", red: "hsl(var(--fun-red))", pink: "hsl(var(--fun-pink))", violet: "hsl(var(--fun-violet))", yellow: "hsl(var(--fun-yellow))" },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
