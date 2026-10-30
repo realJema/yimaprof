@@ -694,7 +694,7 @@ const Exams2 = () => {
           </Button>
         </>}
     </div>;
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-lavender">
       <SeoHead
         title="Parcourir les épreuves — Yimaprof"
         description="Catalogue filtrable des épreuves officielles du Cameroun : BEPC, Probatoire, Baccalauréat, GCE O/A Level — par matière, classe et année."
@@ -755,45 +755,57 @@ const Exams2 = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Desktop Sidebar - filters available to everyone */}
-          <aside className="hidden lg:block w-64 shrink-0">
-              <div className="sticky top-32 bg-card rounded-lg border p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    {language === 'fr' ? 'Filtres' : 'Filters'}
-                  </h2>
-                  {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
-                </div>
-                <FiltersContent />
-              </div>
-            </aside>
+        {/* Horizontal filter bar */}
+        <section aria-label={language === 'fr' ? 'Filtres' : 'Filters'} className="mb-6 rounded-3xl bg-card p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary"><Filter className="h-4 w-4" /></span>
+            <h2 className="font-bold">{language === 'fr' ? 'Filtrer les épreuves' : 'Filter exams'}</h2>
+            {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+            <div className="relative sm:col-span-2 lg:col-span-4 xl:col-span-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input aria-label={language === 'fr' ? 'Rechercher' : 'Search'} placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'} value={searchTerm} onChange={e => setParam('search', e.target.value || null)} className="pl-10 h-9 rounded-full" />
+            </div>
+            <MultiSelectPopover label={language === 'fr' ? 'Classes' : 'Classes'} icon={GraduationCap} items={filteredClasses} selectedItems={selectedClasses} onToggle={toggleClass} counts={getFilterCounts.classes} getItemName={item => item.display_name} />
+            <MultiSelectPopover label={language === 'fr' ? 'Matières' : 'Subjects'} icon={BookOpen} items={filteredSubjects} selectedItems={selectedSubjects} onToggle={toggleSubject} counts={getFilterCounts.subjects} getItemName={item => getLocalizedName(item)} />
+            <MultiSelectPopover label={language === 'fr' ? 'Série / Filière' : 'Series / Track'} icon={GraduationCap} items={filteredSeries} selectedItems={selectedSeries} onToggle={toggleSeries} counts={getFilterCounts.series} getItemName={item => getLocalizedName(item)} />
+            <Select value={selectedYear} onValueChange={(value) => setParam('year', value)}>
+              <SelectTrigger className="h-9" aria-label={language === 'fr' ? 'Année' : 'Year'}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Toutes les années' : 'All years'}</SelectItem>
+                {academicYears?.map(year => <SelectItem key={year.id} value={year.id}>{year.year_label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={selectedExamType} onValueChange={(value) => setParam('type', value)}>
+              <SelectTrigger className="h-9" aria-label={language === 'fr' ? "Type d'épreuves" : 'Exam Type'}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Tous les types' : 'All types'}</SelectItem>
+                {examTypes?.map(type => <SelectItem key={type.id} value={type.id}>{getLocalizedName(type)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={selectedPeriod} onValueChange={(value) => setParam('period', value)}>
+              <SelectTrigger className="h-9" aria-label={language === 'fr' ? 'Période' : 'Period'}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'fr' ? 'Toutes les périodes' : 'All periods'}</SelectItem>
+                {periods?.map(period => <SelectItem key={period.id} value={period.id}>{getLocalizedName(period)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {activeFiltersCount > 0 && (
+            <Button variant="ghost" size="sm" className="mt-3" onClick={clearAllFilters}>
+              <X className="h-4 w-4 mr-2" />
+              {language === 'fr' ? 'Effacer les filtres' : 'Clear filters'}
+            </Button>
+          )}
+        </section>
 
+        <div className="flex gap-6">
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 gap-4">
-              <div className="flex items-center gap-3">
-                {/* Mobile Filter Button - available to everyone */}
-                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="sm" className="lg:hidden">
-                        <SlidersHorizontal className="h-4 w-4 mr-2" />
-                        {language === 'fr' ? 'Filtres' : 'Filters'}
-                        {activeFiltersCount > 0 && <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-80">
-                      <SheetHeader>
-                        <SheetTitle>{language === 'fr' ? 'Filtres' : 'Filters'}</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-4">
-                        <FiltersContent />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-              </div>
+              <div className="flex items-center gap-3" />
 
               {/* Sort - available to everyone */}
               <Select value={sortBy} onValueChange={(value) => setParam('sort', value)}>
@@ -871,8 +883,8 @@ const Exams2 = () => {
                     const examUrl = `/exam/${exam.id}?from=${fromParam}${unlocked && !hasActiveSubscription ? '&freePreview=1' : ''}`;
 
                     const cardInner = (
-                        <Card className={`h-full min-h-[160px] transition-all border-2 ${cardColor} ${unlocked ? 'hover:shadow-lg cursor-pointer group' : 'opacity-75 cursor-pointer hover:opacity-90 relative'}`}>
-                          <CardContent className="p-4 flex flex-col h-full">
+                        <Card className={`h-full min-h-[160px] rounded-3xl bg-card shadow-sm transition-all duration-300 border-2 ${cardColor} ${unlocked ? 'hover:shadow-lg hover:-translate-y-1 cursor-pointer group' : 'opacity-80 cursor-pointer hover:opacity-95 relative'}`}>
+                          <CardContent className="p-5 flex flex-col h-full">
                             {!unlocked && (
                               <div className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/90 border border-border">
                                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
