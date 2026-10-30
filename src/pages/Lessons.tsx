@@ -120,7 +120,7 @@ export default function Lessons() {
 
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-lavender"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <SeoHead
         title={fr ? 'Leçons et cours en ligne | Yimaprof' : 'Online lessons and courses | Yimaprof'}
         description={
@@ -133,7 +133,7 @@ export default function Lessons() {
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BookOpen className="h-7 w-7 text-secondary" />
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary/15 text-secondary"><BookOpen className="h-6 w-6" /></span>
           {fr ? 'Leçons' : 'Lessons'}
         </h1>
         <p className="text-muted-foreground mt-2">
@@ -145,11 +145,11 @@ export default function Lessons() {
 
       <ViewOffersButton />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8 rounded-3xl bg-card p-4 shadow-sm">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="pl-9 rounded-full"
             placeholder={fr ? 'Rechercher une leçon…' : 'Search a lesson…'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -180,7 +180,7 @@ export default function Lessons() {
 
       {loading || subscriptionLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-3xl" />)}
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-muted-foreground">{fr ? 'Aucune leçon trouvée.' : 'No lesson found.'}</p>
@@ -189,7 +189,7 @@ export default function Lessons() {
           {grouped.map(([subject, chapters]) => (
             <section key={subject}>
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-secondary" />{subject}
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookOpen className="h-5 w-5" /></span>{subject}
               </h2>
               <div className="space-y-6">
                 {chapters.map(([chapter, items]) => (
@@ -203,7 +203,7 @@ export default function Lessons() {
                         return (
                           <Card
                             key={lesson.id}
-                            className="flex h-full flex-col border-t-4 border-t-primary transition-shadow hover:shadow-soft"
+                            className="flex h-full flex-col rounded-3xl border-0 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                           >
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between gap-2">
@@ -233,7 +233,7 @@ export default function Lessons() {
                                   </span>
                                 )}
                               </div>
-                              <Button variant={locked ? 'outline' : 'default'} className="mt-auto w-full" onClick={() => open(lesson)}>{locked ? (fr ? 'Découvrir la leçon' : 'Discover lesson') : (fr ? 'Ouvrir la leçon' : 'Open lesson')}</Button>
+                              <Button variant={locked ? 'outline' : 'default'} className="mt-auto w-full rounded-full" onClick={() => open(lesson)}>{locked ? (fr ? 'Découvrir la leçon' : 'Discover lesson') : (fr ? 'Ouvrir la leçon' : 'Open lesson')}</Button>
                             </CardContent>
                           </Card>
                         );
@@ -266,6 +266,6 @@ export default function Lessons() {
           </>}
         </DialogContent>
       </Dialog>
-    </div>
+    </div></div>
   );
 }

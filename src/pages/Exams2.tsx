@@ -883,8 +883,8 @@ const Exams2 = () => {
                     const examUrl = `/exam/${exam.id}?from=${fromParam}${unlocked && !hasActiveSubscription ? '&freePreview=1' : ''}`;
 
                     const cardInner = (
-                        <Card className={`h-full min-h-[160px] transition-all border-2 ${cardColor} ${unlocked ? 'hover:shadow-lg cursor-pointer group' : 'opacity-75 cursor-pointer hover:opacity-90 relative'}`}>
-                          <CardContent className="p-4 flex flex-col h-full">
+                        <Card className={`h-full min-h-[160px] rounded-3xl bg-card shadow-sm transition-all duration-300 border-2 ${cardColor} ${unlocked ? 'hover:shadow-lg hover:-translate-y-1 cursor-pointer group' : 'opacity-80 cursor-pointer hover:opacity-95 relative'}`}>
+                          <CardContent className="p-5 flex flex-col h-full">
                             {!unlocked && (
                               <div className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/90 border border-border">
                                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
