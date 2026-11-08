@@ -37,6 +37,8 @@ export function SubscriptionPlanManagement() {
     name: '',
     description: '',
     price: 0,
+    price_daily: 0,
+    price_weekly: 0,
     price_trimester: 0,
     price_annual: 0,
     currency: 'XOF',
@@ -88,6 +90,8 @@ export function SubscriptionPlanManagement() {
       const planData = {
         ...formData,
         features: featuresArray,
+        price_daily: formData.price_daily || null,
+        price_weekly: formData.price_weekly || null,
         name_fr: formData.name,
         description_fr: formData.description,
         features_fr: featuresArray,
@@ -125,7 +129,9 @@ export function SubscriptionPlanManagement() {
         name: '',
         description: '',
         price: 0,
-        price_trimester: 0,
+        price_daily: 0,
+    price_weekly: 0,
+    price_trimester: 0,
         price_annual: 0,
         currency: 'XOF',
         duration_days: 30,
@@ -154,6 +160,8 @@ export function SubscriptionPlanManagement() {
       name: plan.name,
       description: plan.description,
       price: plan.price,
+      price_daily: planAny.price_daily || 0,
+      price_weekly: planAny.price_weekly || 0,
       price_trimester: planAny.price_trimester || 0,
       price_annual: planAny.price_annual || 0,
       currency: plan.currency,
@@ -226,6 +234,7 @@ export function SubscriptionPlanManagement() {
       key: 'name',
       label: 'Name',
     },
+    ...(['price_daily', 'price_weekly'] as const).map((key) => ({ key, label: key === 'price_daily' ? 'Par jour' : 'Par semaine', render: (value: number | null, plan: SubscriptionPlan) => value ? `${value.toLocaleString()} ${plan.currency}` : '—' })),
     {
       key: 'price',
       label: 'Monthly',
@@ -330,7 +339,7 @@ export function SubscriptionPlanManagement() {
                 Add Plan
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingPlan ? 'Edit Subscription Plan' : 'Add New Subscription Plan'}
@@ -383,6 +392,9 @@ export function SubscriptionPlanManagement() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {(['price_daily', 'price_weekly'] as const).map(key => <div key={key}><Label htmlFor={key}>{key === 'price_daily' ? 'Prix par jour (1 jour)' : 'Prix par semaine (7 jours)'}</Label><Input id={key} type="number" min={0} step={1} value={formData[key]} onChange={e => setFormData(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))} /></div>)}
+                  </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="price">Monthly Price</Label>
@@ -401,7 +413,7 @@ export function SubscriptionPlanManagement() {
                         type="number"
                         value={formData.price_trimester}
                         onChange={(e) => setFormData(prev => ({ ...prev, price_trimester: parseInt(e.target.value) || 0 }))}
-                        placeholder="Auto: -10%"
+                        placeholder="0 = non proposé"
                       />
                     </div>
                     <div>
@@ -411,12 +423,12 @@ export function SubscriptionPlanManagement() {
                         type="number"
                         value={formData.price_annual}
                         onChange={(e) => setFormData(prev => ({ ...prev, price_annual: parseInt(e.target.value) || 0 }))}
-                        placeholder="Auto: -20%"
+                        placeholder="0 = non proposé"
                       />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Les prix trimestriel et annuel affichés aux élèves sont exactement ceux saisis ici. Laissez 0 pour ne pas proposer cette durée.
+                    Tous les prix affichés aux élèves sont exactement ceux saisis ici. Laissez 0 pour ne pas proposer cette durée.
                   </p>
                 </div>
                 <div>

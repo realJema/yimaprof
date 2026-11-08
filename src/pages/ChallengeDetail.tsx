@@ -1,3 +1,5 @@
+import ChallengeResults from '@/components/challenge/ChallengeResults';
+import { challengeEnded } from '@/lib/contentOrganization';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,6 +90,7 @@ export default function ChallengeDetail() {
   const [timeSpent, setTimeSpent] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [warned, setWarned] = useState(0);
+  const [showResults, setShowResults] = useState(window.location.hash === '#results');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const outOf = challenge?.graded_out_of ?? 20;
@@ -170,7 +173,7 @@ export default function ChallengeDetail() {
     return classOk && seriesOk;
   }, [challenge, exam]);
 
-  const ended = challenge ? new Date(challenge.ends_at).getTime() < Date.now() : false;
+  const ended = challenge ? challengeEnded(challenge.ends_at) : false;
   const notStarted = !!challenge?.starts_at && new Date(challenge.starts_at).getTime() > Date.now();
   const paper = useMemo(() => {
     if (exam?.content) return exam.content;
@@ -217,8 +220,8 @@ export default function ChallengeDetail() {
         setWarned((w) => w + 1);
         toast.warning(
           fr
-            ? 'Vous avez quitté le plein écran. Revenez immédiatement, cette sortie est enregistrée.'
-            : 'You left fullscreen. Come back now, this exit is recorded.',
+            ? 'Vous avez quitté le plein écran. Le chronomètre continue ; revenez pour poursuivre.'
+            : 'You left fullscreen. The timer keeps running; return to continue.',
         );
       }
     };
@@ -397,7 +400,7 @@ export default function ChallengeDetail() {
             {!document.fullscreenElement && (
               <Button variant="outline" size="sm" onClick={enterFullscreen}>
                 <Maximize className="mr-2 h-4 w-4" />
-                {fr ? 'Plein écran' : 'Fullscreen'}
+                {fr ? 'Revenir au plein écran' : 'Return to fullscreen'}
               </Button>
             )}
             <Button size="sm" onClick={() => submit(false)} disabled={submitting}>
@@ -407,6 +410,8 @@ export default function ChallengeDetail() {
           </div>
         </div>
       )}
+
+      {ended && !running && user && <><Button variant="outline" className="mb-4" onClick={() => setShowResults(v => !v)}><Trophy className="mr-2 h-4 w-4" />{fr ? 'Voir les résultats' : 'View results'}</Button>{showResults && <ChallengeResults challengeId={challenge.id} />}</>}
 
       {alreadyDone && (
         <Card className="mb-6 border-emerald-500/30 bg-emerald-500/5">
@@ -452,7 +457,7 @@ export default function ChallengeDetail() {
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li>• {fr ? 'Une seule tentative, pas de corrigé ; la note s’affiche seulement après la soumission.' : 'One single attempt, no correction; the score is shown only after submission.'}</li>
               <li>• {fr ? 'Pas de pause possible : une fois lancé, le challenge doit être terminé.' : 'No pause: once started, the challenge must be finished.'}</li>
-              <li>• {fr ? 'Écran occupé : plein écran forcé, sorties enregistrées.' : 'Locked screen: fullscreen enforced, exits recorded.'}</li>
+              <li>• {fr ? 'Le plein écran masque les autres fenêtres pour vous concentrer. Les sorties sont comptées uniquement sur cette page, non enregistrées dans vos résultats et sans pénalité sur la note. Le chronomètre continue.' : 'Fullscreen hides other windows to help you focus. Exits are counted only on this page, not saved with your results, and do not reduce your score. The timer keeps running.'}</li>
               <li>
                 • {fr
                   ? 'Coupure internet : vos réponses sont sauvegardées et envoyées à la reconnexion.'
@@ -530,7 +535,7 @@ export default function ChallengeDetail() {
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm">
                 <p>{fr ? `Vous disposez de ${challenge.duration_minutes} minutes. Le chronomètre démarre dès que vous confirmez.` : `You have ${challenge.duration_minutes} minutes. The timer starts as soon as you confirm.`}</p>
-                <p>{fr ? 'Aucune pause n’est possible et l’écran passe en plein écran. Vous devez aller jusqu’au bout : à la fin du temps, votre copie est soumise automatiquement.' : 'No pause is possible and the screen goes fullscreen. You must finish: when time runs out your paper is submitted automatically.'}</p>
+                <p>{fr ? 'Aucune pause n’est possible. Le plein écran est proposé si votre navigateur l’autorise ; le quitter ne réduit pas votre note et ne suspend pas le temps. À la fin du temps, votre copie est soumise automatiquement.' : 'No pause is possible. Fullscreen is requested if your browser supports it; leaving does not reduce your score or pause the timer. When time runs out your paper is submitted automatically.'}</p>
                 <p>{fr ? 'Une seule tentative. Ni corrigé ni note avant la soumission.' : 'One attempt only. No correction or score before submission.'}</p>
               </div>
             </AlertDialogDescription>

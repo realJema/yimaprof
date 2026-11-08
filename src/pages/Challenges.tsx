@@ -1,3 +1,4 @@
+import { challengeEnded } from '@/lib/contentOrganization';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -185,7 +186,7 @@ export default function Challenges() {
           const meta = scopeMeta[ch.scope] ?? scopeMeta.establishment;
           const ScopeIcon = meta.icon;
           const done = attempted[ch.id] === 'submitted';
-          const ended = new Date(ch.ends_at).getTime() < Date.now();
+          const ended = challengeEnded(ch.ends_at);
           const scheduled = !!ch.starts_at && new Date(ch.starts_at).getTime() > Date.now();
 
           return (
@@ -220,7 +221,7 @@ export default function Challenges() {
                 </div>
                 {ch.reward && <p className="text-xs text-secondary">🏅 {ch.reward}</p>}
                 <Button asChild className="mt-auto w-full">
-                  <Link to={`/challenges/${ch.id}`}>{fr ? 'Voir le challenge' : 'View challenge'}</Link>
+                  <Link to={`/challenges/${ch.id}${ended ? '#results' : ''}`}>{ended ? (fr ? 'Voir les résultats' : 'View results') : (fr ? 'Voir le challenge' : 'View challenge')}</Link>
                 </Button>
               </CardContent>
             </Card>

@@ -1,3 +1,4 @@
+import { billingPrice, parseBillingCycle } from '../_shared/billingCycles.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -79,8 +80,8 @@ serve(async (req) => {
     console.log('Payment request received');
     
     const { planId, phoneNumber, referredBy } = requestBody;
-    const cycle: 'monthly' | 'trimester' | 'annual' =
-      requestBody.cycle === 'trimester' || requestBody.cycle === 'annual' ? requestBody.cycle : 'monthly';
+    const cycle = parseBillingCycle(requestBody.cycle);
+    if (!cycle) return new Response(JSON.stringify({ error: 'Unsupported billing period' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
     if (!planId || !phoneNumber) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -90,16 +91,16 @@ serve(async (req) => {
     }
 
     // Price is always resolved server-side from the plan (never trusted from the client)
-    const planClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const configuredUrl = Deno.env.get('SUPABASE_URL');
+    const configuredKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!configuredUrl || !configuredKey) return new Response(JSON.stringify({ error: 'Payment unavailable' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const planClient = createClient(configuredUrl, configuredKey);
     const { data: planRow } = await planClient
       .from('subscription_plans')
-      .select('price, price_trimester, price_annual, is_active')
+      .select('price, price_daily, price_weekly, price_trimester, price_annual, is_active')
       .eq('id', planId)
       .maybeSingle();
-    const planPrice = !planRow || !planRow.is_active ? null
-      : cycle === 'trimester' ? planRow.price_trimester
-      : cycle === 'annual' ? planRow.price_annual
-      : planRow.price;
+    const planPrice = !planRow || !planRow.is_active ? null : billingPrice(planRow, cycle);
     if (!planPrice || planPrice <= 0) {
       return new Response(JSON.stringify({ error: 'Plan or billing period unavailable' }), {
         status: 400,

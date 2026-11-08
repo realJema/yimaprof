@@ -1,3 +1,4 @@
+import { billingPrice, billingLabel, parseBillingCycle } from '../../supabase/functions/_shared/billingCycles';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,8 @@ interface SubscriptionPlan {
   name: string;
   price: number;
   currency: string;
+  price_daily?: number | null;
+  price_weekly?: number | null;
   price_trimester?: number | null;
   price_annual?: number | null;
   name_fr?: string | null;
@@ -65,12 +68,12 @@ export default function Payment() {
   const planId = searchParams.get('planId');
   const prefillPhone = searchParams.get('phone');
   const cycleParam = searchParams.get('cycle');
-  const cycle: 'monthly' | 'trimester' | 'annual' = cycleParam === 'trimester' || cycleParam === 'annual' ? cycleParam : 'monthly';
+  const cycle = parseBillingCycle(cycleParam);
   const { language } = useLanguage();
   const fr = language !== 'en';
-  const cyclePrice = (p: SubscriptionPlan) => (cycle === 'trimester' ? p.price_trimester : cycle === 'annual' ? p.price_annual : p.price) || p.price;
+  const cyclePrice = (p: SubscriptionPlan) => cycle ? billingPrice(p, cycle) ?? 0 : 0;
   const planName = (p: SubscriptionPlan) => (fr ? p.name_fr : p.name_en) || p.name;
-  const cycleLabel = cycle === 'trimester' ? (fr ? 'Abonnement trimestriel' : 'Quarterly subscription') : cycle === 'annual' ? (fr ? 'Abonnement annuel' : 'Annual subscription') : (fr ? 'Abonnement mensuel' : 'Monthly subscription');
+  const cycleLabel = cycle ? billingLabel(cycle, fr) : '';
   
   useEffect(() => {
     console.log('Payment component mounted, user:', user, 'planId:', planId);
@@ -87,7 +90,7 @@ export default function Payment() {
     fetchPlan();
     fetchReferrer();
     loadSavedPhone();
-  }, [user, planId, navigate]);
+  }, [user, planId, cycle, navigate]);
 
   // Load saved phone from profile or URL params
   const loadSavedPhone = async () => {
@@ -135,6 +138,10 @@ export default function Payment() {
         error
       } = await supabase.from('subscription_plans').select('*').eq('id', planId).eq('is_active', true).single();
       if (error) throw error;
+      if (!cycle || billingPrice(data, cycle) === null) {
+        toast({ title: fr ? 'Cette durée n’est pas proposée.' : 'This billing period is unavailable.', variant: 'destructive' });
+        navigate('/subscriptions', { replace: true }); return;
+      }
       setPlan(data);
     } catch (error) {
       toast({
@@ -167,7 +174,7 @@ export default function Payment() {
     setDetectedCarrier(carrier);
   };
   const handlePayment = async () => {
-    if (!plan || !user || paymentStarted.current) return;
+    if (!plan || !user || !cycle || !cyclePrice(plan) || paymentStarted.current) return;
     if (!phoneNumber.trim()) {
       toast({
         title: 'Error',

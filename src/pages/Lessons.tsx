@@ -1,3 +1,5 @@
+import { lessonClassIds } from '@/lib/contentOrganization';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +28,7 @@ interface LessonRow {
   is_free: boolean;
   file_url: string | null;
   class_id: string | null;
+  class_ids?: string[];
   subject_id: string | null;
   series_id: string | null;
   series_ids?: string[];
@@ -46,6 +49,8 @@ export default function Lessons() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [section, setSection] = useState('all');
+  const [allClasses, setAllClasses] = useState<{ id: string; display_name: string; section: string }[]>([]);
   const [classFilter, setClassFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [seriesFilter, setSeriesFilter] = useState('all');
@@ -53,11 +58,13 @@ export default function Lessons() {
 
   useEffect(() => {
     (async () => {
+      const { data: classData } = await supabase.from('classes').select('id, display_name, section').order('display_name');
+      setAllClasses(classData || []);
       const { data: seriesData } = await supabase.from('series').select('id, code').order('order_number');
       setAllSeries(seriesData || []);
       const { data } = await supabase
         .from('lessons')
-        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, subject_id, series_id, series_ids, series(code), classes(display_name), subjects(name_fr, name_en)')
+        .select('id, title, summary, chapter, language, estimated_minutes, is_free, file_url, class_id, class_ids, subject_id, series_id, series_ids, series(code), classes(display_name), subjects(name_fr, name_en)')
         .eq('is_published', true)
         .order('order_number');
       setLessons((data as unknown as LessonRow[]) || []);
@@ -66,8 +73,8 @@ export default function Lessons() {
   }, []);
 
   const classes = useMemo(
-    () => Array.from(new Set(lessons.map((l) => l.classes?.display_name).filter(Boolean))) as string[],
-    [lessons],
+    () => allClasses.filter(c => (section === 'all' || c.section === section) && lessons.some(l => lessonClassIds(l).includes(c.id))).map(c => c.display_name),
+    [lessons, allClasses, section],
   );
   const subjects = useMemo(
     () => Array.from(new Set(lessons.map((l) => (fr ? l.subjects?.name_fr : l.subjects?.name_en) || l.subjects?.name_fr || l.subjects?.name_en).filter(Boolean))) as string[],
@@ -80,9 +87,11 @@ export default function Lessons() {
   );
 
   const filtered = lessons.filter((l) => {
+    const assigned = allClasses.filter(c => lessonClassIds(l).includes(c.id));
+    if (section !== 'all' && !(assigned.length ? assigned.some(c => c.section === section) : l.language === (section === 'anglophone' ? 'en' : 'fr'))) return false;
     if (seriesFilter !== 'all' && !(l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).some((id) => allSeries.find((s) => s.id === id)?.code === seriesFilter)) return false;
     const subjectName = (fr ? l.subjects?.name_fr : l.subjects?.name_en) || l.subjects?.name_fr || l.subjects?.name_en || '';
-    if (classFilter !== 'all' && l.classes?.display_name !== classFilter) return false;
+    if (classFilter !== 'all' && !assigned.some(c => c.display_name === classFilter)) return false;
     if (subjectFilter !== 'all' && subjectName !== subjectFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -144,6 +153,11 @@ export default function Lessons() {
       </div>
 
       <ViewOffersButton />
+      <ToggleGroup type="single" value={section} onValueChange={v => { if (v) { setSection(v); setClassFilter('all'); } }} className="mb-6 flex flex-wrap justify-start">
+        <ToggleGroupItem value="all">{fr ? 'Toutes les sections' : 'All sections'}</ToggleGroupItem>
+        <ToggleGroupItem value="francophone">{fr ? 'Section Francophone' : 'Francophone section'}</ToggleGroupItem>
+        <ToggleGroupItem value="anglophone">{fr ? 'Section Anglophone' : 'Anglophone section'}</ToggleGroupItem>
+      </ToggleGroup>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8 rounded-3xl bg-card p-4 shadow-sm">
         <div className="relative">
@@ -220,7 +234,7 @@ export default function Lessons() {
                             <CardContent className="flex flex-1 flex-col gap-3">
                               <p className="text-sm text-muted-foreground line-clamp-2">{lesson.summary}</p>
                               <div className="flex flex-wrap items-center gap-2 text-xs">
-                                {lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
+                                {lessonClassIds(lesson).map(id => <Badge key={id} variant="outline">{allClasses.find(c => c.id === id)?.display_name}</Badge>)}
                                 {(lesson.series_ids?.length ? lesson.series_ids : lesson.series_id ? [lesson.series_id] : []).map((id) => <Badge key={id} variant="outline">{allSeries.find((s) => s.id === id)?.code}</Badge>)}
                                 {lesson.file_url && (
                                   <Badge variant="outline" className="gap-1">
