@@ -1,3 +1,6 @@
+import { useLanguage } from '@/contexts/LanguageContext';
+import { helpEnglish } from '@/lib/helpEnglish';
+import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import SeoHead from '@/components/SeoHead';
@@ -107,7 +110,7 @@ const studentsSections: Section[] = [
     steps: [
       {
         title: '1. Parcourir la bibliothèque',
-        text: "Le menu « Épreuves » affiche plus de 1 000 sujets. Utilisez les filtres à gauche : classes, matières, séries, année, période.",
+        text: "Le menu « Épreuves » affiche plus de 1 000 sujets. Utilisez les filtres en haut : classes, matières, séries, année, période.",
       },
       {
         title: '2. Repérer les épreuves gratuites',
@@ -146,7 +149,7 @@ const studentsSections: Section[] = [
       },
       {
         title: '3. Voir votre classement',
-        text: "Après chaque participation, votre résultat et votre position apparaissent dans la page du challenge.",
+        text: "Votre note apparaît après soumission. Le bouton « Voir les résultats » et le classement sont disponibles après la date de fin du challenge.",
       },
     ],
     screenshots: [
@@ -159,7 +162,7 @@ const studentsSections: Section[] = [
 const parentsSections: Section[] = [
   {
     topic: 'Inscription et connexion',
-    intro: "Tout se fait sur le téléphone, en quelques minutes. Une adresse email n'est pas obligatoire.",
+    intro: "Tout se fait sur le téléphone, en quelques minutes. Une adresse email ou un compte Google est actuellement nécessaire.",
     steps: [
       {
         title: '1. Ouvrir Yimaprof sur votre téléphone',
@@ -212,7 +215,7 @@ const parentsSections: Section[] = [
     screenshots: [
       { src: mSubscriptionsImg, caption: "Les offres affichées sur téléphone : le prix est toujours visible avant de payer.", mobile: true },
     ],
-    tip: "Si le paiement échoue (solde insuffisant, limite de l'opérateur), aucun montant n'est débité : rechargez votre compte puis réessayez.",
+    tip: "Si le paiement est refusé, suivez le message affiché. En cas de résultat incertain, vérifiez le paiement avant de réessayer pour éviter un double débit.",
   },
   {
     topic: 'Épreuves et leçons de votre enfant',
@@ -424,7 +427,7 @@ const faq = [
   { q: 'Mon enfant peut-il utiliser le compte sur mon téléphone ?', a: "Oui. Le site fonctionne sur téléphone, tablette et ordinateur. Connectez-vous simplement avec le même compte." },
 ];
 
-function TutorialCard({ section, audienceLabel, id, highlighted }: { section: Section; audienceLabel?: string; id?: string; highlighted?: boolean }) {
+function TutorialCard({ section, audienceLabel, id, highlighted, fr }: { section: Section; audienceLabel?: string; id?: string; highlighted?: boolean; fr: boolean }) {
   return (
     <Card id={id} className={`overflow-hidden scroll-mt-24 transition-shadow duration-300 ${highlighted ? 'ring-2 ring-primary shadow-lg' : ''}`}>
       <CardContent className="p-6 md:p-8">
@@ -461,7 +464,7 @@ function TutorialCard({ section, audienceLabel, id, highlighted }: { section: Se
         )}
         {section.tip && (
           <div className="mt-6 flex gap-2 items-start rounded-md bg-primary/5 border border-primary/20 p-3">
-            <Badge variant="secondary" className="shrink-0">Astuce</Badge>
+            <Badge variant="secondary" className="shrink-0">{fr ? 'Astuce' : 'Tip'}</Badge>
             <p className="text-sm text-muted-foreground">{section.tip}</p>
           </div>
         )}
@@ -471,6 +474,19 @@ function TutorialCard({ section, audienceLabel, id, highlighted }: { section: Se
 }
 
 export default function Help() {
+  const { language } = useLanguage();
+  const fr = language === 'fr';
+  const [query, setQuery] = useState('');
+  const localizedSections: Record<string, Section[]> = fr ? sectionsByAudience : Object.fromEntries(Object.entries(helpEnglish).map(([key, sections]) => [key, sections.map((section, i) => ({ ...section, screenshots: sectionsByAudience[key][i]?.screenshots?.map(shot => ({ ...shot, caption: `${section.topic} — ${shot.mobile ? 'phone' : 'desktop'} screenshot (French interface)` })) }))]));
+  const audienceLabels: Record<string, string> = { students: 'Students', parents: 'Parents', schools: 'School heads', affiliates: 'Affiliates' };
+  const englishQuickLabels = ['Create my account', 'Pay for a subscription', 'Study a paper', 'View a correction', 'Forgotten password', 'Join a challenge'];
+  const englishFaq = [
+    { q: 'Where should I start?', a: 'Choose Create my account, then follow the steps in the guide.' },
+    { q: 'Can I view corrections for free papers?', a: 'Yes. Open a free paper and select Correction. Graded self-evaluation requires an active subscription.' },
+    { q: 'Should I share my Mobile Money PIN?', a: 'Never. Enter it only in the confirmation prompt from your operator on your phone.' },
+    { q: 'I paid but access has not opened. What should I do?', a: 'Wait for confirmation, then use Check my payment if needed. Do not pay again while the result is uncertain.' },
+    { q: 'Can my child use my phone?', a: 'Yes. Sign in with the account that has access on a phone, tablet or computer.' },
+  ];
   const { user } = useAuth();
   const { establishment } = useEstablishment();
   const [isAffiliate, setIsAffiliate] = useState(false);
@@ -503,7 +519,8 @@ export default function Help() {
     for (const key of order) {
       if (tried.has(key) || !visibleAudiences.some((a) => a.key === key)) continue;
       tried.add(key);
-      const section = sectionsByAudience[key].find((s) => topics.includes(s.topic));
+      const index = sectionsByAudience[key].findIndex((s) => topics.includes(s.topic));
+      const section = localizedSections[key][index];
       if (section) {
         setAudience(key);
         setSelection({ audience: key, topic: section.topic, token: Date.now() });
@@ -540,49 +557,50 @@ export default function Help() {
   return (
     <div className="min-h-screen py-10 px-4">
       <SeoHead
-        title="Aide et tutoriels — Yimaprof"
-        description="Tutoriels illustrés pas à pas : inscription, connexion, paiement d'abonnement, épreuves, leçons et challenges sur Yimaprof."
+        title={fr ? 'Aide et tutoriels — Yimaprof' : 'Help and tutorials — Yimaprof'}
+        description={fr ? 'Tutoriels illustrés : inscription, paiement, épreuves, leçons et challenges.' : 'Illustrated guides to registration, payments, papers, lessons and challenges.'}
         path="/help"
       />
       <div className="sticky top-0 z-40 -mx-4 border-b border-border bg-background">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
           <Button type="button" variant="outline" size="sm" onClick={goHome} className="gap-2 rounded-full">
             <Home className="h-4 w-4" />
-            Retour à l'accueil de l'aide
+            {fr ? "Retour à l'accueil de l'aide" : 'Back to help home'}
           </Button>
-          <span className="hidden text-xs text-muted-foreground sm:block">Aide et tutoriels Yimaprof</span>
+          <span className="hidden text-xs text-muted-foreground sm:block">{fr ? 'Aide et tutoriels Yimaprof' : 'Yimaprof help and tutorials'}</span>
         </div>
       </div>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-3">Aide et tutoriels</h1>
+          <h1 className="text-4xl font-bold mb-3">{fr ? 'Aide et tutoriels' : 'Help and tutorials'}</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pas besoin d'être à l'aise avec la technologie : choisissez ce que vous voulez faire, nous vous guidons étape par étape.
+            {fr ? "Pas besoin d'être à l'aise avec la technologie : choisissez ce que vous voulez faire, nous vous guidons étape par étape." : 'Choose what you need: follow clear step-by-step guides.'}
           </p>
         </div>
             <section className="mb-10">
               <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-secondary" /> Que voulez-vous faire ?
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">Appuyez sur une carte pour afficher le tutoriel correspondant.</p>
+              <p className="text-sm text-muted-foreground mb-4">{fr ? 'Appuyez sur une carte pour afficher le tutoriel correspondant.' : 'Choose a topic to open its guide.'}</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {quickNeeds.map(({ label, topics, icon: Icon }) => (
-                  <button
+                {quickNeeds.map(({ label, topics, icon: Icon }, index) => (
+                  <Button variant="outline"
                     key={label}
                     type="button"
                     onClick={() => openTutorial(topics)}
-                    className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:shadow-md"
+                    className="group h-auto whitespace-normal justify-start flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary hover:shadow-md"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition">
                       <Icon className="h-5 w-5" />
                     </span>
-                    <span className="font-medium text-sm md:text-base">{label}</span>
-                  </button>
+                    <span className="font-medium text-sm md:text-base">{fr ? label : englishQuickLabels[index]}</span>
+                  </Button>
                 ))}
               </div>
             </section>
 
-            <h2 className="text-xl font-semibold mb-4">Tous les tutoriels, selon votre profil</h2>
+            <Input className="mb-6" aria-label={fr ? "Rechercher dans l'aide" : 'Search help'} placeholder={fr ? "Rechercher dans l'aide…" : 'Search help…'} value={query} onChange={e => setQuery(e.target.value)} />
+            <h2 className="text-xl font-semibold mb-4">{fr ? 'Tous les tutoriels, selon votre profil' : 'All tutorials for your profile'}</h2>
             <Tabs
               value={audience}
               onValueChange={(value) => {
@@ -597,24 +615,24 @@ export default function Help() {
                 {visibleAudiences.map(({ key, label, icon: Icon }) => (
                   <TabsTrigger key={key} value={key} className="flex items-center gap-2 py-3">
                     <Icon className="h-4 w-4" />
-                    <span className="text-xs md:text-sm">{label}</span>
+                    <span className="text-xs md:text-sm">{fr ? label : englishQuickLabels[index]}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
               {visibleAudiences.map(({ key }) => (
                 <TabsContent key={key} value={key} className="space-y-8">
-                  {sectionsByAudience[key].map((section) => {
+                  {localizedSections[key].filter(section => !query.trim() || normalize([section.topic, section.intro, ...section.steps.flatMap(step => [step.title, step.text])].join(' ')).includes(normalize(query))).map((section) => {
                     const id = cardId(key, section.topic);
-                    return <TutorialCard key={section.topic} id={id} highlighted={highlighted === id} section={section} />;
+                    return <TutorialCard key={section.topic} id={id} highlighted={highlighted === id} section={section} fr={fr} />;
                   })}
                 </TabsContent>
               ))}
             </Tabs>
 
             <section className="mt-12">
-              <h2 className="text-xl font-semibold mb-4">Questions fréquentes</h2>
+              <h2 className="text-xl font-semibold mb-4">{fr ? 'Questions fréquentes' : 'Frequently asked questions'}</h2>
               <Accordion type="single" collapsible className="rounded-xl border border-border bg-card px-4">
-                {faq.map((item) => (
+                {(fr ? faq : englishFaq).map((item) => (
                   <AccordionItem key={item.q} value={item.q}>
                     <AccordionTrigger className="text-left">{item.q}</AccordionTrigger>
                     <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
