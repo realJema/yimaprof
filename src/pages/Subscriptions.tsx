@@ -1,3 +1,4 @@
+import { BILLING_CYCLES, billingPrice, billingLabel, type BillingCycle } from '../../supabase/functions/_shared/billingCycles';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SeoHead from '@/components/SeoHead';
@@ -27,6 +28,8 @@ interface SubscriptionPlan {
   features: string[] | any; // Handle JSON features
   max_downloads: number;
   is_active: boolean;
+  price_daily?: number | null;
+  price_weekly?: number | null;
   price_trimester?: number | null;
   price_annual?: number | null;
   name_fr?: string | null;
@@ -200,7 +203,7 @@ export default function Subscriptions() {
   };
 
 
-  const handleSubscribe = async (planId: string, cycle: 'monthly' | 'trimester' | 'annual') => {
+  const handleSubscribe = async (planId: string, cycle: BillingCycle) => {
     console.log('Subscribe button clicked for plan:', planId);
     
     if (!user) {
@@ -429,13 +432,13 @@ export default function Subscriptions() {
                   </div>
 
                   <div className="divide-y divide-border border-y border-border">
-                    {(['monthly', 'trimester', 'annual'] as const).map((cycle) => {
-                      const price = cycle === 'monthly' ? plan.price : cycle === 'trimester' ? plan.price_trimester : plan.price_annual;
+                    {BILLING_CYCLES.map((cycle) => {
+                      const price = billingPrice(plan, cycle);
                       const offered = typeof price === 'number' && price > 0;
                       const dominant = cycle === 'trimester';
                       return <div key={cycle} className={`space-y-2 py-4 ${dominant ? 'rounded-lg bg-secondary/10 -mx-3 px-3 border border-secondary/30' : ''}`}>
                         <p className="text-sm font-semibold text-primary flex items-center gap-2">
-                          {cycle === 'monthly' ? (isEn ? 'Monthly' : 'Mensuel') : cycle === 'trimester' ? (isEn ? 'Trimester' : 'Trimestriel') : (isEn ? 'Annual' : 'Annuel')}
+                          {billingLabel(cycle, !isEn)}
                           {dominant && (
                             <Badge className="bg-secondary text-secondary-foreground italic font-extrabold">
                               {isEn ? 'Most chosen' : 'Le plus choisi'}

@@ -1,3 +1,4 @@
+import { lessonClassIds } from '@/lib/contentOrganization';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +27,7 @@ interface LessonRow {
   file_url: string | null;
   chapter: string | null;
   class_id: string | null;
+  class_ids?: string[];
   subject_id: string | null;
   series_id: string | null;
   series_ids?: string[];
@@ -103,7 +105,7 @@ export default function LessonManagement() {
   const filtered = useMemo(
     () =>
       lessons.filter((l) => {
-        if (classFilter !== 'all' && l.class_id !== classFilter) return false;
+        if (classFilter !== 'all' && !lessonClassIds(l).includes(classFilter)) return false;
         if (subjectFilter !== 'all' && l.subject_id !== subjectFilter) return false;
         if (seriesFilter !== 'all' && !(l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).includes(seriesFilter)) return false;
         if (statusFilter === 'published' && !l.is_published) return false;
@@ -148,6 +150,7 @@ export default function LessonManagement() {
       file_url: l.file_url,
       chapter: l.chapter,
       class_id: l.class_id,
+      class_ids: lessonClassIds(l),
       subject_id: l.subject_id,
       series_id: l.series_id,
       series_ids: l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : [],
@@ -249,7 +252,8 @@ export default function LessonManagement() {
                     {l.file_url && <FileText className="h-3.5 w-3.5 text-secondary shrink-0" />}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {labelOf(subjects, l.subject_id)} · {labelOf(classes, l.class_id)}
+                    {labelOf(subjects, l.subject_id)} · {lessonClassIds(l).map(id => labelOf(classes, id)).join(', ') || '—'}
+                    {(l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : []).map(id => ` · ${labelOf(series, id)}`).join('')}
                     {l.chapter ? ` · ${l.chapter}` : ''}
                     {l.establishment_id ? ` · ${fr ? 'École' : 'School'}` : ''}
                   </p>

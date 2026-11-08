@@ -3,6 +3,8 @@
 const PRE_COLLECTION_ERRORS = new Set([
   'Missing required fields',
   'Plan or billing period unavailable',
+  'Unsupported billing period',
+  'Payment unavailable',
   'Only Cameroon MTN and Orange numbers are accepted',
   'Unsupported operator',
   'No authorization header',

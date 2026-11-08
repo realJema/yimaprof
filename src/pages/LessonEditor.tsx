@@ -37,6 +37,7 @@ interface LessonRow {
   file_url: string | null;
   chapter: string | null;
   class_id: string | null;
+  class_ids?: string[];
   subject_id: string | null;
   series_id: string | null;
   series_ids?: string[];
@@ -57,6 +58,7 @@ const emptyForm = {
   file_url: '',
   chapter: '',
   class_id: '',
+  class_ids: [] as string[],
   subject_id: '',
   series_id: '',
   series_ids: [] as string[],
@@ -153,6 +155,7 @@ export default function LessonEditor() {
       file_url: l.file_url || '',
       chapter: l.chapter || '',
       class_id: l.class_id || '',
+      class_ids: l.class_ids?.length ? l.class_ids : l.class_id ? [l.class_id] : [],
       subject_id: l.subject_id || '',
       series_id: l.series_id || '',
       series_ids: l.series_ids?.length ? l.series_ids : l.series_id ? [l.series_id] : [],
@@ -200,7 +203,8 @@ export default function LessonEditor() {
       content: form.content.trim() || null,
       file_url: form.file_url.trim() || null,
       chapter: form.chapter.trim().slice(0, 120) || null,
-      class_id: form.class_id || null,
+      class_id: form.class_ids[0] || null,
+      class_ids: form.class_ids,
       subject_id: form.subject_id || null,
       series_id: form.series_ids[0] || null,
       series_ids: form.series_ids,
@@ -355,19 +359,8 @@ export default function LessonEditor() {
                       </Select>
                     </div>
                     <div>
-                      <Label>{fr ? 'Classe' : 'Class'}</Label>
-                      <Select value={form.class_id} onValueChange={(v) => setForm({ ...form, class_id: v })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={fr ? 'Choisir' : 'Select'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {classes.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>{fr ? 'Classes' : 'Classes'}</Label>
+                      <SeriesMultiSelect options={classes} value={form.class_ids} onChange={(ids) => setForm({ ...form, class_ids: ids, class_id: ids[0] || '' })} />
                     </div>
                     <div>
                       <Label>{fr ? 'Séries / Filières' : 'Series / Tracks'}</Label>
