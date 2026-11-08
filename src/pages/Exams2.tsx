@@ -719,11 +719,11 @@ const Exams2 = () => {
               
               {/* System Toggle - Only show available systems for subscribers */}
               {(hasActiveSubscription ? (availableSystems.francophone || availableSystems.anglophone) : true) && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">
-                    {language === 'fr' ? 'Système:' : 'System:'}
+                    {language === 'fr' ? 'Section :' : 'Section:'}
                   </span>
-                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setParam('system', value)} className="bg-muted p-1 rounded-lg">
+                  <ToggleGroup type="single" value={selectedSystem} onValueChange={value => value && setParam('system', value)} className="bg-muted p-1 rounded-lg flex-wrap">
                     {(hasActiveSubscription ? availableSystems.hasMultiple : true) && (
                       <ToggleGroupItem value="all" className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm">
                         {language === 'fr' ? 'Tous' : 'All'}

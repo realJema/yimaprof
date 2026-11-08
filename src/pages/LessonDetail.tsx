@@ -33,6 +33,9 @@ interface LessonDetailRow {
   is_free: boolean;
   questions?: unknown;
   exercises?: unknown;
+  class_ids?: string[];
+  series_ids?: string[];
+  series_id?: string | null;
   classes: { display_name: string } | null;
   subjects: { name_fr: string | null; name_en: string | null } | null;
 }
@@ -62,14 +65,21 @@ export default function LessonDetail() {
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [focused, setFocused] = useState(false);
+  const [series, setSeries] = useState<{ id: string; code: string }[]>([]);
+  const [classes, setClasses] = useState<{ id: string; display_name: string }[]>([]);
 
   useEffect(() => {
     if (!lessonId) return;
     (async () => {
+      const [{ data: se }, { data: cl }] = await Promise.all([
+        supabase.from('series').select('id, code'),
+        supabase.from('classes').select('id, display_name'),
+      ]);
+      setSeries(se || []); setClasses(cl || []);
       const [{ data: l }, { data: ex }] = await Promise.all([
         supabase
           .from('lessons')
-          .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, exercises, classes(display_name), subjects(name_fr, name_en)')
+          .select('id, title, summary, content, file_url, chapter, estimated_minutes, is_free, questions, exercises, class_ids, series_ids, series_id, classes(display_name), subjects(name_fr, name_en)')
           .eq('id', lessonId)
           .maybeSingle(),
         supabase
@@ -211,7 +221,8 @@ export default function LessonDetail() {
         </div>
         <h1 className="max-w-4xl break-words text-2xl sm:text-3xl font-bold leading-tight">{lesson.title}</h1>
         <div className="flex flex-wrap items-center gap-2 mt-3">
-          {lesson.classes?.display_name && <Badge variant="outline" className="max-w-full whitespace-normal break-words border-primary/20 bg-primary/5 text-primary">{lesson.classes.display_name}</Badge>}
+          {lesson.class_ids?.length ? lesson.class_ids.map(id => <Badge key={id} variant="outline">{classes.find(c => c.id === id)?.display_name}</Badge>) : lesson.classes?.display_name && <Badge variant="outline">{lesson.classes.display_name}</Badge>}
+          {(lesson.series_ids?.length ? lesson.series_ids : lesson.series_id ? [lesson.series_id] : []).map(id => <Badge key={id} variant="outline">{fr ? 'Série' : 'Series'} : {series.find(s => s.id === id)?.code}</Badge>)}
           {subjectName && <Badge variant="outline" className="max-w-full whitespace-normal break-words border-secondary/20 bg-secondary/5 text-foreground">{subjectName}</Badge>}
           {lesson.chapter && <Badge variant="outline" className="max-w-full whitespace-normal break-words">{lesson.chapter}</Badge>}
           {lesson.estimated_minutes && (
