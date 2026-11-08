@@ -1,0 +1,1 @@
+CREATE POLICY "Visitors can read active periods" ON public.periods FOR SELECT TO anon USING (is_active=true);
