@@ -1,4 +1,8 @@
 # Architecture rules
+- Keep lesson class arrays synchronized with the legacy primary class by trigger so school forms and old lessons stay compatible.
+- Share billing-cycle validation and recorded-price resolution between checkout and MeSomb; preserve existing durations and finalize short cycles atomically in the payment finalizer.
+- Expose ended challenge rankings through an invoker wrapper around a private scope-checked function, never by publishing attempts or answers.
+- Localize help content while preserving audience gating and explicitly label reused French screenshots in English guides.
 - Execute admin-approved payouts only through admin-payout with a durable unique database claim, atomic provider-confirmed settlement and lookup-only recovery; provider reference/nonce alone do not guarantee idempotency.
 
 - Keep the payout introduction and secured request flow in the shared PayoutRequestDialog so school and affiliate withdrawal behavior remains consistent.

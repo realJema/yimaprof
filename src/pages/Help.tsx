@@ -579,7 +579,7 @@ export default function Help() {
         </div>
             <section className="mb-10">
               <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-secondary" /> Que voulez-vous faire ?
+                <Sparkles className="h-5 w-5 text-secondary" /> {fr ? 'Que voulez-vous faire ?' : 'What would you like to do?'}
               </h2>
               <p className="text-sm text-muted-foreground mb-4">{fr ? 'Appuyez sur une carte pour afficher le tutoriel correspondant.' : 'Choose a topic to open its guide.'}</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -615,7 +615,7 @@ export default function Help() {
                 {visibleAudiences.map(({ key, label, icon: Icon }) => (
                   <TabsTrigger key={key} value={key} className="flex items-center gap-2 py-3">
                     <Icon className="h-4 w-4" />
-                    <span className="text-xs md:text-sm">{fr ? label : englishQuickLabels[index]}</span>
+                    <span className="text-xs md:text-sm">{fr ? label : audienceLabels[key]}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
