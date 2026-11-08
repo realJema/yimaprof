@@ -1431,6 +1431,7 @@ export type Database = {
         Row: {
           chapter: string | null
           class_id: string | null
+          class_ids: string[]
           content: string | null
           created_at: string
           created_by: string | null
@@ -1457,6 +1458,7 @@ export type Database = {
         Insert: {
           chapter?: string | null
           class_id?: string | null
+          class_ids?: string[]
           content?: string | null
           created_at?: string
           created_by?: string | null
@@ -1483,6 +1485,7 @@ export type Database = {
         Update: {
           chapter?: string | null
           class_id?: string | null
+          class_ids?: string[]
           content?: string | null
           created_at?: string
           created_by?: string | null
@@ -2036,7 +2039,9 @@ export type Database = {
           name_fr: string | null
           price: number
           price_annual: number | null
+          price_daily: number | null
           price_trimester: number | null
+          price_weekly: number | null
           updated_at: string
         }
         Insert: {
@@ -2057,7 +2062,9 @@ export type Database = {
           name_fr?: string | null
           price: number
           price_annual?: number | null
+          price_daily?: number | null
           price_trimester?: number | null
+          price_weekly?: number | null
           updated_at?: string
         }
         Update: {
@@ -2078,7 +2085,9 @@ export type Database = {
           name_fr?: string | null
           price?: number
           price_annual?: number | null
+          price_daily?: number | null
           price_trimester?: number | null
+          price_weekly?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -2485,6 +2494,16 @@ export type Database = {
         }[]
       }
       current_establishment_id: { Args: never; Returns: string }
+      ended_challenge_leaderboard: {
+        Args: { p_challenge_id: string }
+        Returns: {
+          display_name: string
+          graded_out_of: number
+          rank: number
+          score_scaled: number
+          time_spent_seconds: number
+        }[]
+      }
       establishment_available_balance: {
         Args: { p_establishment_id: string }
         Returns: number

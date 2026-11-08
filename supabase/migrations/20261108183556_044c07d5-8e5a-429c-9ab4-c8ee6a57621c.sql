@@ -1,0 +1,17 @@
+ALTER TABLE public.lessons ADD COLUMN IF NOT EXISTS class_ids uuid[] NOT NULL DEFAULT '{}';
+UPDATE public.lessons SET class_ids=ARRAY[class_id] WHERE class_id IS NOT NULL AND cardinality(class_ids)=0;
+CREATE OR REPLACE FUNCTION public.sync_lesson_classes() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN
+IF TG_OP='UPDATE' AND NEW.class_ids IS NOT DISTINCT FROM OLD.class_ids AND NEW.class_id IS DISTINCT FROM OLD.class_id THEN NEW.class_ids:=CASE WHEN NEW.class_id IS NULL THEN '{}'::uuid[] ELSE ARRAY[NEW.class_id] END;
+ELSIF cardinality(NEW.class_ids)>0 THEN NEW.class_id:=NEW.class_ids[1];
+ELSIF TG_OP='INSERT' AND NEW.class_id IS NOT NULL THEN NEW.class_ids:=ARRAY[NEW.class_id];
+ELSE NEW.class_id:=NULL; END IF;
+IF EXISTS(SELECT 1 FROM unnest(NEW.class_ids) i WHERE NOT EXISTS(SELECT 1 FROM public.classes c WHERE c.id=i)) THEN RAISE EXCEPTION 'Unknown lesson class'; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER sync_lesson_classes BEFORE INSERT OR UPDATE OF class_id,class_ids ON public.lessons FOR EACH ROW EXECUTE FUNCTION public.sync_lesson_classes();
+ALTER TABLE public.subscription_plans ADD COLUMN IF NOT EXISTS price_daily integer, ADD COLUMN IF NOT EXISTS price_weekly integer;
+DO $$ DECLARE def text; BEGIN SELECT pg_get_functiondef('public.finalize_payment_transaction(uuid,jsonb)'::regprocedure) INTO def; IF position('WHEN v_billing_cycle = ''daily''' IN def)=0 THEN def:=replace(def,'WHEN v_billing_cycle = ''trimester'' THEN v_base_days * 3','WHEN v_billing_cycle = ''daily'' THEN 1' || chr(10) || '    WHEN v_billing_cycle = ''weekly'' THEN 7' || chr(10) || '    WHEN v_billing_cycle = ''trimester'' THEN v_base_days * 3'); EXECUTE def; END IF; END; $$;
+INSERT INTO public.periods(name,name_fr,name_en,order_number,is_active) SELECT 'sequence_'||n, CASE WHEN n=1 THEN '1ère Séquence' ELSE n||'e Séquence' END, CASE n WHEN 1 THEN '1st' WHEN 2 THEN '2nd' WHEN 3 THEN '3rd' ELSE n||'th' END || ' Sequence', n+3,true FROM generate_series(1,6) n WHERE NOT EXISTS(SELECT 1 FROM public.periods p WHERE p.name='sequence_'||n);
+CREATE OR REPLACE FUNCTION public.ended_challenge_leaderboard(p_challenge_id uuid) RETURNS TABLE(rank bigint,display_name text,score_scaled numeric,graded_out_of integer,time_spent_seconds integer) LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+WITH best AS (SELECT DISTINCT ON(a.user_id) a.* FROM public.challenge_attempts a JOIN public.challenges c ON c.id=a.challenge_id WHERE c.id=p_challenge_id AND auth.uid() IS NOT NULL AND c.ends_at<=now() AND c.review_status='approved' AND a.status='submitted' AND a.submitted_at IS NOT NULL AND (c.scope IN ('national','regional') OR c.establishment_id IS NULL OR c.establishment_id=public.current_establishment_id() OR public.is_admin(auth.uid()) OR public.is_establishment_admin(auth.uid(),c.establishment_id)) ORDER BY a.user_id,a.score_scaled/NULLIF(a.graded_out_of,0) DESC NULLS LAST,a.time_spent_seconds,a.submitted_at)
+SELECT row_number() OVER(ORDER BY a.score_scaled/NULLIF(a.graded_out_of,0) DESC NULLS LAST,a.time_spent_seconds,a.submitted_at,a.id), COALESCE(NULLIF(p.username,''),'Participant'),a.score_scaled,a.graded_out_of,a.time_spent_seconds FROM best a LEFT JOIN public.profiles p ON p.id=a.user_id ORDER BY 1 LIMIT 100; $$;
+REVOKE ALL ON FUNCTION public.ended_challenge_leaderboard(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.ended_challenge_leaderboard(uuid) TO authenticated,service_role;
