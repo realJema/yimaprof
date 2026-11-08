@@ -7,6 +7,7 @@ describe('safe payment-start recovery', () => {
     'Plan or billing period unavailable', 'Unsupported operator',
     'Phone number must be 9 digits, got 8', 'MeSomb not configured',
     'Failed to create transaction', 'Invalid user',
+    'Unsupported billing period', 'Payment unavailable',
   ]) {
     it(`allows an explicit pre-collection refusal: ${reason}`, async () => {
       assert.equal(await readPaymentStartRefusal({

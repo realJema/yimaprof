@@ -1,9 +1,10 @@
 # Roadmap
-- [ ] Clarifier le plein écran et afficher les classements après clôture.
-- [ ] Ajouter les cours multi-classes, séries visibles et sections FR/EN.
-- [ ] Restaurer les six Séquences dans les filtres.
-- [ ] Ajouter les offres jour/semaine avec tarifs administrables et durées exactes.
-- [ ] Traduire l'aide en anglais et vérifier les parcours disponibles.
+- [x] Clarifier le plein écran, documenter l'absence de pénalité et ajouter les classements après clôture (accès protégé côté serveur).
+- [x] Ajouter les cours multi-classes, séries visibles et sections FR/EN ; anciennes classes conservées.
+- [x] Restaurer les six Séquences dans les filtres (sélection vérifiée dans le navigateur).
+- [x] Ajouter les offres jour/semaine avec tarifs administrables et durées exactes (tests réussis ; tarifs non configurés).
+- [x] Traduire l'aide en anglais ; recherche et restrictions des profils vérifiées sur pages publiques.
+- [ ] Vérifier la sauvegarde admin des classes/prix et un classement avec compte connecté (session Supabase externe indisponible).
 
 - [x] Finaliser Google Search Console : site vérifié, sitemap envoyé.
 - [x] Répondre à la stratégie SEO / Search Console (élèves et parents).
