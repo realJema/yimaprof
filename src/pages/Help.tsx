@@ -151,6 +151,10 @@ const studentsSections: Section[] = [
         title: '3. Voir votre classement',
         text: "Votre note apparaît après soumission. Le bouton « Voir les résultats » et le classement sont disponibles après la date de fin du challenge.",
       },
+      {
+        title: '4. Comprendre le plein écran',
+        text: "Le plein écran vous aide à vous concentrer si votre navigateur l’autorise. Les sorties sont comptées uniquement sur la page ouverte, ne sont pas conservées dans vos résultats et ne réduisent pas votre note. Le chronomètre continue sans pause.",
+      },
     ],
     screenshots: [
       { src: challengesImg, caption: "La page Challenges : les défis en cours et leur récompense." },
