@@ -1,4 +1,9 @@
 # Roadmap
+- [ ] Clarifier le plein écran et afficher les classements après clôture.
+- [ ] Ajouter les cours multi-classes, séries visibles et sections FR/EN.
+- [ ] Restaurer les six Séquences dans les filtres.
+- [ ] Ajouter les offres jour/semaine avec tarifs administrables et durées exactes.
+- [ ] Traduire l'aide en anglais et vérifier les parcours disponibles.
 
 - [x] Finaliser Google Search Console : site vérifié, sitemap envoyé.
 - [x] Répondre à la stratégie SEO / Search Console (élèves et parents).
