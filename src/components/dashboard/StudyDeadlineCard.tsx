@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CalendarClock, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,56 +6,39 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useStudyPreferences } from '@/hooks/useStudyPreferences';
+import { DEADLINE_KINDS, Deadline, daysUntil, validDeadline } from '@/lib/studyGuide';
+import { useToast } from '@/hooks/use-toast';
 
-export const DEADLINE_KINDS = [
-  { id: 'seq1', fr: '1ère Séquence', en: '1st Sequence' },
-  { id: 'seq2', fr: '2e Séquence', en: '2nd Sequence' },
-  { id: 'seq3', fr: '3e Séquence', en: '3rd Sequence' },
-  { id: 'seq4', fr: '4e Séquence', en: '4th Sequence' },
-  { id: 'seq5', fr: '5e Séquence', en: '5th Sequence' },
-  { id: 'seq6', fr: '6e Séquence', en: '6th Sequence' },
-  { id: 'bepc', fr: 'BEPC', en: 'BEPC' },
-  { id: 'probatoire', fr: 'Probatoire', en: 'Probatoire' },
-  { id: 'bac', fr: 'Baccalauréat', en: 'Baccalauréat' },
-  { id: 'gce_o', fr: 'GCE O Level', en: 'GCE O Level' },
-  { id: 'gce_a', fr: 'GCE A Level', en: 'GCE A Level' },
-  { id: 'custom', fr: 'Autre évaluation', en: 'Other assessment' },
-];
-
-type Deadline = { kind: string; label?: string; date: string };
-
-export function daysUntil(date: string, now = new Date()): number {
-  const target = new Date(date + 'T00:00:00');
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((target.getTime() - today.getTime()) / 86400000);
-}
+export { DEADLINE_KINDS, daysUntil } from '@/lib/studyGuide';
 
 export default function StudyDeadlineCard({ userId }: { userId?: string }) {
   const { language } = useLanguage();
   const isEn = language === 'en';
-  const key = `yima_deadline_${userId || 'guest'}`;
-  const [deadline, setDeadline] = useState<Deadline | null>(null);
+  const { toast } = useToast();
+  const { deadline, save: savePreferences, saving, isPending, isError, refetch } = useStudyPreferences(userId);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Deadline>({ kind: 'seq1', label: '', date: '' });
 
-  useEffect(() => {
+  const failure = () => toast({ title: isEn ? 'Deadline not saved' : 'Échéance non enregistrée', description: isEn ? 'Check your connection and try again.' : 'Vérifiez votre connexion et réessayez.', variant: 'destructive' });
+  const save = async () => {
+    if (!validDeadline(form)) return;
     try {
-      const raw = localStorage.getItem(key);
-      setDeadline(raw ? JSON.parse(raw) : null);
-    } catch { setDeadline(null); }
-  }, [key]);
-
-  const save = () => {
-    if (!form.date) return;
-    localStorage.setItem(key, JSON.stringify(form));
-    setDeadline(form);
-    setEditing(false);
+      await savePreferences({ deadline_kind: form.kind, deadline_label: form.label?.trim() || null, deadline_date: form.date });
+      setEditing(false);
+    } catch { failure(); }
   };
-  const remove = () => { localStorage.removeItem(key); setDeadline(null); };
+  const remove = async () => {
+    try { await savePreferences({ deadline_kind: null, deadline_label: null, deadline_date: null }); }
+    catch { failure(); }
+  };
 
   const kind = DEADLINE_KINDS.find(k => k.id === deadline?.kind);
   const name = deadline?.kind === 'custom' && deadline.label ? deadline.label : kind ? (isEn ? kind.en : kind.fr) : '';
   const days = deadline ? daysUntil(deadline.date) : 0;
+  if (!userId) return null;
+  if (isPending) return <p className="text-sm text-muted-foreground py-4">{isEn ? 'Loading your deadline…' : 'Chargement de votre échéance…'}</p>;
+  if (isError) return <Button variant="outline" onClick={() => void refetch()}>{isEn ? 'Retry loading deadline' : 'Recharger mon échéance'}</Button>;
 
   return (
     <Card className="mb-8 border-border/50 bg-card/95 shadow-soft">
@@ -70,8 +53,8 @@ export default function StudyDeadlineCard({ userId }: { userId?: string }) {
           </div>
           {deadline && !editing && (
             <div className="flex gap-1">
-              <Button size="icon" variant="ghost" onClick={() => { setForm(deadline); setEditing(true); }} aria-label="edit"><Pencil className="h-4 w-4" /></Button>
-              <Button size="icon" variant="ghost" onClick={remove} aria-label="delete"><Trash2 className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" disabled={saving} onClick={() => { setForm(deadline); setEditing(true); }} aria-label={isEn ? 'Edit deadline' : 'Modifier mon échéance'} title={isEn ? 'Edit deadline' : 'Modifier mon échéance'}><Pencil className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" disabled={saving} onClick={remove} aria-label={isEn ? 'Delete deadline' : 'Supprimer mon échéance'} title={isEn ? 'Delete deadline' : 'Supprimer mon échéance'}><Trash2 className="h-4 w-4" /></Button>
             </div>
           )}
         </div>
@@ -88,25 +71,25 @@ export default function StudyDeadlineCard({ userId }: { userId?: string }) {
         ) : editing ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div>
-              <Label>{isEn ? 'Assessment' : 'Évaluation'}</Label>
+              <Label htmlFor="study-deadline-kind">{isEn ? 'Assessment' : 'Évaluation'}</Label>
               <Select value={form.kind} onValueChange={v => setForm({ ...form, kind: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="study-deadline-kind"><SelectValue /></SelectTrigger>
                 <SelectContent>{DEADLINE_KINDS.map(k => <SelectItem key={k.id} value={k.id}>{isEn ? k.en : k.fr}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {form.kind === 'custom' && (
               <div>
-                <Label>{isEn ? 'Name' : 'Nom'}</Label>
-                <Input value={form.label || ''} maxLength={60} onChange={e => setForm({ ...form, label: e.target.value })} />
+                <Label htmlFor="study-deadline-name">{isEn ? 'Name' : 'Nom'}</Label>
+                <Input id="study-deadline-name" value={form.label || ''} maxLength={60} onChange={e => setForm({ ...form, label: e.target.value })} />
               </div>
             )}
             <div>
-              <Label>Date</Label>
-              <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              <Label htmlFor="study-deadline-date">Date</Label>
+              <Input id="study-deadline-date" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
             </div>
             <div className="flex items-end gap-2">
-              <Button onClick={save} disabled={!form.date}>{isEn ? 'Save' : 'Enregistrer'}</Button>
-              <Button variant="ghost" onClick={() => setEditing(false)}>{isEn ? 'Cancel' : 'Annuler'}</Button>
+              <Button onClick={save} disabled={!validDeadline(form) || saving}>{saving ? '…' : isEn ? 'Save' : 'Enregistrer'}</Button>
+              <Button variant="ghost" disabled={saving} onClick={() => setEditing(false)}>{isEn ? 'Cancel' : 'Annuler'}</Button>
             </div>
           </div>
         ) : (
@@ -114,6 +97,7 @@ export default function StudyDeadlineCard({ userId }: { userId?: string }) {
             {isEn ? 'Set my deadline' : 'Définir mon échéance'}
           </Button>
         )}
+        <p className="mt-3 text-xs text-muted-foreground">{isEn ? 'Your deadline and weekly goal follow your account across devices.' : 'Votre échéance et votre objectif hebdomadaire suivent votre compte sur vos appareils.'}</p>
       </CardContent>
     </Card>
   );

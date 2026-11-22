@@ -1,5 +1,6 @@
 import { LIBRARY_EXAM_VISIBILITIES } from '@/lib/examVisibility';
 import StudyDeadlineCard from '@/components/dashboard/StudyDeadlineCard';
+import StudyGuide from '@/components/dashboard/StudyGuide';
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -417,6 +418,7 @@ export default function Dashboard() {
         </Card>
 
         <StudyDeadlineCard userId={user?.id} />
+        <StudyGuide userId={user?.id} compact />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

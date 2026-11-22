@@ -1,4 +1,6 @@
 # Architecture rules
+- Derive the four-step study guide from paginated, user-scoped graded results; deduplicate exam retry rows by numbered attempt and never infer unseen conceptual errors or correction views.
+- Store study goals and deadlines in owner-only study_preferences, importing the legacy local deadline only when no server row exists so deletion cannot resurrect it.
 - Keep lesson class arrays synchronized with the legacy primary class by trigger so school forms and old lessons stay compatible.
 - Share billing-cycle validation and recorded-price resolution between checkout and MeSomb; preserve existing durations and finalize short cycles atomically in the payment finalizer.
 - Expose ended challenge rankings through an invoker wrapper around a private scope-checked function, never by publishing attempts or answers.

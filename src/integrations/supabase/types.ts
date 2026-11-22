@@ -1954,6 +1954,36 @@ export type Database = {
         }
         Relationships: []
       }
+      study_preferences: {
+        Row: {
+          created_at: string
+          deadline_date: string | null
+          deadline_kind: string | null
+          deadline_label: string | null
+          updated_at: string
+          user_id: string
+          weekly_goal: number
+        }
+        Insert: {
+          created_at?: string
+          deadline_date?: string | null
+          deadline_kind?: string | null
+          deadline_label?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_goal?: number
+        }
+        Update: {
+          created_at?: string
+          deadline_date?: string | null
+          deadline_kind?: string | null
+          deadline_label?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_goal?: number
+        }
+        Relationships: []
+      }
       subjects: {
         Row: {
           created_at: string | null

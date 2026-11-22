@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import SeoHead from '@/components/SeoHead';
-import { BarChart3, BookOpen, Clock, Target, Trophy, Dumbbell, Lightbulb, ArrowRight } from 'lucide-react';
+import StudyGuide from '@/components/dashboard/StudyGuide';
+import { BarChart3, BookOpen, Clock, Target, Trophy, Dumbbell } from 'lucide-react';
 
 interface LessonProgressRow {
   lesson_id: string;
@@ -90,52 +91,6 @@ export default function StudentProgress() {
     return { completed, minutes, avg, attempts: evals.length, exercises: exResults.length, challenges: chResults.length, byLevel, any: all.length > 0 };
   }, [lessons, evals, exResults, chResults]);
 
-  const reco = useMemo(() => {
-    const weak = bySubjectWeak(evals, fr, pct);
-    if (!stats.any) return {
-      title: fr ? 'Commencez votre parcours' : 'Start your journey',
-      tips: [fr ? 'Fixez-vous 20 minutes d’étude par jour.' : 'Set yourself 20 minutes of study a day.'],
-      actions: [{ to: '/lessons', label: fr ? 'Ouvrir une leçon' : 'Open a lesson' }, { to: '/exams2', label: fr ? 'Parcourir les épreuves' : 'Browse papers' }],
-      weak,
-    };
-    if (stats.avg < 50) return {
-      title: fr ? 'Consolidez les bases' : 'Strengthen the basics',
-      tips: [
-        fr ? 'Relisez le cours avant chaque exercice et notez les définitions clés.' : 'Re-read the lesson before each exercise and note key definitions.',
-        fr ? 'Lisez attentivement le corrigé de chaque erreur.' : 'Read the correction of every mistake carefully.',
-      ],
-      actions: [{ to: '/lessons', label: fr ? 'Refaire les exercices de niveau Facile' : 'Redo the Easy-level exercises' }, { to: '/forum', label: fr ? 'Poser vos questions sur le forum' : 'Ask your questions on the forum' }],
-      weak,
-    };
-    if (stats.avg < 70) return {
-      title: fr ? 'Vous progressez, continuez' : 'You are progressing, keep going',
-      tips: [
-        fr ? 'Passez au niveau Intermédiaire dès que vous dépassez 70 % en Facile.' : 'Move to Intermediate once you score above 70% on Easy.',
-        fr ? 'Travaillez en priorité vos matières les plus faibles.' : 'Focus first on your weakest subjects.',
-      ],
-      actions: [{ to: '/lessons', label: fr ? 'Faire les exercices Intermédiaires' : 'Do Intermediate exercises' }, { to: '/exams2', label: fr ? 'Faire une auto-évaluation chronométrée' : 'Take a timed self-assessment' }],
-      weak,
-    };
-    if (stats.avg < 85) return {
-      title: fr ? 'Bon niveau, visez l’excellence' : 'Good level, aim for excellence',
-      tips: [
-        fr ? 'Entraînez-vous en conditions d’examen, sans consulter le cours.' : 'Practise in exam conditions, without the lesson.',
-        fr ? 'Analysez le temps passé par question.' : 'Check the time spent per question.',
-      ],
-      actions: [{ to: '/lessons', label: fr ? 'Attaquer le niveau Difficile' : 'Tackle the Hard level' }, { to: '/challenges', label: fr ? 'Participer à un challenge' : 'Join a challenge' }],
-      weak,
-    };
-    return {
-      title: fr ? 'Excellent travail' : 'Excellent work',
-      tips: [
-        fr ? 'Maintenez le rythme avec des épreuves d’années précédentes.' : 'Keep the pace with past papers.',
-        fr ? 'Expliquez les notions à vos camarades pour les ancrer.' : 'Explain concepts to classmates to anchor them.',
-      ],
-      actions: [{ to: '/challenges', label: fr ? 'Relever un challenge' : 'Take on a challenge' }, { to: '/forum', label: fr ? 'Aider sur le forum' : 'Help on the forum' }],
-      weak,
-    };
-  }, [stats, evals, fr]);
-
   const bySubject = useMemo(() => {
     const map = new Map<string, number[]>();
     evals.forEach((e) => {
@@ -169,6 +124,9 @@ export default function StudentProgress() {
         {fr ? 'Ma progression' : 'My progress'}
       </h1>
 
+      <StudyGuide userId={user?.id} />
+
+      <h2 className="text-xl font-semibold mb-4">{fr ? 'Historique global' : 'Overall history'}</h2>
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-8">
         {[
           { label: fr ? 'Leçons terminées' : 'Lessons completed', value: `${stats.completed}/${lessons.length}`, icon: BookOpen },
@@ -188,31 +146,9 @@ export default function StudentProgress() {
         ))}
       </div>
 
-      <Card className="mb-6 border-secondary/30">
-        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Lightbulb className="h-5 w-5 text-secondary" />{reco.title}</CardTitle></CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <div>
-            <p className="mb-2 text-sm font-medium">{fr ? 'Conseils' : 'Tips'}</p>
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              {reco.tips.map((t) => <li key={t}>• {t}</li>)}
-              {reco.weak.length > 0 && <li>• {fr ? 'À renforcer : ' : 'To strengthen: '}<span className="font-medium text-foreground">{reco.weak.join(', ')}</span></li>}
-            </ul>
-            {stats.exercises > 0 && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {fr ? 'Exercices par niveau' : 'Exercises by level'} — {fr ? 'Facile' : 'Easy'} : {stats.byLevel.facile} · {fr ? 'Intermédiaire' : 'Intermediate'} : {stats.byLevel.intermediaire} · {fr ? 'Difficile' : 'Hard'} : {stats.byLevel.difficile}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">{fr ? 'Actions conseillées' : 'Suggested actions'}</p>
-            {reco.actions.map((a) => (
-              <Button key={a.label} asChild variant="outline" className="w-full justify-between">
-                <Link to={a.to}>{a.label}<ArrowRight className="h-4 w-4" /></Link>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {stats.exercises > 0 && <p className="text-sm text-muted-foreground mb-6">
+        {fr ? 'Exercices par niveau' : 'Exercises by level'} — {fr ? 'Facile' : 'Easy'} : {stats.byLevel.facile} · {fr ? 'Intermédiaire' : 'Intermediate'} : {stats.byLevel.intermediaire} · {fr ? 'Difficile' : 'Hard'} : {stats.byLevel.difficile}
+      </p>}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -274,16 +210,3 @@ export default function StudentProgress() {
   );
 }
 
-function bySubjectWeak(evals: EvalRow[], fr: boolean, pct: (e: EvalRow) => number): string[] {
-  const map = new Map<string, number[]>();
-  evals.forEach((e) => {
-    const subject = (fr ? e.exams?.subjects?.name_fr : e.exams?.subjects?.name_en) || e.exams?.subjects?.name_fr || e.exams?.subjects?.name_en;
-    if (subject) map.set(subject, [...(map.get(subject) || []), pct(e)]);
-  });
-  return Array.from(map.entries())
-    .map(([s, l]) => ({ s, avg: l.reduce((a, b) => a + b, 0) / l.length }))
-    .filter((x) => x.avg < 50)
-    .sort((a, b) => a.avg - b.avg)
-    .slice(0, 3)
-    .map((x) => x.s);
-}
