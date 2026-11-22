@@ -1,4 +1,6 @@
 # Roadmap
+- [ ] Construire le guide : suivi hebdomadaire, difficultés, prochaine action, plan jusqu’à l’échéance.
+- [ ] Tester les calculs et le guide sur ordinateur et téléphone ; vérifier les résultats connectés si une session est disponible.
 - [x] Clarifier le plein écran, documenter l'absence de pénalité et ajouter les classements après clôture (accès protégé côté serveur).
 - [x] Ajouter les cours multi-classes, séries visibles et sections FR/EN ; anciennes classes conservées.
 - [x] Restaurer les six Séquences dans les filtres (sélection vérifiée dans le navigateur).
