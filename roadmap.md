@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Trancher la correction de « Circuit simple » après réponse sur le type de compte : les 24 questions existent ; sans abonnement, l’interface ne retient volontairement que le premier élément Facile.
 - [x] Construire le guide : suivi hebdomadaire, difficultés, prochaine action, plan jusqu’à l’échéance.
 - [x] Tester les calculs et le guide sur ordinateur et téléphone (30 tests et parcours avec réponses simulées).
 - [ ] Vérifier objectifs, échéance et résultats du guide avec une vraie session élève (Supabase externe sans session gérée).
