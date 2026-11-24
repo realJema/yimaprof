@@ -7,6 +7,11 @@ import {
 } from './paymentFailureGuidance';
 
 describe('classifyPaymentFailure', () => {
+  it('detects an explicit pre-collection provider configuration refusal', () => {
+    assert.equal(classifyPaymentFailure('payment_provider_unavailable'), 'provider_unavailable');
+    assert.equal(classifyPaymentFailure('This API Key is not active'), 'provider_unavailable');
+  });
+
   it('detects insufficient balance in French and English', () => {
     assert.equal(classifyPaymentFailure('MeSomb status: FAILED - solde insuffisant'), 'insufficient_balance');
     assert.equal(classifyPaymentFailure('Insufficient funds'), 'insufficient_balance');
@@ -54,6 +59,18 @@ describe('classifyPaymentFailure', () => {
 });
 
 describe('paymentFailureGuidance', () => {
+  it('releases an inactive-key attempt with reassurance and no technical detail', () => {
+    const guidance = paymentFailureGuidance('payment_provider_unavailable', 'ORANGE');
+    const visible = [guidance.title, guidance.message, ...guidance.steps].join(' ');
+    assert.equal(guidance.kind, 'provider_unavailable');
+    assert.ok(visible.includes('Aucun montant'));
+    assert.ok(visible.includes('Orange Money'));
+    assert.ok(!visible.includes('API'));
+    assert.ok(!visible.includes('MeSomb'));
+    assert.equal(guidance.suggestVerify, false);
+    assert.equal(guidance.canRetry, true);
+  });
+
   it('never exposes the raw technical reason in user-facing text', () => {
     const guidance = paymentFailureGuidance('MeSomb status: FAILED - solde insuffisant', 'MTN');
     const visible = [guidance.title, guidance.message, ...guidance.steps].join(' ');

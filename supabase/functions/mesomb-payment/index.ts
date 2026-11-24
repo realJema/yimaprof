@@ -290,9 +290,29 @@ serve(async (req) => {
           });
         }
       })
-      .catch((error) => {
+      .catch(async (error) => {
         console.error('MeSomb SDK error (background):', error);
-        // Don't update to failed - webhook is authoritative
+
+        // This exact provider refusal happens before any collection request is
+        // accepted. Close the attempt so Realtime releases the processing UI.
+        // Every other error stays unresolved: a lost response may hide a debit.
+        if (!isInactiveMesombApiKey(error)) return;
+
+        const { data: freshTx, error: readError } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('id', pendingTransaction.id)
+          .single();
+        if (readError || !freshTx) {
+          console.error('Unable to reload refused transaction:', readError);
+          return;
+        }
+
+        await markTransactionFailed(supabase, freshTx, PAYMENT_PROVIDER_UNAVAILABLE, {
+          confirmed_by: 'provider-precollection-refusal',
+          provider_error: mesombErrorMessage(error),
+          mesomb_status: 'CONFIGURATION_ERROR',
+        });
       });
 
     // Explicitly keep the Supabase worker alive after the HTTP response.

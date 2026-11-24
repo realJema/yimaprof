@@ -37,6 +37,10 @@ export function classifyPaymentFailure(reason: string | null | undefined): Payme
   if (!reason) return 'unknown';
   const text = reason.toLowerCase();
 
+  if (text === 'payment_provider_unavailable' || /this api key is not active/.test(text)) {
+    return 'provider_unavailable';
+  }
+
   // Provider messages like "Either the balance is low, or the payee has
   // reached its limit or it is not allowed" are ambiguous: never pretend
   // we know which cause it was.
@@ -62,6 +66,20 @@ export function paymentFailureGuidance(
   const operator = carrier === 'MTN' ? 'MTN Mobile Money' : carrier === 'ORANGE' ? 'Orange Money' : 'votre opérateur';
 
   switch (kind) {
+    case 'provider_unavailable':
+      return {
+        kind,
+        title: 'Paiement temporairement indisponible',
+        message: `Votre demande n’a pas été transmise à ${operator}. Aucun montant n’a été débité.`,
+        steps: [
+          'Aucune validation Mobile Money n’est nécessaire pour cette tentative.',
+          'Réessayez un peu plus tard, une fois le service rétabli.',
+          'Si le problème persiste, contactez le support YimaProf.',
+        ],
+        canRetry: true,
+        suggestVerify: false,
+        suggestSupport: true,
+      };
     case 'insufficient_balance':
       return {
         kind,
