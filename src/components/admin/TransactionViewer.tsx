@@ -92,7 +92,16 @@ export function TransactionViewer() {
     const { data, error } = await supabase.functions.invoke('admin-resolve-transaction', {
       body: { action: 'verify-and-resolve', transactionId },
     });
-    if (error) throw error;
+    if (error) {
+      const response = (error as { context?: unknown }).context;
+      if (response instanceof Response) {
+        const payload = await response.clone().json().catch(() => null) as { error?: string } | null;
+        if (payload?.error === 'MeSomb API key inactive') {
+          throw new Error('La clé API MeSomb est inactive. Mettez-la à jour avant de revérifier.');
+        }
+      }
+      throw error;
+    }
     return (data?.resolution as string) || 'pending';
   };
 
@@ -112,7 +121,13 @@ export function TransactionViewer() {
       await fetchTransactions();
     } catch (error) {
       console.error('Verify failed:', error);
-      toast({ title: 'Erreur', description: 'La vérification a échoué', variant: 'destructive' });
+      toast({
+        title: 'Erreur',
+        description: error instanceof Error && error.message.includes('clé API MeSomb')
+          ? error.message
+          : 'La vérification a échoué',
+        variant: 'destructive',
+      });
     } finally {
       setVerifyingIds((prev) => {
         const next = new Set(prev);
