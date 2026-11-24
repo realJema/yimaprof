@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { JsonExercise, JsonLevel, isMcqExercise, totalPoints } from '@/lib/lessonJsonExercises';
+import { JsonLevel, JsonQuestion, isMcqExercise, totalPoints } from '@/lib/lessonJsonExercises';
 import { getAppreciation } from '@/lib/lessonAppreciations';
 import { AlertTriangle, CheckCircle2, Clock, MessageSquareHeart, RotateCcw } from 'lucide-react';
 
@@ -20,7 +20,7 @@ export default function LessonLevelEvaluation({
   level,
   onFinished,
 }: {
-  exercises: JsonExercise[];
+  exercises: JsonQuestion[];
   minutes: number;
   level?: JsonLevel;
   onFinished?: (percent: number) => void;

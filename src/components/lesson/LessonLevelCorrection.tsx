@@ -2,10 +2,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarkdownText } from '@/components/ui/markdown-text';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { JsonExercise, isMcqExercise } from '@/lib/lessonJsonExercises';
+import { JsonQuestion, isMcqExercise } from '@/lib/lessonJsonExercises';
 
 /** Read-only corrected version of a lesson level: no input, no timer, no score. */
-export default function LessonLevelCorrection({ exercises }: { exercises: JsonExercise[] }) {
+export default function LessonLevelCorrection({ exercises }: { exercises: JsonQuestion[] }) {
   const { language } = useLanguage();
   const fr = language === 'fr';
 

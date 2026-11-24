@@ -8,6 +8,7 @@ import {
   JSON_LEVELS,
   LessonExercises,
   countExercises,
+  countExerciseQuestions,
   jsonLevelLabel,
   validateLessonExercisesJson,
 } from '@/lib/lessonJsonExercises';
@@ -76,6 +77,11 @@ export default function LessonJsonImport({
     <div className="space-y-4">
       <div>
         <Label htmlFor="lesson-json">{fr ? 'JSON des exercices' : 'Exercises JSON'}</Label>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {fr
+            ? 'Pour un exercice à plusieurs questions, utilisez { "title": "…", "questions": […] }. L’ancien format à une question reste accepté.'
+            : 'For a multi-question exercise, use { "title": "…", "questions": […] }. The legacy one-question format remains accepted.'}
+        </p>
         <Textarea
           id="lesson-json"
           rows={10}
@@ -138,7 +144,7 @@ export default function LessonJsonImport({
 
       <div className="rounded-lg border p-3">
         <p className="text-sm font-medium mb-2">
-          {fr ? 'Exercices actuellement enregistrés' : 'Exercises currently saved'} ({countExercises(value)})
+          {fr ? 'Exercices actuellement enregistrés' : 'Exercises currently saved'} ({countExercises(value)}) · {countExerciseQuestions(value)} {fr ? 'questions' : 'questions'}
         </p>
         <div className="flex flex-wrap gap-2">
           {JSON_LEVELS.map((lv) => (

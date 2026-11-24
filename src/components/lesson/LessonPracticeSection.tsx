@@ -9,7 +9,9 @@ import {
   JSON_LEVELS,
   JsonLevel,
   LessonExercises,
+  accessibleExerciseQuestions,
   countExercises,
+  exercisePreviewText,
   jsonLevelLabel,
   totalPoints,
 } from '@/lib/lessonJsonExercises';
@@ -120,7 +122,7 @@ export default function LessonPracticeSection({
                 {exercises[level].slice(0, 2).map((ex, i) => (
                   <div key={i} className="relative overflow-hidden rounded-lg border p-4 select-none" aria-hidden>
                     <div className="pointer-events-none blur-sm opacity-60">
-                      <MarkdownText text={`**${i + 1}.** ${ex.question}`} />
+                      <MarkdownText text={`**${i + 1}.** ${exercisePreviewText(ex)}`} />
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Badge variant="secondary" className="gap-1 shadow-sm">
@@ -164,7 +166,7 @@ export default function LessonPracticeSection({
         {level && mode === 'evaluation' && (
           <LessonLevelEvaluation
             key={level}
-            exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)}
+            exercises={accessibleExerciseQuestions(exercises[level], hasActiveSubscription)}
             minutes={minutes}
             level={level}
             onFinished={(percent) => {
@@ -176,7 +178,7 @@ export default function LessonPracticeSection({
         )}
 
         {level && mode === 'correction' && (
-          <LessonLevelCorrection exercises={hasActiveSubscription ? exercises[level] : exercises[level].slice(0, 1)} />
+          <LessonLevelCorrection exercises={accessibleExerciseQuestions(exercises[level], hasActiveSubscription)} />
         )}
       </CardContent>
 
