@@ -231,7 +231,9 @@ export function TransactionViewer() {
       key: 'metadata.failure_reason',
       label: 'Détail',
       render: (_value: string, transaction: Transaction) => {
-        const detail = transaction.metadata?.failure_reason || transaction.metadata?.mesomb_message;
+        const detail = transaction.metadata?.failure_reason === 'payment_provider_unavailable'
+          ? 'Clé API MeSomb inactive : demande refusée avant tout débit.'
+          : transaction.metadata?.failure_reason || transaction.metadata?.mesomb_message;
         return detail ? (
           <span className="text-xs text-muted-foreground line-clamp-2 max-w-[220px] inline-block" title={detail}>
             {detail}

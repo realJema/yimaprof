@@ -8,6 +8,11 @@ import {
   markTransactionFailed,
   normalizeStatus,
 } from '../_shared/finalizeTransaction.ts';
+import {
+  isInactiveMesombApiKey,
+  mesombErrorMessage,
+  PAYMENT_PROVIDER_UNAVAILABLE,
+} from '../_shared/mesombProviderError.ts';
 
 declare const EdgeRuntime: { waitUntil: (task: Promise<unknown>) => void };
 

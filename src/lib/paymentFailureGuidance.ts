@@ -4,6 +4,7 @@
 export type PaymentCarrier = 'MTN' | 'ORANGE' | null;
 
 export type PaymentFailureKind =
+  | 'provider_unavailable'
   | 'insufficient_balance'
   | 'limit_reached'
   | 'balance_or_limit'
