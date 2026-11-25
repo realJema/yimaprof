@@ -5,7 +5,6 @@ import {
   activateSubscriptionForTransaction,
   markTransactionFailed,
 } from '../_shared/finalizeTransaction.ts';
-import { isInactiveMesombApiKey } from '../_shared/mesombProviderError.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -250,16 +249,6 @@ serve(async (req) => {
           mesombTxs = await paymentOp.checkTransactions([transactionId], 'EXTERNAL');
         } catch (e) {
           console.log('EXTERNAL lookup failed:', e);
-          if (isInactiveMesombApiKey(e)) {
-            return new Response(JSON.stringify({
-              success: false,
-              resolution: 'unavailable',
-              error: 'MeSomb API key inactive',
-            }), {
-              status: 503,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
         }
         
         // Fallback to provider_reference
@@ -268,16 +257,6 @@ serve(async (req) => {
             mesombTxs = await paymentOp.checkTransactions([transaction.provider_reference], 'MESOMB');
           } catch (e) {
             console.log('MESOMB lookup failed:', e);
-            if (isInactiveMesombApiKey(e)) {
-              return new Response(JSON.stringify({
-                success: false,
-                resolution: 'unavailable',
-                error: 'MeSomb API key inactive',
-              }), {
-                status: 503,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              });
-            }
           }
         }
         

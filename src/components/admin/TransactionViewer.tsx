@@ -92,16 +92,7 @@ export function TransactionViewer() {
     const { data, error } = await supabase.functions.invoke('admin-resolve-transaction', {
       body: { action: 'verify-and-resolve', transactionId },
     });
-    if (error) {
-      const response = (error as { context?: unknown }).context;
-      if (response instanceof Response) {
-        const payload = await response.clone().json().catch(() => null) as { error?: string } | null;
-        if (payload?.error === 'MeSomb API key inactive') {
-          throw new Error('La clé API MeSomb est inactive. Mettez-la à jour avant de revérifier.');
-        }
-      }
-      throw error;
-    }
+    if (error) throw error;
     return (data?.resolution as string) || 'pending';
   };
 
@@ -121,13 +112,7 @@ export function TransactionViewer() {
       await fetchTransactions();
     } catch (error) {
       console.error('Verify failed:', error);
-      toast({
-        title: 'Erreur',
-        description: error instanceof Error && error.message.includes('clé API MeSomb')
-          ? error.message
-          : 'La vérification a échoué',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erreur', description: 'La vérification a échoué', variant: 'destructive' });
     } finally {
       setVerifyingIds((prev) => {
         const next = new Set(prev);
@@ -246,9 +231,7 @@ export function TransactionViewer() {
       key: 'metadata.failure_reason',
       label: 'Détail',
       render: (_value: string, transaction: Transaction) => {
-        const detail = transaction.metadata?.failure_reason === 'payment_provider_unavailable'
-          ? 'Clé API MeSomb inactive : demande refusée avant tout débit.'
-          : transaction.metadata?.failure_reason || transaction.metadata?.mesomb_message;
+        const detail = transaction.metadata?.failure_reason || transaction.metadata?.mesomb_message;
         return detail ? (
           <span className="text-xs text-muted-foreground line-clamp-2 max-w-[220px] inline-block" title={detail}>
             {detail}

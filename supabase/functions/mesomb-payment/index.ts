@@ -8,11 +8,6 @@ import {
   markTransactionFailed,
   normalizeStatus,
 } from '../_shared/finalizeTransaction.ts';
-import {
-  isInactiveMesombApiKey,
-  mesombErrorMessage,
-  PAYMENT_PROVIDER_UNAVAILABLE,
-} from '../_shared/mesombProviderError.ts';
 
 declare const EdgeRuntime: { waitUntil: (task: Promise<unknown>) => void };
 
@@ -290,29 +285,9 @@ serve(async (req) => {
           });
         }
       })
-      .catch(async (error) => {
+      .catch((error) => {
         console.error('MeSomb SDK error (background):', error);
-
-        // This exact provider refusal happens before any collection request is
-        // accepted. Close the attempt so Realtime releases the processing UI.
-        // Every other error stays unresolved: a lost response may hide a debit.
-        if (!isInactiveMesombApiKey(error)) return;
-
-        const { data: freshTx, error: readError } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('id', pendingTransaction.id)
-          .single();
-        if (readError || !freshTx) {
-          console.error('Unable to reload refused transaction:', readError);
-          return;
-        }
-
-        await markTransactionFailed(supabase, freshTx, PAYMENT_PROVIDER_UNAVAILABLE, {
-          confirmed_by: 'provider-precollection-refusal',
-          provider_error: mesombErrorMessage(error),
-          mesomb_status: 'CONFIGURATION_ERROR',
-        });
+        // Don't update to failed - webhook is authoritative
       });
 
     // Explicitly keep the Supabase worker alive after the HTTP response.
