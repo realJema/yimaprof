@@ -1540,6 +1540,42 @@ export type Database = {
           },
         ]
       }
+      mesomb_webhook_events: {
+        Row: {
+          action: string
+          error: string | null
+          event_id: string
+          event_type: string
+          payload: Json
+          processed_at: string | null
+          received_at: string
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          action: string
+          error?: string | null
+          event_id: string
+          event_type: string
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          action?: string
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
@@ -2671,6 +2707,18 @@ export type Database = {
           status: string
           time_spent_seconds: number
         }[]
+      }
+      process_mesomb_webhook_event: {
+        Args: {
+          p_action: string
+          p_event_id: string
+          p_event_type: string
+          p_failure_reason?: string
+          p_payload: Json
+          p_provider_reference?: string
+          p_transaction_id: string
+        }
+        Returns: Json
       }
       register_establishment: {
         Args: {
