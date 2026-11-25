@@ -22,3 +22,4 @@
 - Keep a rollback checkpoint for immediately staged lesson JSON imports until confirmation; cancellation or editing the staged input restores the previous exercises.
 - After confirmed payment, use bounded subscription-only reads before a single replacement reload of the content destination; never reload the payment initiation URL or navigate to paid content before access is readable.
 - Refresh admin transaction and payment-revenue histories from Supabase transaction events with effect-scoped channel cleanup; both carriers share the same authoritative transaction table.
+- Verify MeSomb webhooks with the V2 timestamped HMAC signature and record event IDs in the private ledger, retrying failed events but acknowledging processed duplicates; legacy signatures remain accepted for continuity.

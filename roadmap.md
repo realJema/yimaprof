@@ -1,5 +1,6 @@
 # Roadmap
-- [ ] Déboguer et fiabiliser le webhook MeSomb : signature V2, payload `data.object`, déduplication durable et rejeu sans double traitement ; test réel MeSomb à confirmer depuis le tableau de bord.
+- [x] Déboguer et fiabiliser le webhook MeSomb : signature V2, payload `data.object`, déduplication durable et rejeu sûr (8 tests, déployé).
+- [ ] Confirmer une vraie livraison MeSomb : rejouer un événement depuis le tableau de bord MeSomb (secret de signature à vérifier si refus).
 - [ ] Rétablir les paiements MeSomb via Supabase : diagnostiquer la clé API inactive, préserver le parcours rapide et empêcher les transactions bloquées ; validation réelle subordonnée à une clé MeSomb active.
 - [x] Enregistrer la nouvelle clé MeSomb temporaire via le formulaire de secret sécurisé ; valeur jamais exposée dans le chat ou le code.
 - [x] Prendre en charge les exercices de leçon à plusieurs questions : le premier exercice Facile gratuit conserve toutes ses questions ; ancien format préservé (78 tests et affichage navigateur vérifié).
